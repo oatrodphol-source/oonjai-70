@@ -21,7 +21,7 @@ export async function GET(req: Request) {
     const cases = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     
     const formattedCases = cases.map((row: any) => ({
-      id: `CAS-${row.id}`,
+      id: row.case_number ? `CAS-${String(row.case_number).padStart(3, '0')}` : `CAS-${String(row.id).substring(0, 5)}`,
       rawId: row.id,
       name: row.name,
       type: row.type,

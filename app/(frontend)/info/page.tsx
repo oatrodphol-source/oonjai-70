@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Phone, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot } from 'firebase/firestore';
 
 export default function InfoPage() {
   const [stats, setStats] = useState<{
@@ -15,28 +17,87 @@ export default function InfoPage() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const getRiskLevelStyles = (count: number) => {
+    if (count > 50) return { bg: 'bg-red-800', text: 'text-red-800', label: 'วิกฤต' };
+    if (count >= 21) return { bg: 'bg-orange-500', text: 'text-orange-600', label: 'รุนแรง' };
+    if (count >= 11) return { bg: 'bg-yellow-400', text: 'text-yellow-600', label: 'เฝ้าระวังสูง' };
+    if (count >= 6) return { bg: 'bg-blue-500', text: 'text-blue-600', label: 'เฝ้าระวัง' };
+    return { bg: 'bg-green-500', text: 'text-green-600', label: 'ปกติ' };
+  };
+
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const res = await fetch('/api/cases/stats');
-        if (res.ok) {
-          const data = await res.json();
-          setStats(data);
+    const unsub = onSnapshot(collection(db, 'cases'), (snapshot) => {
+      let pendingCount = 0;
+      let completedCount = 0;
+      let shelterCount = 0;
+      let hospitalCount = 0;
+      
+      const districtCounts: Record<string, number> = {};
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        
+        // Counts
+        if (data.status === 'pending' || data.status === 'accepted' || data.status === 'in_progress') {
+          pendingCount++;
+        } else if (data.status === 'completed') {
+          completedCount++;
         }
-      } catch (err) {
-        console.error('Failed to fetch stats:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchStats();
+
+        if (data.help_type === 'shelter') {
+          shelterCount++;
+        } else if (data.help_type === 'hospital') {
+          hospitalCount++;
+        }
+
+        // District Counts for high risk
+        if (data.status !== 'completed' && data.status !== 'cancelled') {
+           const rawLocation = data.district || data.location_name || data.address || data.details || '';
+           let finalDistrict = 'ไม่ระบุพื้นที่';
+
+           if (rawLocation) {
+              // Try to find structural address keywords
+              const addrMatch = rawLocation.match(/(เขต|อำเภอ|ตำบล|แขวง)\s*([^\s,()]+)/);
+              
+              if (addrMatch) {
+                 finalDistrict = addrMatch[1] + addrMatch[2];
+              } else {
+                 // Fallback to first 20 characters of whatever location text we have
+                 finalDistrict = rawLocation.length > 20 ? rawLocation.substring(0, 20) + '...' : rawLocation;
+              }
+           }
+           
+           if (!districtCounts[finalDistrict]) districtCounts[finalDistrict] = 0;
+           districtCounts[finalDistrict] += 1;
+        }
+      });
+
+      const highRiskDistricts = Object.entries(districtCounts)
+        .map(([name, severityCount]) => ({ name, severityCount }))
+        .sort((a, b) => b.severityCount - a.severityCount)
+        .slice(0, 3);
+
+      setStats({
+        pendingCount,
+        completedCount,
+        shelterCount,
+        hospitalCount,
+        highRiskDistricts
+      });
+      setLoading(false);
+    }, (err) => {
+      console.error('Failed to fetch stats:', err);
+      setLoading(false);
+    });
+
+    return () => unsub();
   }, []);
 
   const emergencyNumbers = [
-    { name: 'เหตุด่วนเหตุร้าย', number: '191', color: 'bg-red-100 text-red-600 dark:bg-red-900/30' },
-    { name: 'เจ็บป่วยฉุกเฉิน', number: '1669', color: 'bg-green-100 text-green-600 dark:bg-green-900/30' },
-    { name: 'ดับเพลิง / สัตว์มีพิษ', number: '199', color: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30' },
-    { name: 'ปภ. (สายด่วน)', number: '1784', color: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30' },
+    { name: 'ปภ. (บรรเทาสาธารณภัย)', number: '1784', color: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30' },
+    { name: 'เจ็บป่วยฉุกเฉิน', number: '1669', color: 'bg-red-100 text-red-600 dark:bg-red-900/30' },
+    { name: 'ตำรวจทางหลวง', number: '1193', color: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30' },
+    { name: 'กรมทางหลวงชนบท', number: '1146', color: 'bg-green-100 text-green-600 dark:bg-green-900/30' },
   ];
 
   if (loading) {
@@ -89,20 +150,28 @@ export default function InfoPage() {
         </div>
         
         <div className="space-y-4">
-          {stats?.highRiskDistricts?.map((district, index) => {
+          {stats?.highRiskDistricts?.length ? stats.highRiskDistricts.map((district, index) => {
+            const risk = getRiskLevelStyles(district.severityCount);
             const percentage = Math.min((district.severityCount / 50) * 100, 100);
             return (
-              <div key={index}>
-                <div className="flex justify-between text-sm mb-1">
+              <div key={index} className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between text-sm">
                   <span className="font-medium text-gray-700 dark:text-gray-300">{district.name}</span>
-                  <span className="text-red-600 dark:text-red-400 font-bold">{district.severityCount} เคส</span>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full bg-opacity-10 dark:bg-opacity-20 ${risk.text} bg-current`}>
+                      {risk.label}
+                    </span>
+                    <span className={`${risk.text} font-bold`}>{district.severityCount} เคส</span>
+                  </div>
                 </div>
-                <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2.5">
-                  <div className="bg-red-500 h-2.5 rounded-full" style={{ width: `${percentage}%` }}></div>
+                <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2.5 overflow-hidden">
+                  <div className={`${risk.bg} h-full rounded-full transition-all duration-500`} style={{ width: `${percentage}%` }}></div>
                 </div>
               </div>
             );
-          })}
+          }) : (
+            <p className="text-sm text-gray-500">ไม่มีข้อมูลพื้นที่วิกฤต</p>
+          )}
         </div>
       </div>
 

@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { query } from '@/lib/db';
+import { db } from '@/lib/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { cookies } from 'next/headers';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'oonjai_secret_key_123';
@@ -14,14 +15,31 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing username/email or password' }, { status: 400 });
     }
 
-    // Find user by email or username (since the label says "ชื่อบัญชีผู้ใช้ / อีเมล")
-    const users = await query('SELECT * FROM user WHERE email = ? OR username = ?', [email, email]) as any[];
+    // Determine the target collection based on the role requested
+    const targetCollection = role === 'admin' ? 'admins' : 'volunteers';
+    const usersRef = collection(db, targetCollection);
     
-    if (!users || users.length === 0) {
+    // We want to check if the 'email' input matches either 'email' or 'username'
+    const emailQuery = query(usersRef, where('email', '==', email));
+    const usernameQuery = query(usersRef, where('username', '==', email));
+
+    const [emailSnapshot, usernameSnapshot] = await Promise.all([
+      getDocs(emailQuery),
+      getDocs(usernameQuery)
+    ]);
+
+    let matchedUserDoc = null;
+    if (!emailSnapshot.empty) {
+      matchedUserDoc = emailSnapshot.docs[0];
+    } else if (!usernameSnapshot.empty) {
+      matchedUserDoc = usernameSnapshot.docs[0];
+    }
+    
+    if (!matchedUserDoc) {
       return NextResponse.json({ error: 'ชื่อผู้ใช้/อีเมล หรือรหัสผ่านไม่ถูกต้อง' }, { status: 401 });
     }
 
-    const user = users[0];
+    const user = { userId: matchedUserDoc.id, ...matchedUserDoc.data() } as any;
 
     // Check role if specified
     if (role && user.role && user.role !== role) {
@@ -34,14 +52,14 @@ export async function POST(req: Request) {
        return NextResponse.json({ error: 'Database configuration error: No password field found' }, { status: 500 });
     }
 
-    const isMatch = await bcrypt.compare(password, hashToCompare);
+    const isMatch = (password === hashToCompare) || (await bcrypt.compare(password, hashToCompare).catch(() => false));
     if (!isMatch) {
       return NextResponse.json({ error: 'ชื่อผู้ใช้/อีเมล หรือรหัสผ่านไม่ถูกต้อง' }, { status: 401 });
     }
 
     // Create JWT
     const token = jwt.sign(
-      { id: user.userId, name: user.username, role: user.role },
+      { id: user.userId, name: user.username || user.name, role: user.role || role },
       JWT_SECRET,
       { expiresIn: '1d' }
     );
@@ -66,7 +84,7 @@ export async function POST(req: Request) {
     }, { status: 200 });
 
   } catch (error: any) {
-    console.error('Login error:', error);
+    console.error("🔥 FIREBASE LOGIN ERROR:", error);
     // Return the actual error message to help debug why it failed
     return NextResponse.json({ error: 'Internal server error: ' + (error.message || String(error)) }, { status: 500 });
   }

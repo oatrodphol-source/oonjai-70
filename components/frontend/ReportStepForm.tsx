@@ -7,6 +7,12 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Camera, MapPin, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
+
+const DraggableMap = dynamic(() => import('./DraggableMap'), { 
+  ssr: false,
+  loading: () => <div className="h-[250px] w-full bg-gray-100 dark:bg-gray-800 animate-pulse rounded-xl mt-3 flex items-center justify-center text-gray-500">กำลังโหลดแผนที่...</div>
+});
 
 export const ReportStepForm = () => {
   const router = useRouter();
@@ -171,6 +177,21 @@ export const ReportStepForm = () => {
       localStorage.setItem('oonjai_user_phone', formData.phone);
       localStorage.setItem('oonjai_last_report_time', Date.now().toString());
       
+      try {
+        const newCaseId = caseId;
+        const existingCases = JSON.parse(localStorage.getItem('oonjai_my_cases') || '[]');
+        if (!existingCases.includes(newCaseId)) {
+          existingCases.push(newCaseId);
+          localStorage.setItem('oonjai_my_cases', JSON.stringify(existingCases));
+        }
+        console.log("🔥 SAVED TO LOCAL STORAGE:", newCaseId, existingCases);
+        
+        // Dispatch a custom event so the History page can listen and refresh immediately
+        window.dispatchEvent(new Event('localCasesUpdated'));
+      } catch (error) {
+        console.error("🔥 FAILED TO SAVE LOCAL STORAGE:", error);
+      }
+      
       setShowSuccessModal(true);
     } catch (error) {
       console.error('Submission error:', error);
@@ -226,6 +247,14 @@ export const ReportStepForm = () => {
                   <p className="text-xs text-[#ff6600] flex items-center gap-1.5 mt-2">
                     <AlertTriangle className="w-3.5 h-3.5" /> จำเป็นต้องระบุตำแหน่งเพื่อให้เจ้าหน้าที่ไปถูกที่
                   </p>
+                )}
+                
+                {formData.locationReady && (
+                  <DraggableMap 
+                    lat={formData.latitude} 
+                    lng={formData.longitude} 
+                    onLocationChange={(lat, lng) => setFormData({...formData, latitude: lat, longitude: lng})} 
+                  />
                 )}
               </div>
 

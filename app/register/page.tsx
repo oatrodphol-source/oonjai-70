@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { User, Building, Phone, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -16,6 +17,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -99,72 +101,108 @@ export default function RegisterPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="grid grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <label className="block text-white text-sm font-medium mb-1.5">ชื่อ-นามสกุล</label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="ชื่อ-นามสกุล"
-                required
-                className="w-full px-4 py-3 rounded-xl border-none focus:ring-2 focus:ring-white bg-[#f4b685] text-gray-900 placeholder-gray-600 shadow-inner"
-              />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <User className="h-5 w-5 text-gray-600" />
+                </div>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="ชื่อ-นามสกุล"
+                  required
+                  className="w-full pl-11 pr-4 py-3 rounded-xl border-none focus:ring-2 focus:ring-white bg-[#f4b685] text-gray-900 placeholder-gray-600 shadow-inner transition-all"
+                />
+              </div>
             </div>
             <div>
               <label className="block text-white text-sm font-medium mb-1.5">หน่วยกู้ภัย</label>
-              <input
-                type="text"
-                name="agency"
-                value={formData.agency}
-                onChange={handleChange}
-                placeholder="ชื่อหน่วยงาน"
-                required
-                className="w-full px-4 py-3 rounded-xl border-none focus:ring-2 focus:ring-white bg-[#f4b685] text-gray-900 placeholder-gray-600 shadow-inner"
-              />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Building className="h-5 w-5 text-gray-600" />
+                </div>
+                <input
+                  type="text"
+                  name="agency"
+                  value={formData.agency}
+                  onChange={handleChange}
+                  placeholder="ชื่อหน่วยงาน"
+                  required
+                  className="w-full pl-11 pr-4 py-3 rounded-xl border-none focus:ring-2 focus:ring-white bg-[#f4b685] text-gray-900 placeholder-gray-600 shadow-inner transition-all"
+                />
+              </div>
             </div>
           </div>
 
           <div>
             <label className="block text-white text-sm font-medium mb-1.5">เบอร์โทรศัพท์</label>
-            <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              placeholder="08X-XXX-XXXX"
-              required
-              maxLength={10}
-              className="w-full px-4 py-3 rounded-xl border-none focus:ring-2 focus:ring-white bg-[#f4b685] text-gray-900 placeholder-gray-600 shadow-inner"
-            />
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Phone className="h-5 w-5 text-gray-600" />
+              </div>
+              <input
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                placeholder="08X-XXX-XXXX"
+                required
+                maxLength={10}
+                className="w-full pl-11 pr-4 py-3 rounded-xl border-none focus:ring-2 focus:ring-white bg-[#f4b685] text-gray-900 placeholder-gray-600 shadow-inner transition-all"
+              />
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <label className="block text-white text-sm font-medium mb-1.5">อีเมล</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="อีเมล"
-                required
-                className="w-full px-4 py-3 rounded-xl border-none focus:ring-2 focus:ring-white bg-[#e6efff] text-gray-900 placeholder-gray-500 shadow-inner"
-              />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-gray-600" />
+                </div>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="อีเมล"
+                  required
+                  className="w-full pl-11 pr-4 py-3 rounded-xl border-none focus:ring-2 focus:ring-white bg-[#e6efff] text-gray-900 placeholder-gray-500 shadow-inner transition-all"
+                />
+              </div>
             </div>
             <div>
               <label className="block text-white text-sm font-medium mb-1.5">รหัสผ่าน</label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="••••••"
-                required
-                autoComplete="new-password"
-                className="w-full px-4 py-3 rounded-xl border-none focus:ring-2 focus:ring-white bg-[#e6efff] text-gray-900 placeholder-gray-500 shadow-inner"
-              />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-gray-600" />
+                </div>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="••••••"
+                  required
+                  autoComplete="new-password"
+                  className="w-full pl-11 pr-12 py-3 rounded-xl border-none focus:ring-2 focus:ring-white bg-[#e6efff] text-gray-900 placeholder-gray-500 shadow-inner transition-all"
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 

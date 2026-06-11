@@ -2,64 +2,62 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, query, where, documentId } from 'firebase/firestore';
+
 export default function HistoryPage() {
   const [cases, setCases] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const userPhone = localStorage.getItem('oonjai_user_phone');
-    const lastSOS = localStorage.getItem('oonjai_last_sos');
-    const lastReport = localStorage.getItem('oonjai_last_report');
-    
-    if (!userPhone && !lastSOS && !lastReport) {
-      setIsLoading(false);
-      return;
-    }
-
-    const fetchHistory = async () => {
-      try {
-        let fetchedCases: any[] = [];
-        
-        if (userPhone) {
-          const res = await fetch(`/api/cases?phone=${userPhone}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (Array.isArray(data) && data.length > 0) {
-              fetchedCases = data;
-            }
-          }
-        }
-        
-        // Fallback: If no cases found via phone, try to salvage via exact case ID
-        if (fetchedCases.length === 0) {
-          let fallbackId = null;
-          if (lastSOS) {
-            try { fallbackId = JSON.parse(lastSOS).caseId; } catch (e) {}
-          } else if (lastReport) {
-            try { fallbackId = JSON.parse(lastReport).caseId; } catch (e) {}
-          }
-          
-          if (fallbackId) {
-            const fallbackRes = await fetch(`/api/cases?id=${fallbackId}`);
-            if (fallbackRes.ok) {
-              const fallbackData = await fallbackRes.json();
-              if (Array.isArray(fallbackData) && fallbackData.length > 0) {
-                fetchedCases = fallbackData;
-              }
-            }
-          }
-        }
-        
-        setCases(fetchedCases);
-      } catch (error) {
-        console.error('Error fetching history:', error);
-        setCases([]);
-      } finally {
+    try {
+      const myCases = JSON.parse(localStorage.getItem('oonjai_my_cases') || '[]');
+      
+      if (!Array.isArray(myCases) || myCases.length === 0) {
         setIsLoading(false);
+        return;
       }
-    };
 
-    fetchHistory();
+      // Safe limit for Firebase 'in' query is 10
+      const recentCases = myCases.slice(-10);
+
+      const q = query(
+        collection(db, 'cases'),
+        where(documentId(), 'in', recentCases)
+      );
+
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const fetchedCases: any[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          fetchedCases.push({
+            id: data.case_number ? `CAS-${String(data.case_number).padStart(3, '0')}` : `CAS-${doc.id.substring(0, 5)}`,
+            rawId: doc.id,
+            type: data.type || 'ไม่ระบุ',
+            status: data.status || 'รอการช่วยเหลือ',
+            time: data.updatedAt ? new Date(data.updatedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : 
+                  data.createdAt ? new Date(data.createdAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-',
+            timestamp: data.updatedAt || data.createdAt || 0
+          });
+        });
+        
+        // Sort by timestamp descending
+        fetchedCases.sort((a, b) => {
+          return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+        });
+
+        setCases(fetchedCases);
+        setIsLoading(false);
+      }, (error) => {
+        console.error('Error fetching history:', error);
+        setIsLoading(false);
+      });
+
+      return () => unsubscribe();
+    } catch (error) {
+      console.error("Error reading local storage:", error);
+      setIsLoading(false);
+    }
   }, []);
 
   return (
@@ -80,9 +78,9 @@ export default function HistoryPage() {
               <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-wider flex items-center gap-2">
                 🔴 เคสปัจจุบัน (กำลังดำเนินการ)
               </h2>
-              {cases.filter(c => ['รอการช่วยเหลือ', 'รับเรื่องแล้ว', 'กำลังช่วยเหลือ'].includes(c.status)).length > 0 ? (
+              {cases.filter(c => !['เสร็จสิ้น', 'ยกเลิก', 'ปลอดภัยแล้ว'].includes(c.status)).length > 0 ? (
                 <div className="space-y-4">
-                  {cases.filter(c => ['รอการช่วยเหลือ', 'รับเรื่องแล้ว', 'กำลังช่วยเหลือ'].includes(c.status)).map(c => (
+                  {cases.filter(c => !['เสร็จสิ้น', 'ยกเลิก', 'ปลอดภัยแล้ว'].includes(c.status)).map(c => (
                     <Link 
                       href={`/tracking/${c.rawId}`} 
                       key={c.id}
@@ -114,9 +112,9 @@ export default function HistoryPage() {
               <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-wider flex items-center gap-2">
                 ⚪ ประวัติในอดีต (ดำเนินการเสร็จสิ้น)
               </h2>
-              {cases.filter(c => ['เสร็จสิ้น', 'ยกเลิก'].includes(c.status)).length > 0 ? (
+              {cases.filter(c => ['เสร็จสิ้น', 'ยกเลิก', 'ปลอดภัยแล้ว'].includes(c.status)).length > 0 ? (
                 <div className="space-y-3">
-                  {cases.filter(c => ['เสร็จสิ้น', 'ยกเลิก'].includes(c.status)).map(c => (
+                  {cases.filter(c => ['เสร็จสิ้น', 'ยกเลิก', 'ปลอดภัยแล้ว'].includes(c.status)).map(c => (
                     <Link 
                       href={`/tracking/${c.rawId}`} 
                       key={c.id}
@@ -128,8 +126,14 @@ export default function HistoryPage() {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] text-gray-400">{c.id}</span>
-                        <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${c.status === 'เสร็จสิ้น' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20' : 'bg-gray-100 text-gray-500 dark:bg-gray-800'}`}>
-                          {c.status}
+                        <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${
+                          c.status === 'เสร็จสิ้น' 
+                            ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20' 
+                            : c.status === 'ปลอดภัยแล้ว'
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
+                            : 'bg-gray-100 text-gray-500 dark:bg-gray-800'
+                        }`}>
+                          {c.status === 'ปลอดภัยแล้ว' ? '✓ ปลอดภัยแล้ว' : c.status}
                         </span>
                       </div>
                     </Link>

@@ -1,8 +1,10 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Search, Bell, User, LogOut, Sun, Moon } from 'lucide-react';
+import { Search, Bell, User, LogOut, Sun, Moon, History, PhoneCall } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, query, orderBy, limit as firestoreLimit, doc } from 'firebase/firestore';
 
 export const TopNavbar: React.FC = () => {
   const router = useRouter();
@@ -15,37 +17,6 @@ export const TopNavbar: React.FC = () => {
 
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
-
-  const checkCaseStatus = async () => {
-    const lastSOS = localStorage.getItem('oonjai_last_sos');
-    const lastReport = localStorage.getItem('oonjai_last_report');
-    let cid = null;
-    
-    if (lastSOS) {
-      try { cid = JSON.parse(lastSOS).caseId; } catch (e) {}
-    } else if (lastReport) {
-      try { cid = JSON.parse(lastReport).caseId; } catch (e) {}
-    }
-
-    if (cid) {
-      setCaseId(cid);
-      try {
-        const res = await fetch(`/api/cases/${cid}?t=${Date.now()}`);
-        if (res.ok) {
-          const data = await res.json();
-          setCaseStatus(data.status);
-        }
-      } catch (err) {
-        console.error("Failed to fetch case status:", err);
-      }
-    }
-  };
-
-  useEffect(() => {
-    if (showNotifications) {
-      checkCaseStatus();
-    }
-  }, [showNotifications]);
 
   useEffect(() => {
     // Check dark mode
@@ -60,33 +31,43 @@ export const TopNavbar: React.FC = () => {
       }
     }
 
-    // Initial load
-    checkCaseStatus();
+    // Subscribe to case status
+    const lastSOS = localStorage.getItem('oonjai_last_sos');
+    const lastReport = localStorage.getItem('oonjai_last_report');
+    let cid = null;
+    
+    if (lastSOS) {
+      try { cid = JSON.parse(lastSOS).caseId; } catch (e) {}
+    } else if (lastReport) {
+      try { cid = JSON.parse(lastReport).caseId; } catch (e) {}
+    }
 
-    // Auto-polling for near real-time updates every 5 seconds
-    const intervalId = setInterval(() => {
-      checkCaseStatus();
-    }, 5000);
-
-    // Fetch live announcements
-    const fetchBroadcasts = async () => {
-      try {
-        const res = await fetch('/api/news?limit=3');
-        if (res.ok) {
-          const data = await res.json();
-          const newsItems = data.news || [];
-          const formatted = newsItems.map((n: any) => ({
-            id: n.id,
-            message: `⚠️ ${n.title}`,
-            time: new Date(n.created_at).toLocaleDateString('th-TH')
-          }));
-          setBroadcasts(formatted.length > 0 ? formatted : [{ id: 0, message: "📢 ยังไม่มีประกาศในขณะนี้", time: "" }]);
+    let unsubCase: (() => void) | null = null;
+    if (cid) {
+      setCaseId(cid);
+      unsubCase = onSnapshot(doc(db, 'cases', String(cid)), (docSnap) => {
+        if (docSnap.exists()) {
+          setCaseStatus(docSnap.data().status);
         }
-      } catch (err) {
-        console.error("Failed to fetch broadcasts:", err);
-      }
-    };
-    fetchBroadcasts();
+      });
+    }
+
+    // Subscribe to news broadcasts
+    const q = query(collection(db, 'news'), orderBy('created_at', 'desc'), firestoreLimit(3));
+    const unsubNews = onSnapshot(q, (snapshot) => {
+      const newsItems: any[] = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.published) {
+          newsItems.push({
+            id: doc.id,
+            message: `⚠️ ${data.title}`,
+            time: new Date(data.created_at).toLocaleDateString('th-TH')
+          });
+        }
+      });
+      setBroadcasts(newsItems.length > 0 ? newsItems : [{ id: 0, message: "📢 ยังไม่มีประกาศในขณะนี้", time: "" }]);
+    });
 
     // Click outside handler
     const handleClickOutside = (event: MouseEvent) => {
@@ -101,7 +82,8 @@ export const TopNavbar: React.FC = () => {
     
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
-      clearInterval(intervalId);
+      if (unsubCase) unsubCase();
+      unsubNews();
     };
   }, []);
 
@@ -111,8 +93,6 @@ export const TopNavbar: React.FC = () => {
     document.documentElement.classList.toggle('dark', nextDark);
     localStorage.setItem('theme', nextDark ? 'dark' : 'light');
   };
-
-  // Notifications are loaded dynamically inside the render below
 
   return (
     <nav className="fixed top-0 z-50 w-full bg-[#0b1325]/90 backdrop-blur-md border-b-2 border-[#ff6600] rounded-b-2xl shadow-lg pointer-events-auto transition-all duration-200">
@@ -141,7 +121,7 @@ export const TopNavbar: React.FC = () => {
               className="text-[#ff6600] hover:scale-110 transition-transform relative p-1"
             >
               <Bell size={22} strokeWidth={2} />
-              {((caseId && (caseStatus === null || ['pending', 'accepted', 'in_progress'].includes(caseStatus))) || broadcasts.length > 0) && (
+              {((caseId && (caseStatus === null || ['pending', 'accepted', 'in_progress'].includes(caseStatus))) || (broadcasts.length > 0 && broadcasts[0].id !== 0)) && (
                 <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border border-[#0b1325]"></span>
               )}
             </button>
@@ -207,19 +187,26 @@ export const TopNavbar: React.FC = () => {
             
             {showProfile && (
               <div className="absolute right-0 mt-3 w-64 bg-white dark:bg-[#0b1325] border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl overflow-hidden transition-all duration-200 animate-in fade-in slide-in-from-top-4">
-                <div className="flex flex-col p-1">
-                  <button 
-                    onClick={() => { setShowProfile(false); router.push('/login'); }}
-                    className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors w-full text-left"
-                  >
-                    <span>👤</span> ข้อมูลผู้ใช้ / เข้าสู่ระบบ
-                  </button>
-                  
+                <div className="flex flex-col p-2 gap-1">
+                  <div className="px-3 py-3 border-b border-gray-100 dark:border-gray-800 mb-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">สถานะ</p>
+                    <p className="font-bold text-gray-900 dark:text-white truncate">ผู้ใช้งานทั่วไป</p>
+                  </div>
+
                   <button 
                     onClick={() => { setShowProfile(false); router.push(`/history`); }}
-                    className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors w-full text-left"
+                    className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors w-full text-left"
                   >
-                    <span>📋</span> รายการขอความช่วยเหลือของฉัน
+                    <History className="w-4 h-4 text-gray-400" />
+                    ประวัติขอความช่วยเหลือ
+                  </button>
+
+                  <button 
+                    onClick={() => { setShowProfile(false); router.push(`/info`); }}
+                    className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors w-full text-left"
+                  >
+                    <PhoneCall className="w-4 h-4 text-gray-400" />
+                    เบอร์ติดต่อฉุกเฉิน
                   </button>
                 </div>
               </div>

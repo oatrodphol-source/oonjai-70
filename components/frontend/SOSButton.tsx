@@ -104,6 +104,21 @@ export const SOSButton = () => {
                 localStorage.setItem('oonjai_user_phone', data.phone);
               }
               localStorage.setItem('oonjai_last_report_time', Date.now().toString());
+              
+              try {
+                const newCaseId = caseId;
+                const existingCases = JSON.parse(localStorage.getItem('oonjai_my_cases') || '[]');
+                if (!existingCases.includes(newCaseId)) {
+                  existingCases.push(newCaseId);
+                  localStorage.setItem('oonjai_my_cases', JSON.stringify(existingCases));
+                }
+                console.log("🔥 SAVED TO LOCAL STORAGE:", newCaseId, existingCases);
+                
+                // Dispatch a custom event so the History page can listen and refresh immediately
+                window.dispatchEvent(new Event('localCasesUpdated'));
+              } catch (error) {
+                console.error("🔥 FAILED TO SAVE LOCAL STORAGE:", error);
+              }
             }
 
             // Redirect instantly to history

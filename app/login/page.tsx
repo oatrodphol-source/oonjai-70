@@ -3,10 +3,12 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
   const [role, setRole] = useState<"admin" | "rescue">("rescue");
+  const [showPassword, setShowPassword] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -90,26 +92,47 @@ export default function LoginPage() {
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="text-sm font-semibold mb-1 block">
-              ชื่อบัญชีผู้ใช้ / อีเมล
+              อีเมล
             </label>
-            <input
-              type="text"
-              name="email"
-              placeholder="Username or Email"
-              className="w-full px-5 py-3 rounded-2xl bg-orange-200/90 text-gray-900 placeholder-gray-500 border-none outline-none focus:ring-2 focus:ring-white"
-              required
-            />
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Mail className="h-5 w-5 text-gray-600" />
+              </div>
+              <input
+                type="text"
+                name="email"
+                placeholder="Email"
+                className="w-full pl-11 pr-5 py-3 rounded-2xl bg-orange-200/90 text-gray-900 placeholder-gray-600 border-none outline-none focus:ring-2 focus:ring-white transition-all shadow-inner"
+                required
+              />
+            </div>
           </div>
 
           <div>
             <label className="text-sm font-semibold mb-1 block">รหัสผ่าน</label>
-            <input
-              type="password"
-              name="password"
-              placeholder="Password"
-              className="w-full px-5 py-3 rounded-2xl bg-orange-200/90 text-gray-900 placeholder-gray-500 border-none outline-none focus:ring-2 focus:ring-white"
-              required
-            />
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Lock className="h-5 w-5 text-gray-600" />
+              </div>
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                placeholder="Password"
+                className="w-full pl-11 pr-12 py-3 rounded-2xl bg-orange-200/90 text-gray-900 placeholder-gray-600 border-none outline-none focus:ring-2 focus:ring-white transition-all shadow-inner"
+                required
+              />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
+              </button>
+            </div>
           </div>
 
           {error && (

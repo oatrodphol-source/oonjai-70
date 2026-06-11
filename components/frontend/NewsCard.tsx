@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Calendar, User, X } from 'lucide-react';
 
 interface NewsCardProps {
-  id: number;
+  id: string | number;
   title: string;
   content: string;
   imageUrl?: string;
@@ -58,6 +58,12 @@ export const NewsCard: React.FC<NewsCardProps> = ({
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const handleLineShare = () => {
+    const text = `ประกาศจากอุ่นใจ: ${title} - อ่านต่อ: ${window.location.href}`;
+    const url = `https://line.me/R/msg/text/?${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
   };
 
   return (
@@ -112,13 +118,20 @@ export const NewsCard: React.FC<NewsCardProps> = ({
       )}
 
       {/* Footer / Actions */}
-      <div className="px-4 py-3 flex items-center justify-start border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-[#151b2c]">
+      <div className="px-4 py-3 flex items-center gap-2 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-[#151b2c]">
         <button 
           onClick={handleShare}
           className="flex items-center gap-2 text-gray-600 hover:text-orange-600 dark:text-gray-400 dark:hover:text-orange-500 transition-colors text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>
           แชร์
+        </button>
+        <button 
+          onClick={handleLineShare}
+          className="flex items-center gap-2 text-white bg-[#00B900] hover:bg-[#009900] transition-colors text-sm font-bold px-3 py-1.5 rounded-lg shadow-sm shadow-green-500/20"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 3.938 8.878 9.4 9.613.367.081.871.251.996.584.113.3.072.766.035 1.055l-.161 1.002c-.05.312-.243 1.189 1.042.647 1.284-.542 6.924-4.083 9.444-7.551 2.148-2.955 3.244-5.305 3.244-5.35zM7.556 12.981h-2.31c-.135 0-.244-.11-.244-.244v-5.289c0-.135.11-.244.244-.244.134 0 .244.109.244.244v5.045h2.066c.135 0 .244.11.244.244 0 .135-.11.244-.244.244zm2.147-.244c0 .135-.11.244-.244.244-.135 0-.244-.11-.244-.244v-5.289c0-.135.11-.244.244-.244.135 0 .244.109.244.244v5.289zm4.27 0h-2.31c-.135 0-.244-.11-.244-.244v-5.289c0-.135.11-.244.244-.244.134 0 .244.109.244.244v2.428l1.713-2.502c.038-.057.101-.091.169-.091h.239c.17 0 .25.211.123.324l-1.854 2.13 1.93 2.585c.099.132.004.32-.162.32h-.249c-.075 0-.146-.035-.189-.095l-1.637-2.31v2.18c0 .135-.11.244-.244.244zm5.029-4.015c0 .135-.11.244-.244.244h-1.613v1.272h1.613c.135 0 .244.11.244.244 0 .135-.11.244-.244.244h-1.857c-.135 0-.244-.11-.244-.244v-5.289c0-.135.11-.244.244-.244h1.857c.135 0 .244.109.244.244 0 .135-.11.244-.244.244h-1.613v1.171h1.613c.135 0 .244.109.244.244z"/></svg>
+          แชร์ผ่าน LINE
         </button>
       </div>
 

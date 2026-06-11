@@ -3,9 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { NewsCard } from '@/components/frontend/NewsCard';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
+import { db } from '@/lib/firebase';
+import { collection, query, where, orderBy, onSnapshot, limit } from 'firebase/firestore';
+import { Newspaper } from 'lucide-react';
 
 interface News {
-  id: number;
+  id: string | number;
   title: string;
   content: string;
   image_url?: string;
@@ -18,44 +21,38 @@ interface News {
 export const NewsFeed: React.FC = () => {
   const [news, setNews] = useState<News[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hasMore, setHasMore] = useState(true);
-  const [currentPage, setCurrentPage] = useState(0);
 
   useEffect(() => {
-    fetchNews();
-  }, []);
+    const q = query(
+      collection(db, 'news'),
+      where('published', '==', true),
+      orderBy('created_at', 'desc'),
+      limit(20)
+    );
 
-  const fetchNews = async (page: number = 0) => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({
-        limit: '6',
-        offset: (page * 6).toString(),
-        published: 'true',
+    const unsub = onSnapshot(q, (snapshot) => {
+      const newsData: News[] = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        newsData.push({
+          id: doc.id,
+          title: data.title,
+          content: data.content,
+          image_url: data.image_url,
+          published: data.published,
+          created_at: data.created_at,
+          updated_at: data.updated_at
+        });
       });
-
-      const res = await fetch(`/api/news?${params}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (page === 0) {
-          setNews(data.news);
-        } else {
-          setNews((prev) => [...prev, ...data.news]);
-        }
-        setHasMore(data.news.length === 6);
-      }
-    } catch (error) {
-      console.error('Error fetching news:', error);
-    } finally {
+      setNews(newsData);
       setLoading(false);
-    }
-  };
+    }, (error) => {
+      console.error('Error fetching news:', error);
+      setLoading(false);
+    });
 
-  const handleLoadMore = () => {
-    const nextPage = currentPage + 1;
-    setCurrentPage(nextPage);
-    fetchNews(nextPage);
-  };
+    return () => unsub();
+  }, []);
 
   if (loading && news.length === 0) {
     return <LoadingSpinner />;
@@ -75,38 +72,27 @@ export const NewsFeed: React.FC = () => {
 
       {/* News Stack */}
       {news.length > 0 ? (
-        <>
-          <div className="flex flex-col">
-            {news.map((item) => (
-              <NewsCard
-                key={item.id}
-                id={item.id}
-                title={item.title}
-                content={item.content}
-                imageUrl={item.image_url}
-                createdAt={item.created_at}
-                published={item.published}
-              />
-            ))}
-          </div>
-
-          {/* Load More Button */}
-          {hasMore && (
-            <div className="flex justify-center pt-4">
-              <button
-                onClick={handleLoadMore}
-                disabled={loading}
-                className="w-full sm:w-auto px-8 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-semibold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
-              >
-                {loading ? 'กำลังโหลด...' : 'โหลดข่าวเพิ่มเติม'}
-              </button>
-            </div>
-          )}
-        </>
+        <div className="flex flex-col">
+          {news.map((item) => (
+            <NewsCard
+              key={item.id}
+              id={item.id}
+              title={item.title}
+              content={item.content}
+              imageUrl={item.image_url}
+              createdAt={item.created_at}
+              published={item.published}
+            />
+          ))}
+        </div>
       ) : (
-        <div className="text-center py-12 bg-white dark:bg-[#151b2c] rounded-xl border border-gray-100 dark:border-gray-800">
-          <p className="text-gray-500 dark:text-gray-400">
-            ไม่พบข่าวสารในขณะนี้
+        <div className="flex flex-col items-center justify-center py-16 px-4 bg-white dark:bg-[#151b2c] rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm text-center">
+          <div className="w-16 h-16 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 border border-gray-100 dark:border-gray-700">
+            <Newspaper className="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">ไม่มีข่าวสารในขณะนี้</h3>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
+            ยังไม่มีประกาศหรือการอัปเดตสถานการณ์ใหม่
           </p>
         </div>
       )}

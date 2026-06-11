@@ -6,7 +6,8 @@ import { Card } from '@/components/ui/Card';
 import { ChevronLeft, CheckCircle2, Clock, Truck, ShieldCheck, MapPin, AlertCircle, Share2, XCircle } from 'lucide-react';
 
 interface CaseData {
-  id: number;
+  id: string | number;
+  case_number?: string;
   type: string;
   status: string;
   waterLevel: string;
@@ -133,8 +134,13 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
     );
   }
 
-  const currentStepIndex = STEPS.findIndex(s => s.id === caseData.status);
-  const activeIndex = currentStepIndex >= 0 ? currentStepIndex : 0;
+  let activeIndex = 0;
+  if (caseData.status === 'ปลอดภัยแล้ว') {
+    activeIndex = STEPS.length;
+  } else {
+    const currentStepIndex = STEPS.findIndex(s => s.id === caseData.status);
+    activeIndex = currentStepIndex >= 0 ? currentStepIndex : 0;
+  }
 
   return (
     <div className="p-4 sm:p-6 w-full max-w-lg mx-auto pb-24">
@@ -146,13 +152,25 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
         <h1 className="text-xl font-bold text-[#ff6600]">ติดตามสถานะการช่วยเหลือ</h1>
       </div>
 
+      {caseData.status === 'ปลอดภัยแล้ว' && (
+        <div className="bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-500 text-emerald-700 dark:text-emerald-400 p-4 rounded-xl mb-6 flex items-center gap-3 shadow-sm animate-in fade-in slide-in-from-top-4">
+          <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/50 rounded-full flex items-center justify-center shrink-0">
+            <ShieldCheck className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div>
+            <h3 className="font-bold">ผู้ประสบภัยปลอดภัยแล้ว / ยุติการช่วยเหลือ</h3>
+            <p className="text-xs opacity-90 mt-0.5">ระบบได้อัปเดตสถานะให้เจ้าหน้าที่ทราบแล้ว</p>
+          </div>
+        </div>
+      )}
+
       <Card className="p-5 border-2 border-gray-100 dark:border-gray-800 bg-white dark:bg-[#0b1325] shadow-sm mb-6 relative overflow-hidden">
         {/* Subtle background glow */}
         <div className="absolute -top-10 -right-10 w-32 h-32 bg-orange-500/10 rounded-full blur-2xl"></div>
         
         <div className="flex justify-between items-start mb-4 pb-4 border-b border-gray-100 dark:border-gray-800 relative z-10">
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">รหัสอ้างอิง: #{caseData.id}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">รหัสอ้างอิง: CAS-{caseData.case_number ? String(caseData.case_number).padStart(3, '0') : String(caseData.id).substring(0,5)}</p>
             <h2 className="font-bold text-lg">{caseData.type === 'sos' ? '🚨 SOS ฉุกเฉิน' : caseData.type}</h2>
           </div>
           <div className="text-right">
