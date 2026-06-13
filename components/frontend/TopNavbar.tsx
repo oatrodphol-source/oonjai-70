@@ -4,15 +4,14 @@ import Link from 'next/link';
 import { Search, Bell, User, LogOut, Sun, Moon, History, PhoneCall } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, query, orderBy, limit as firestoreLimit, doc } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, limit as firestoreLimit, doc, where, documentId } from 'firebase/firestore';
 
 export const TopNavbar: React.FC = () => {
   const router = useRouter();
   const [isDark, setIsDark] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const [caseId, setCaseId] = useState<string | null>(null);
-  const [caseStatus, setCaseStatus] = useState<string | null>(null);
+  const [myCases, setMyCases] = useState<{ id: string, status: string }[]>([]);
   const [broadcasts, setBroadcasts] = useState<any[]>([]);
 
   const notifRef = useRef<HTMLDivElement>(null);
@@ -31,25 +30,25 @@ export const TopNavbar: React.FC = () => {
       }
     }
 
-    // Subscribe to case status
-    const lastSOS = localStorage.getItem('oonjai_last_sos');
-    const lastReport = localStorage.getItem('oonjai_last_report');
-    let cid = null;
-    
-    if (lastSOS) {
-      try { cid = JSON.parse(lastSOS).caseId; } catch (e) {}
-    } else if (lastReport) {
-      try { cid = JSON.parse(lastReport).caseId; } catch (e) {}
-    }
-
-    let unsubCase: (() => void) | null = null;
-    if (cid) {
-      setCaseId(cid);
-      unsubCase = onSnapshot(doc(db, 'cases', String(cid)), (docSnap) => {
-        if (docSnap.exists()) {
-          setCaseStatus(docSnap.data().status);
-        }
-      });
+    // Subscribe to multiple cases
+    let unsubCases: (() => void) | null = null;
+    try {
+      const savedCases = JSON.parse(localStorage.getItem('oonjai_my_cases') || '[]');
+      if (savedCases.length > 0) {
+        // chunk array if more than 10 (firestore 'in' limit)
+        const caseChunks = savedCases.slice(0, 10);
+        const casesQuery = query(collection(db, 'cases'), where(documentId(), 'in', caseChunks));
+        
+        unsubCases = onSnapshot(casesQuery, (snapshot) => {
+          const updatedCases: { id: string, status: string }[] = [];
+          snapshot.forEach(docSnap => {
+            updatedCases.push({ id: docSnap.id, status: docSnap.data().status });
+          });
+          setMyCases(updatedCases);
+        });
+      }
+    } catch (e) {
+      console.error('Error parsing my cases from local storage', e);
     }
 
     // Subscribe to news broadcasts
@@ -82,7 +81,7 @@ export const TopNavbar: React.FC = () => {
     
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
-      if (unsubCase) unsubCase();
+      if (unsubCases) unsubCases();
       unsubNews();
     };
   }, []);
@@ -121,7 +120,7 @@ export const TopNavbar: React.FC = () => {
               className="text-[#ff6600] hover:scale-110 transition-transform relative p-2 min-w-[48px] min-h-[48px] flex items-center justify-center"
             >
               <Bell size={22} strokeWidth={2} />
-              {((caseId && (caseStatus === null || ['pending', 'accepted', 'in_progress'].includes(caseStatus))) || (broadcasts.length > 0 && broadcasts[0].id !== 0)) && (
+              {((myCases.some(c => ['pending', 'accepted', 'in_progress'].includes(c.status))) || (broadcasts.length > 0 && broadcasts[0].id !== 0)) && (
                 <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border border-[#0b1325]"></span>
               )}
             </button>
@@ -131,21 +130,23 @@ export const TopNavbar: React.FC = () => {
                 <div className="p-4 border-b border-gray-100 dark:border-gray-800">
                   <h3 className="font-bold text-gray-900 dark:text-white text-sm">การแจ้งเตือนของฉัน</h3>
                   <div className="mt-3">
-                    {caseId ? (() => {
+                    {myCases.length > 0 ? myCases.map(caseItem => {
                       const details = (() => {
-                        switch(caseStatus) {
+                        switch(caseItem.status) {
                           case 'pending': return { text: "🚨 เคสของคุณ: อยู่ระหว่างรอดำเนินการ", bg: "hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30", color: "text-red-600 dark:text-red-400" };
                           case 'accepted': return { text: "🚒 เคสของคุณ: เจ้าหน้าที่รับเรื่องแล้ว", bg: "hover:bg-orange-50 dark:hover:bg-orange-900/20 border-orange-100 dark:border-orange-900/30", color: "text-orange-600 dark:text-orange-400" };
                           case 'in_progress': return { text: "⏳ เคสของคุณ: เจ้าหน้าที่กำลังเข้าช่วยเหลือ", bg: "hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-100 dark:border-blue-900/30", color: "text-blue-600 dark:text-blue-400" };
                           case 'completed': return { text: "✅ เคสของคุณ: ช่วยเหลือสำเร็จเสร็จสิ้นแล้ว", bg: "hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border-emerald-100 dark:border-emerald-900/30", color: "text-emerald-600 dark:text-emerald-400" };
                           case 'cancelled': return { text: "❌ เคสของคุณ: ถูกยกเลิกแล้ว", bg: "hover:bg-gray-50 dark:hover:bg-gray-800/50 border-gray-100 dark:border-gray-800", color: "text-gray-600 dark:text-gray-400" };
+                          case 'ปลอดภัยแล้ว': return { text: "✅ เคสของคุณ: ปลอดภัยแล้ว", bg: "hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border-emerald-100 dark:border-emerald-900/30", color: "text-emerald-600 dark:text-emerald-400" };
                           default: return { text: "🚨 เคสของคุณ: กำลังดำเนินการ", bg: "hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30", color: "text-red-600 dark:text-red-400" };
                         }
                       })();
                       return (
                         <button 
-                          onClick={() => { setShowNotifications(false); router.push(`/tracking/${caseId}`); }}
-                          className={`w-full text-left p-3 min-h-[48px] rounded-xl transition-colors border shadow-sm ${details.bg}`}
+                          key={caseItem.id}
+                          onClick={() => { setShowNotifications(false); router.push(`/tracking/${caseItem.id}`); }}
+                          className={`w-full text-left p-3 min-h-[48px] rounded-xl transition-colors border shadow-sm mb-2 ${details.bg}`}
                         >
                           <p className={`text-sm font-medium ${details.color}`}>
                             {details.text}
@@ -153,7 +154,7 @@ export const TopNavbar: React.FC = () => {
                           <span className="text-xs text-gray-500 mt-1 block font-bold">คลิกเพื่อดูรายละเอียด</span>
                         </button>
                       );
-                    })() : (
+                    }) : (
                       <div className="py-2 text-center">
                         <p className="text-sm text-gray-500 dark:text-gray-400">📭 ไม่มีแจ้งเตือนเคสของคุณในขณะนี้</p>
                       </div>

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, addDoc, query, where, orderBy } from 'firebase/firestore';
+import { collection, getDocs, addDoc, query, where, orderBy, doc, runTransaction } from 'firebase/firestore';
 
 export async function GET(req: Request) {
   try {
@@ -103,27 +103,45 @@ export async function POST(req: Request) {
     const finalDetails = appendedNote ? `${details || ''} ${appendedNote}`.trim() : (details || '');
     const status = 'pending';
 
-    const newCase = {
-      name: name || '-',
-      phone: phone || '-',
-      type,
-      severity,
-      peopleCount,
-      bedridden: bedriddenVal,
-      elderly: elderlyVal,
-      waterLevel,
-      latitude: latitude || 0,
-      longitude: longitude || 0,
-      status,
-      details: finalDetails || null,
-      image_url: image_url || null,
-      created_at: new Date().toISOString()
-    };
+    const result = await runTransaction(db, async (transaction) => {
+      const counterRef = doc(db, 'counters', 'cases');
+      const counterDoc = await transaction.get(counterRef);
+      
+      let newCount = 1;
+      if (counterDoc.exists()) {
+        newCount = (counterDoc.data().count || 0) + 1;
+      }
+      
+      transaction.set(counterRef, { count: newCount }, { merge: true });
+      const caseNumberStr = String(newCount).padStart(3, '0');
 
-    const docRef = await addDoc(collection(db, 'cases'), newCase);
-    console.log("Successfully saved case ID:", docRef.id);
+      const newCase = {
+        name: name || '-',
+        phone: phone || '-',
+        type,
+        severity,
+        peopleCount,
+        bedridden: bedriddenVal,
+        elderly: elderlyVal,
+        waterLevel,
+        latitude: latitude || 0,
+        longitude: longitude || 0,
+        status,
+        details: finalDetails || null,
+        image_url: image_url || null,
+        created_at: new Date().toISOString(),
+        case_number: caseNumberStr
+      };
 
-    return NextResponse.json({ success: true, id: docRef.id, phone: payload.phone });
+      const newCaseRef = doc(collection(db, 'cases'));
+      transaction.set(newCaseRef, newCase);
+
+      return { id: newCaseRef.id, case_number: caseNumberStr, phone: newCase.phone };
+    });
+
+    console.log("Successfully saved case ID via Transaction:", result.id, "Case Number:", result.case_number);
+
+    return NextResponse.json({ success: true, id: result.id, case_number: result.case_number, phone: result.phone });
   } catch (error: any) {
     console.error("🔥 FIREBASE WRITE ERROR:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

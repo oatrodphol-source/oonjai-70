@@ -135,7 +135,7 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
   }
 
   let activeIndex = 0;
-  if (caseData.status === 'ปลอดภัยแล้ว') {
+  if (caseData.status === 'ปลอดภัยแล้ว' || caseData.status === 'completed' || caseData.status === 'เสร็จสิ้น') {
     activeIndex = STEPS.length;
   } else {
     const currentStepIndex = STEPS.findIndex(s => s.id === caseData.status);
@@ -152,7 +152,7 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
         <h1 className="text-xl font-bold text-[#ff6600]">ติดตามสถานะการช่วยเหลือ</h1>
       </div>
 
-      {caseData.status === 'ปลอดภัยแล้ว' && (
+      {(caseData.status === 'ปลอดภัยแล้ว' || caseData.status === 'completed' || caseData.status === 'เสร็จสิ้น') && (
         <div className="bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-500 text-emerald-700 dark:text-emerald-400 p-4 rounded-xl mb-6 flex items-center gap-3 shadow-sm animate-in fade-in slide-in-from-top-4">
           <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/50 rounded-full flex items-center justify-center shrink-0">
             <ShieldCheck className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
@@ -175,7 +175,12 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
           </div>
           <div className="text-right">
             <span className="inline-block px-2.5 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-xs font-bold rounded-md">
-              {new Date(caseData.createdAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+              {(() => {
+                const timeStr = caseData.createdAt || (caseData as any).created_at;
+                if (!timeStr) return '-';
+                const timeDate = timeStr.seconds ? new Date(timeStr.seconds * 1000) : new Date(timeStr);
+                return isNaN(timeDate.getTime()) ? '-' : timeDate.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+              })()}
             </span>
           </div>
         </div>
