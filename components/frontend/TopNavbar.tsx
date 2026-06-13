@@ -111,18 +111,18 @@ export const TopNavbar: React.FC = () => {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-3 sm:gap-4">
-          <button onClick={toggleTheme} className="text-white hover:text-[#ff6600] transition-colors p-2 rounded-full">
+          <button onClick={toggleTheme} className="text-white hover:text-[#ff6600] transition-colors p-2 rounded-full min-w-[48px] min-h-[48px] flex items-center justify-center">
             {isDark ? <Sun size={22} /> : <Moon size={22} />}
           </button>
           
           <div className="relative" ref={notifRef}>
             <button 
               onClick={() => { setShowNotifications(!showNotifications); setShowProfile(false); }}
-              className="text-[#ff6600] hover:scale-110 transition-transform relative p-1"
+              className="text-[#ff6600] hover:scale-110 transition-transform relative p-2 min-w-[48px] min-h-[48px] flex items-center justify-center"
             >
               <Bell size={22} strokeWidth={2} />
               {((caseId && (caseStatus === null || ['pending', 'accepted', 'in_progress'].includes(caseStatus))) || (broadcasts.length > 0 && broadcasts[0].id !== 0)) && (
-                <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border border-[#0b1325]"></span>
+                <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border border-[#0b1325]"></span>
               )}
             </button>
             
@@ -145,7 +145,7 @@ export const TopNavbar: React.FC = () => {
                       return (
                         <button 
                           onClick={() => { setShowNotifications(false); router.push(`/tracking/${caseId}`); }}
-                          className={`w-full text-left p-3 rounded-xl transition-colors border shadow-sm ${details.bg}`}
+                          className={`w-full text-left p-3 min-h-[48px] rounded-xl transition-colors border shadow-sm ${details.bg}`}
                         >
                           <p className={`text-sm font-medium ${details.color}`}>
                             {details.text}
@@ -180,7 +180,7 @@ export const TopNavbar: React.FC = () => {
           <div className="relative" ref={profileRef}>
             <button 
               onClick={() => { setShowProfile(!showProfile); setShowNotifications(false); }}
-              className="w-8 h-8 sm:w-10 sm:h-10 bg-transparent rounded-full flex items-center justify-center border-2 border-white hover:border-[#ff6600] transition-colors overflow-hidden"
+              className="w-12 h-12 bg-transparent rounded-full flex items-center justify-center border-2 border-white hover:border-[#ff6600] transition-colors overflow-hidden shrink-0"
             >
               <User className="text-white w-5 h-5" />
             </button>
@@ -195,7 +195,7 @@ export const TopNavbar: React.FC = () => {
 
                   <button 
                     onClick={() => { setShowProfile(false); router.push(`/history`); }}
-                    className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors w-full text-left"
+                    className="flex items-center gap-3 px-3 py-2.5 min-h-[48px] text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors w-full text-left"
                   >
                     <History className="w-4 h-4 text-gray-400" />
                     ประวัติขอความช่วยเหลือ
@@ -203,7 +203,7 @@ export const TopNavbar: React.FC = () => {
 
                   <button 
                     onClick={() => { setShowProfile(false); router.push(`/info`); }}
-                    className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors w-full text-left"
+                    className="flex items-center gap-3 px-3 py-2.5 min-h-[48px] text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors w-full text-left"
                   >
                     <PhoneCall className="w-4 h-4 text-gray-400" />
                     เบอร์ติดต่อฉุกเฉิน

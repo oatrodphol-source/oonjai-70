@@ -27,7 +27,7 @@ export const BottomNav: React.FC = () => {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 w-full bg-[#151b2c]/90 backdrop-blur-md rounded-t-[30px] border-t-2 border-[#ff6600] z-[9999] shadow-[0_-10px_40px_rgba(0,0,0,0.5)] pointer-events-auto">
+    <div className="fixed bottom-0 left-0 right-0 w-full bg-[#151b2c]/90 backdrop-blur-md rounded-t-[30px] border-t-2 border-[#ff6600] z-[9999] shadow-[0_-10px_40px_rgba(0,0,0,0.5)] pointer-events-auto pb-[env(safe-area-inset-bottom)]">
       <div className="flex justify-between items-center h-[72px] px-4 w-full relative">
         
         {/* Left Items */}
@@ -39,7 +39,7 @@ export const BottomNav: React.FC = () => {
               <Link 
                 key={item.href} 
                 href={item.href} 
-                className={`flex flex-col items-center justify-center w-16 gap-1 transition-all ${
+                className={`flex flex-col items-center justify-center w-16 min-h-[48px] gap-1 transition-all ${
                   isActive ? "text-[#ff6600]" : "text-gray-400 hover:text-[#ff6600]/70"
                 }`}
               >
@@ -77,7 +77,7 @@ export const BottomNav: React.FC = () => {
               <Link 
                 key={item.href} 
                 href={item.href} 
-                className={`flex flex-col items-center justify-center w-16 gap-1 transition-all ${
+                className={`flex flex-col items-center justify-center w-16 min-h-[48px] gap-1 transition-all ${
                   isActive ? "text-[#ff6600]" : "text-gray-400 hover:text-[#ff6600]/70"
                 }`}
               >

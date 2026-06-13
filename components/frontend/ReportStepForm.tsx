@@ -330,7 +330,7 @@ export const ReportStepForm = () => {
               <div className="bg-orange-50/50 dark:bg-orange-900/10 p-5 rounded-xl border border-orange-100 dark:border-orange-900/30 space-y-4">
                 <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 block border-b border-orange-200 dark:border-orange-900/50 pb-2">คัดกรองกลุ่มเปราะบาง (AI Triage)</label>
                 
-                <label className="flex items-center justify-between cursor-pointer group">
+                <label className="flex items-center justify-between cursor-pointer group min-h-[48px]">
                   <span className="text-sm text-gray-700 dark:text-gray-300 font-medium group-hover:text-gray-900 dark:group-hover:text-white transition-colors">มีผู้ป่วยติดเตียงในพื้นที่ไหม?</span>
                   <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
                     <input 
@@ -343,7 +343,7 @@ export const ReportStepForm = () => {
                   </div>
                 </label>
 
-                <label className="flex items-center justify-between cursor-pointer group">
+                <label className="flex items-center justify-between cursor-pointer group min-h-[48px]">
                   <span className="text-sm text-gray-700 dark:text-gray-300 font-medium group-hover:text-gray-900 dark:group-hover:text-white transition-colors">มีเด็กเล็กหรือผู้สูงอายุไหม?</span>
                   <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
                     <input 

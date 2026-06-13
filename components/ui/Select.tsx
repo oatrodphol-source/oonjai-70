@@ -12,7 +12,7 @@ export const Select: React.FC<SelectProps> = ({ label, error, options, className
       {label && <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">{label}</label>}
       <div className="relative">
         <select
-          className={`w-full h-11 px-4 appearance-none rounded-xl border bg-white dark:bg-[#0b1325] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent transition-all ${
+          className={`w-full min-h-[48px] px-4 text-base appearance-none rounded-xl border bg-white dark:bg-[#0b1325] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:border-transparent transition-all ${
             error ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'
           } ${className}`}
           {...props}

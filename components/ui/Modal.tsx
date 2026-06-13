@@ -28,7 +28,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
         onClick={onClose}
       />
       
-      <div className="relative bg-white dark:bg-[#151b2c] rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all">
+      <div className="relative bg-white dark:bg-[#151b2c] rounded-2xl shadow-2xl w-[90vw] max-w-lg overflow-hidden transform transition-all">
         {title && (
           <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-[#0b1325]">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h3>

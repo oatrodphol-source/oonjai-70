@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-[#0b1325] text-white overflow-hidden relative">
+    <main className="min-h-screen bg-[#0b1325] text-white overflow-hidden relative w-full max-w-full overflow-x-hidden">
       {/* Background Effect */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-[#ff6600]/20 rounded-full blur-[120px] pointer-events-none"></div>
       
