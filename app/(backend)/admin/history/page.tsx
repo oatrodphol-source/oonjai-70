@@ -1,97 +1,163 @@
-import React from 'react';
+'use client';
+import React, { useEffect, useState } from 'react';
 import { DashboardHeader } from '@/components/backend/DashboardHeader';
 import { Card } from '@/components/ui/Card';
-import { query } from '@/lib/db';
-import { getUser } from '@/lib/auth';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, query } from 'firebase/firestore';
+import { Activity, Clock, HeartPulse, Home, CheckCircle2 } from 'lucide-react';
 
-export default async function HistoryPage() {
-  const user = await getUser();
-  // Default to 1 or something for testing if no user
-  const rescuerId = user?.id || 1; 
+export default function HistoryPage() {
+  const [cases, setCases] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ completedCount: 0, avgDisplay: '-' });
 
-  const sql = `
-    SELECT c.* 
-    FROM cases c
-    JOIN statusupdate su ON c.id = su.incidentId
-    WHERE su.rescuerId = ? AND c.status IN ('completed', 'cancelled')
-    GROUP BY c.id
-    ORDER BY c.updatedAt DESC
-  `;
-  const cases = await query(sql, [rescuerId]) as any[];
-
-  // Calculate average time
-  let totalDiffMs = 0;
-  let completedCount = 0;
-  cases.forEach(c => {
-    if (c.status === 'completed') {
-      const start = new Date(c.createdAt).getTime();
-      const end = new Date(c.updatedAt).getTime();
-      totalDiffMs += (end - start);
-      completedCount++;
+  useEffect(() => {
+    const userStr = localStorage.getItem('oonjai_user');
+    if (!userStr) {
+      setLoading(false);
+      return;
     }
-  });
-  
-  const avgDiffMs = completedCount > 0 ? totalDiffMs / completedCount : 0;
-  const avgMinutes = Math.floor(avgDiffMs / 60000);
-  const avgHours = Math.floor(avgMinutes / 60);
-  const avgDisplay = avgHours > 0 ? `${avgHours} ชั่วโมง ${avgMinutes % 60} นาที` : `${avgMinutes} นาที`;
+
+    let uid = '';
+    try {
+      const user = JSON.parse(userStr);
+      uid = user.uid;
+    } catch (e) {
+      setLoading(false);
+      return;
+    }
+
+    if (!uid) {
+      setLoading(false);
+      return;
+    }
+
+    const q = query(collection(db, 'cases'));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const terminalStates = ['ส่งเข้าศูนย์พักพิงสำเร็จ', 'มอบถุงยังชีพเสร็จสิ้น', 'นำส่งโรงพยาบาลแล้ว', 'เสร็จสิ้น', 'completed'];
+      const fetched: any[] = [];
+      let totalDiffMs = 0;
+      let completedCount = 0;
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.assigned_volunteer_id === uid && terminalStates.includes(data.status)) {
+          const createdAt = data.createdAt ? new Date(data.createdAt).getTime() : 
+                           (data.created_at ? new Date(data.created_at).getTime() : 0);
+          const completedAt = data.completedAt ? new Date(data.completedAt).getTime() : 
+                              (data.updatedAt ? new Date(data.updatedAt).getTime() : 0);
+          
+          if (createdAt > 0 && completedAt > createdAt) {
+            totalDiffMs += (completedAt - createdAt);
+          }
+          completedCount++;
+
+          fetched.push({
+            id: data.case_number ? `CAS-${String(data.case_number).padStart(3, '0')}` : `CAS-${doc.id.substring(0, 5)}`,
+            type: data.type || 'ไม่ระบุ',
+            status: data.status,
+            timeCreated: createdAt > 0 ? new Date(createdAt).toLocaleString('th-TH') : '-',
+            timeCompleted: completedAt > 0 ? new Date(completedAt).toLocaleString('th-TH') : '-',
+            timestamp: completedAt
+          });
+        }
+      });
+
+      fetched.sort((a, b) => b.timestamp - a.timestamp);
+      setCases(fetched);
+
+      const avgDiffMs = completedCount > 0 ? totalDiffMs / completedCount : 0;
+      const avgMinutes = Math.floor(avgDiffMs / 60000);
+      const avgHours = Math.floor(avgMinutes / 60);
+      const avgDisplay = avgHours > 0 ? `${avgHours} ชั่วโมง ${avgMinutes % 60} นาที` : `${avgMinutes} นาที`;
+      
+      setStats({ completedCount, avgDisplay });
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching history:", error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const getStatusBadge = (status: string) => {
+    if (status === 'นำส่งโรงพยาบาลแล้ว') {
+      return (
+        <span className="flex items-center gap-1.5 px-3 py-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full text-xs font-bold whitespace-nowrap">
+          <HeartPulse className="w-3.5 h-3.5" />
+          ส่งโรงพยาบาล
+        </span>
+      );
+    }
+    if (status === 'ส่งเข้าศูนย์พักพิงสำเร็จ') {
+      return (
+        <span className="flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full text-xs font-bold whitespace-nowrap">
+          <Home className="w-3.5 h-3.5" />
+          ศูนย์พักพิง
+        </span>
+      );
+    }
+    return (
+      <span className="flex items-center gap-1.5 px-3 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full text-xs font-bold whitespace-nowrap">
+        <Activity className="w-3.5 h-3.5" />
+        {status === 'completed' || status === 'เสร็จสิ้น' ? 'เสร็จสิ้น' : status}
+      </span>
+    );
+  };
 
   return (
     <>
       <DashboardHeader title="ประวัติการช่วยเหลือของฉัน" />
       <div className="max-w-7xl mx-auto py-6 space-y-6">
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="p-6 bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-xl shadow-emerald-500/20 border-0">
             <h3 className="text-emerald-100 font-medium mb-1">เคสที่ช่วยเหลือสำเร็จ</h3>
-            <p className="text-4xl font-bold">{completedCount}</p>
+            <p className="text-4xl font-bold">{stats.completedCount}</p>
           </Card>
           <Card className="p-6 bg-gradient-to-br from-orange-500 to-red-600 text-white shadow-xl shadow-orange-500/20 border-0">
             <h3 className="text-orange-100 font-medium mb-1">เวลาเฉลี่ยในการปิดเคส</h3>
-            <p className="text-4xl font-bold">{completedCount > 0 ? avgDisplay : '-'}</p>
+            <p className="text-4xl font-bold">{stats.completedCount > 0 ? stats.avgDisplay : '-'}</p>
           </Card>
         </div>
 
-        <Card className="p-6">
+        {/* History List */}
+        <Card className="p-6 border-0 shadow-sm">
           <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-4">รายการประวัติ</h3>
-          {cases.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              ยังไม่มีประวัติการช่วยเหลือ
+          
+          {loading ? (
+            <div className="text-center py-12 text-gray-500">กำลังโหลดประวัติ...</div>
+          ) : cases.length === 0 ? (
+            <div className="text-center py-12 text-gray-500 bg-gray-50 dark:bg-gray-800/30 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
+              ยังไม่มีประวัติการช่วยเหลือที่เสร็จสิ้น
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-800 text-gray-500">
-                    <th className="py-3 px-4 font-semibold">รหัสเคส</th>
-                    <th className="py-3 px-4 font-semibold">ประเภท</th>
-                    <th className="py-3 px-4 font-semibold">สถานะ</th>
-                    <th className="py-3 px-4 font-semibold">เวลาแจ้งเหตุ</th>
-                    <th className="py-3 px-4 font-semibold">เวลาปิดเคส</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cases.map((c) => (
-                    <tr key={c.id} className="border-b border-gray-100 dark:border-gray-800/50 hover:bg-gray-50 dark:hover:bg-[#151b2c] transition-colors">
-                      <td className="py-3 px-4 font-medium">CAS-{String(c.id).padStart(3, '0')}</td>
-                      <td className="py-3 px-4">{c.type}</td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          c.status === 'completed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                        }`}>
-                          {c.status === 'completed' ? 'เสร็จสิ้น' : 'ยกเลิก'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-sm text-gray-500">
-                        {new Date(c.createdAt).toLocaleString('th-TH')}
-                      </td>
-                      <td className="py-3 px-4 text-sm text-gray-500">
-                        {new Date(c.updatedAt).toLocaleString('th-TH')}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-4">
+              {cases.map((c, i) => (
+                <div key={i} className="bg-white dark:bg-[#151b2c] rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-3 mb-1">
+                      <span className="font-bold text-gray-900 dark:text-white text-lg">{c.id}</span>
+                      {getStatusBadge(c.status)}
+                    </div>
+                    <div className="text-sm font-semibold text-gray-700 dark:text-gray-300">{c.type}</div>
+                  </div>
+                  
+                  <div className="flex flex-col items-start sm:items-end text-xs text-gray-500 gap-1 mt-2 sm:mt-0">
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>แจ้งเหตุ: {c.timeCreated}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>ปิดเคส: {c.timeCompleted}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </Card>

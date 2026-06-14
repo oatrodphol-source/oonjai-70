@@ -78,9 +78,9 @@ export default function HistoryPage() {
               <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-wider flex items-center gap-2">
                 🔴 เคสปัจจุบัน (กำลังดำเนินการ)
               </h2>
-              {cases.filter(c => !['เสร็จสิ้น', 'ยกเลิก', 'ปลอดภัยแล้ว'].includes(c.status)).length > 0 ? (
+              {cases.filter(c => ['รอการช่วยเหลือ', 'กำลังเข้าช่วยเหลือ', 'รอดำเนินการ'].includes(c.status)).length > 0 ? (
                 <div className="space-y-4">
-                  {cases.filter(c => !['เสร็จสิ้น', 'ยกเลิก', 'ปลอดภัยแล้ว'].includes(c.status)).map(c => (
+                  {cases.filter(c => ['รอการช่วยเหลือ', 'กำลังเข้าช่วยเหลือ', 'รอดำเนินการ'].includes(c.status)).map(c => (
                     <Link 
                       href={`/tracking/${c.rawId}`} 
                       key={c.id}
@@ -112,9 +112,9 @@ export default function HistoryPage() {
               <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-wider flex items-center gap-2">
                 ⚪ ประวัติในอดีต (ดำเนินการเสร็จสิ้น)
               </h2>
-              {cases.filter(c => ['เสร็จสิ้น', 'ยกเลิก', 'ปลอดภัยแล้ว'].includes(c.status)).length > 0 ? (
+              {cases.filter(c => ['ปลอดภัยแล้ว', 'ส่งเข้าศูนย์พักพิงสำเร็จ', 'มอบถุงยังชีพเสร็จสิ้น', 'นำส่งโรงพยาบาลแล้ว', 'เสร็จสิ้น', 'ยุติการช่วยเหลือ', 'completed', 'cancelled', 'ยกเลิก'].includes(c.status)).length > 0 ? (
                 <div className="space-y-3">
-                  {cases.filter(c => ['เสร็จสิ้น', 'ยกเลิก', 'ปลอดภัยแล้ว'].includes(c.status)).map(c => (
+                  {cases.filter(c => ['ปลอดภัยแล้ว', 'ส่งเข้าศูนย์พักพิงสำเร็จ', 'มอบถุงยังชีพเสร็จสิ้น', 'นำส่งโรงพยาบาลแล้ว', 'เสร็จสิ้น', 'ยุติการช่วยเหลือ', 'completed', 'cancelled', 'ยกเลิก'].includes(c.status)).map(c => (
                     <Link 
                       href={`/tracking/${c.rawId}`} 
                       key={c.id}
@@ -127,7 +127,7 @@ export default function HistoryPage() {
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] text-gray-400">{c.id}</span>
                         <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${
-                          c.status === 'เสร็จสิ้น' 
+                          ['เสร็จสิ้น', 'completed', 'ส่งเข้าศูนย์พักพิงสำเร็จ', 'มอบถุงยังชีพเสร็จสิ้น', 'นำส่งโรงพยาบาลแล้ว'].includes(c.status)
                             ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20' 
                             : c.status === 'ปลอดภัยแล้ว'
                             ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'

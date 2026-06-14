@@ -12,10 +12,12 @@ export const TopNavbar: React.FC = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [myCases, setMyCases] = useState<{ id: string, status: string }[]>([]);
+  const [visibleNotifications, setVisibleNotifications] = useState<{ id: string, status: string }[]>([]);
   const [broadcasts, setBroadcasts] = useState<any[]>([]);
 
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
+  const lastKnownDataRef = useRef<string>("");
 
   useEffect(() => {
     // Check dark mode
@@ -28,27 +30,6 @@ export const TopNavbar: React.FC = () => {
         setIsDark(false);
         document.documentElement.classList.remove('dark');
       }
-    }
-
-    // Subscribe to multiple cases
-    let unsubCases: (() => void) | null = null;
-    try {
-      const savedCases = JSON.parse(localStorage.getItem('oonjai_my_cases') || '[]');
-      if (savedCases.length > 0) {
-        // chunk array if more than 10 (firestore 'in' limit)
-        const caseChunks = savedCases.slice(0, 10);
-        const casesQuery = query(collection(db, 'cases'), where(documentId(), 'in', caseChunks));
-        
-        unsubCases = onSnapshot(casesQuery, (snapshot) => {
-          const updatedCases: { id: string, status: string }[] = [];
-          snapshot.forEach(docSnap => {
-            updatedCases.push({ id: docSnap.id, status: docSnap.data().status });
-          });
-          setMyCases(updatedCases);
-        });
-      }
-    } catch (e) {
-      console.error('Error parsing my cases from local storage', e);
     }
 
     // Subscribe to news broadcasts
@@ -81,9 +62,56 @@ export const TopNavbar: React.FC = () => {
     
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
-      if (unsubCases) unsubCases();
       unsubNews();
     };
+  }, []);
+
+  useEffect(() => {
+    let unsubCases: (() => void) | null = null;
+    
+    const loadAndSubscribeCases = () => {
+      if (unsubCases) {
+        unsubCases();
+        unsubCases = null;
+      }
+      try {
+        const savedCases = JSON.parse(localStorage.getItem('oonjai_my_cases') || '[]');
+        if (savedCases.length > 0) {
+          // chunk array if more than 10 (firestore 'in' limit)
+          const caseChunks = savedCases.slice(0, 10);
+          const casesQuery = query(collection(db, 'cases'), where(documentId(), 'in', caseChunks));
+          
+          unsubCases = onSnapshot(casesQuery, (snapshot) => {
+            const updatedCases: { id: string, status: string }[] = [];
+            snapshot.forEach(docSnap => {
+              updatedCases.push({ id: docSnap.id, status: docSnap.data().status });
+            });
+            const newDataString = JSON.stringify(updatedCases);
+            if (newDataString !== lastKnownDataRef.current) {
+              lastKnownDataRef.current = newDataString;
+              setVisibleNotifications(updatedCases);
+            }
+            setMyCases(updatedCases);
+          });
+        } else {
+          setMyCases([]);
+        }
+      } catch (e) {
+        console.error('Error parsing my cases from local storage', e);
+      }
+    };
+
+    // Initial load
+    loadAndSubscribeCases();
+
+    // Listen for updates from other parts of the app in the same tab
+    window.addEventListener('localCasesUpdated', loadAndSubscribeCases);
+
+    return () => {
+      window.removeEventListener('localCasesUpdated', loadAndSubscribeCases);
+      if (unsubCases) unsubCases();
+    };
+
   }, []);
 
   const toggleTheme = () => {
@@ -120,7 +148,7 @@ export const TopNavbar: React.FC = () => {
               className="text-[#ff6600] hover:scale-110 transition-transform relative p-2 min-w-[48px] min-h-[48px] flex items-center justify-center"
             >
               <Bell size={22} strokeWidth={2} />
-              {((myCases.some(c => ['pending', 'accepted', 'in_progress'].includes(c.status))) || (broadcasts.length > 0 && broadcasts[0].id !== 0)) && (
+              {(visibleNotifications.length > 0 || (broadcasts.length > 0 && broadcasts[0].id !== 0)) && (
                 <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border border-[#0b1325]"></span>
               )}
             </button>
@@ -128,9 +156,22 @@ export const TopNavbar: React.FC = () => {
             {showNotifications && (
               <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white dark:bg-[#0b1325] border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl overflow-hidden transition-all duration-200 animate-in fade-in slide-in-from-top-4 flex flex-col">
                 <div className="p-4 border-b border-gray-100 dark:border-gray-800">
-                  <h3 className="font-bold text-gray-900 dark:text-white text-sm">การแจ้งเตือนของฉัน</h3>
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-bold text-gray-900 dark:text-white text-sm">การแจ้งเตือนของฉัน</h3>
+                    {visibleNotifications.length > 0 && (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setVisibleNotifications([]);
+                        }}
+                        className="text-xs text-gray-500 hover:text-red-500 transition-colors"
+                      >
+                        ล้างการแจ้งเตือน
+                      </button>
+                    )}
+                  </div>
                   <div className="mt-3">
-                    {myCases.length > 0 ? myCases.map(caseItem => {
+                    {visibleNotifications.length > 0 ? visibleNotifications.map(caseItem => {
                       const details = (() => {
                         switch(caseItem.status) {
                           case 'pending': return { text: "🚨 เคสของคุณ: อยู่ระหว่างรอดำเนินการ", bg: "hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30", color: "text-red-600 dark:text-red-400" };

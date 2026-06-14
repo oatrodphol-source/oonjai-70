@@ -1,7 +1,8 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DashboardHeader } from '@/components/backend/DashboardHeader';
 import { CaseTable } from '@/components/backend/CaseTable';
+import { VolunteerTaskBoard } from '@/components/backend/VolunteerTaskBoard';
 import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
 import { Filter } from 'lucide-react';
@@ -10,12 +11,31 @@ export default function CasesPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [severityFilter, setSeverityFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [role, setRole] = useState('admin');
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+    try {
+      const stored = localStorage.getItem('oonjai_user');
+      if (stored) {
+        const user = JSON.parse(stored);
+        if (user.role) setRole(user.role);
+      }
+    } catch (e) {
+      console.error('Error reading role:', e);
+    }
+  }, []);
+
+  if (!isClient) {
+    return null; // Avoid hydration mismatch
+  }
 
   return (
     <>
-      <DashboardHeader title="จัดการเคสการช่วยเหลือ" />
+      <DashboardHeader title={role === 'admin' ? "จัดการเคสการช่วยเหลือ" : "กระดานงานอาสาสมัคร (Task Board)"} />
       
-      <div className="max-w-7xl mx-auto py-6 space-y-6">
+      <div className="max-w-7xl mx-auto py-6 space-y-6 px-4">
         {/* Filters */}
         <div className="bg-white dark:bg-[#151b2c] p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex flex-wrap items-end gap-4">
           <div className="flex items-center gap-2 text-gray-500 font-medium mb-1 w-full md:w-auto">
@@ -56,14 +76,34 @@ export default function CasesPage() {
                onChange={(e) => setSearchQuery(e.target.value)}
              />
           </div>
+          {(statusFilter !== 'all' || severityFilter !== 'all' || searchQuery !== '') && (
+            <button
+              onClick={() => {
+                setStatusFilter('all');
+                setSeverityFilter('all');
+                setSearchQuery('');
+              }}
+              className="h-10 px-4 text-sm font-bold text-red-500 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 rounded-xl transition-colors"
+            >
+              ล้างตัวกรอง
+            </button>
+          )}
         </div>
 
-        {/* Table List */}
-        <CaseTable 
-          statusFilter={statusFilter} 
-          severityFilter={severityFilter} 
-          searchQuery={searchQuery} 
-        />
+        {/* Conditional Content based on Role */}
+        {role === 'admin' ? (
+          <CaseTable 
+            statusFilter={statusFilter} 
+            severityFilter={severityFilter} 
+            searchQuery={searchQuery} 
+          />
+        ) : (
+          <VolunteerTaskBoard 
+            statusFilter={statusFilter} 
+            severityFilter={severityFilter} 
+            searchQuery={searchQuery} 
+          />
+        )}
       </div>
     </>
   );

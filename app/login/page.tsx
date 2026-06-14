@@ -33,6 +33,9 @@ export default function LoginPage() {
         const data = await res.json();
         // Optional: save token to localStorage or context
         localStorage.setItem("token", data.token);
+        if (data.user) {
+          localStorage.setItem("oonjai_user", JSON.stringify({ uid: data.user.userId || data.user.id, name: data.user.name || data.user.username, role: data.user.role || role }));
+        }
         router.push("/dashboard");
       } else {
         const data = await res.json();

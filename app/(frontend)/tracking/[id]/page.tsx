@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ChevronLeft, CheckCircle2, Clock, Truck, ShieldCheck, MapPin, AlertCircle, Share2, XCircle } from 'lucide-react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface CaseData {
   id: string | number;
@@ -17,13 +19,14 @@ interface CaseData {
   longitude: number;
   rescuer_name?: string;
   rescuer_phone?: string;
+  assigned_volunteer_name?: string;
+  assigned_volunteer_phone?: string;
   destination?: string;
 }
 
 const STEPS = [
-  { id: 'pending', label: 'รอดำเนินการ', icon: Clock },
-  { id: 'accepted', label: 'รับเรื่องแล้ว', icon: ShieldCheck },
-  { id: 'in_progress', label: 'กำลังเข้าช่วยเหลือ', icon: Truck },
+  { id: 'รอการช่วยเหลือ', label: 'รอดำเนินการ', icon: Clock },
+  { id: 'กำลังเข้าช่วยเหลือ', label: 'กำลังเข้าช่วยเหลือ', icon: Truck },
   { id: 'completed', label: 'ช่วยเหลือสำเร็จ', icon: CheckCircle2 }
 ];
 
@@ -72,31 +75,24 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
   };
 
   useEffect(() => {
-    const fetchCase = async () => {
-      try {
-        const response = await fetch(`/api/cases/${id}`);
-        if (!response.ok) {
-          if (response.status === 404) {
-            localStorage.removeItem('oonjai_last_sos');
-            localStorage.removeItem('oonjai_last_report');
-            throw new Error('ไม่พบข้อมูลแจ้งเหตุ หรือเคสนี้ถูกปิด/ลบออกจากระบบแล้ว');
-          }
-          throw new Error('เกิดข้อผิดพลาดในการดึงข้อมูล');
-        }
-        const result = await response.json();
-        setCaseData(result);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
+    const caseRef = doc(db, 'cases', id);
+    const unsubscribe = onSnapshot(caseRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setCaseData({ id: docSnap.id, ...docSnap.data() } as CaseData);
+        setIsLoading(false);
+      } else {
+        localStorage.removeItem('oonjai_last_sos');
+        localStorage.removeItem('oonjai_last_report');
+        setError('ไม่พบข้อมูลแจ้งเหตุ หรือเคสนี้ถูกปิด/ลบออกจากระบบแล้ว');
         setIsLoading(false);
       }
-    };
+    }, (err) => {
+      console.error(err);
+      setError('เกิดข้อผิดพลาดในการดึงข้อมูล');
+      setIsLoading(false);
+    });
 
-    fetchCase();
-    
-    // Poll for updates every 5 seconds
-    const interval = setInterval(fetchCase, 5000);
-    return () => clearInterval(interval);
+    return () => unsubscribe();
   }, [id]);
 
   if (isLoading) {
@@ -135,11 +131,14 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
   }
 
   let activeIndex = 0;
-  if (caseData.status === 'ปลอดภัยแล้ว' || caseData.status === 'completed' || caseData.status === 'เสร็จสิ้น') {
-    activeIndex = STEPS.length;
+  const terminalStates = ['ส่งเข้าศูนย์พักพิงสำเร็จ', 'มอบถุงยังชีพเสร็จสิ้น', 'นำส่งโรงพยาบาลแล้ว', 'เสร็จสิ้น', 'completed', 'ปลอดภัยแล้ว'];
+  
+  if (terminalStates.includes(caseData.status)) {
+    activeIndex = 2;
+  } else if (caseData.status === 'กำลังเข้าช่วยเหลือ') {
+    activeIndex = 1;
   } else {
-    const currentStepIndex = STEPS.findIndex(s => s.id === caseData.status);
-    activeIndex = currentStepIndex >= 0 ? currentStepIndex : 0;
+    activeIndex = 0;
   }
 
   return (
@@ -152,7 +151,7 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
         <h1 className="text-xl font-bold text-[#ff6600]">ติดตามสถานะการช่วยเหลือ</h1>
       </div>
 
-      {(caseData.status === 'ปลอดภัยแล้ว' || caseData.status === 'completed' || caseData.status === 'เสร็จสิ้น') && (
+      {terminalStates.includes(caseData.status) && (
         <div className="bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-500 text-emerald-700 dark:text-emerald-400 p-4 rounded-xl mb-6 flex items-center gap-3 shadow-sm animate-in fade-in slide-in-from-top-4">
           <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/50 rounded-full flex items-center justify-center shrink-0">
             <ShieldCheck className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
@@ -200,23 +199,23 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
       </Card>
 
       {/* Rescuer Information Card */}
-      {caseData.rescuer_name && caseData.status !== 'pending' && (
-        <Card className="p-4 border-2 border-[#ff6600]/20 dark:border-[#ff6600]/30 bg-orange-50 dark:bg-orange-900/10 shadow-sm mb-6 flex items-center justify-between">
+      {caseData.status !== 'รอการช่วยเหลือ' && caseData.status !== 'wait' && caseData.status !== 'pending' && (caseData.assigned_volunteer_name || caseData.rescuer_name) && (
+        <Card className="p-4 border-2 border-blue-100 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/10 shadow-sm mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white dark:bg-[#0b1325] rounded-full flex items-center justify-center shadow-sm border border-orange-200 dark:border-orange-800">
-              <Truck className="w-6 h-6 text-[#ff6600]" />
+            <div className="w-12 h-12 bg-white dark:bg-[#0b1325] rounded-full flex items-center justify-center shadow-sm border border-blue-200 dark:border-blue-800">
+              <Truck className="w-6 h-6 text-blue-500" />
             </div>
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">เจ้าหน้าที่กู้ภัย</p>
-              <h3 className="font-bold text-gray-800 dark:text-gray-200">{caseData.rescuer_name}</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">ผู้เข้าช่วยเหลือ</p>
+              <h3 className="font-bold text-gray-800 dark:text-gray-200">{caseData.assigned_volunteer_name || caseData.rescuer_name}</h3>
             </div>
           </div>
-          {caseData.rescuer_phone && (
+          {(caseData.assigned_volunteer_phone || caseData.rescuer_phone) && (caseData.assigned_volunteer_phone !== 'ไม่ระบุเบอร์โทร') && (
             <a 
-              href={`tel:${caseData.rescuer_phone}`} 
-              className="flex items-center gap-1.5 px-3 py-2 bg-[#ff6600] hover:bg-orange-600 text-white text-sm font-bold rounded-lg transition-colors shadow-sm"
+              href={`tel:${caseData.assigned_volunteer_phone || caseData.rescuer_phone}`} 
+              className="flex items-center gap-1.5 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-lg transition-colors shadow-sm whitespace-nowrap"
             >
-              โทรติดต่อ
+              📞 โทรติดต่อ
             </a>
           )}
         </Card>
@@ -251,14 +250,9 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
                 </h4>
                 {isActive && (
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-                    {step.id === 'pending' && 'ระบบได้รับข้อมูลแล้ว กรุณารอสักครู่...'}
-                    {step.id === 'accepted' && 'เจ้าหน้าที่รับทราบเหตุและกำลังจัดเตรียมความช่วยเหลือ'}
-                    {step.id === 'in_progress' && 'ทีมกู้ภัยกำลังเดินทางไปยังพิกัดของคุณ'}
-                    {step.id === 'completed' && (
-                      caseData.destination === 'โรงพยาบาล' ? '✅ ช่วยเหลือสำเร็จ: นำส่งโรงพยาบาล/หน่วยแพทย์เรียบร้อยแล้ว' :
-                      caseData.destination === 'ศูนย์พักพิง' ? '✅ ช่วยเหลือสำเร็จ: นำส่งศูนย์พักพิงชั่วคราวเรียบร้อยแล้ว' :
-                      '✅ ช่วยเหลือสำเร็จเรียบร้อยแล้ว'
-                    )}
+                    {step.id === 'รอการช่วยเหลือ' && 'ระบบได้รับข้อมูลแล้ว กำลังกระจายงานให้เจ้าหน้าที่...'}
+                    {step.id === 'กำลังเข้าช่วยเหลือ' && 'ทีมกู้ภัยรับทราบเหตุและกำลังเดินทางไปยังพิกัดของคุณ'}
+                    {step.id === 'completed' && `✅ ช่วยเหลือสำเร็จ: ${caseData.status === 'completed' ? 'เสร็จสิ้น' : caseData.status}`}
                   </p>
                 )}
               </div>

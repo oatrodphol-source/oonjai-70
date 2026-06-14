@@ -1,40 +1,143 @@
 'use client';
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { DashboardHeader } from '@/components/backend/DashboardHeader';
 import { StatsCard } from '@/components/backend/StatsCard';
 import { PieChart } from '@/components/backend/PieChart';
 import { SeverityBar } from '@/components/backend/SeverityBar';
+import { VolunteerTaskBoard } from '@/components/backend/VolunteerTaskBoard';
 import { Card } from '@/components/ui/Card';
-import { AlertCircle, CheckCircle2, Clock, Users } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, Users, Bot, ArrowRight } from 'lucide-react';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, query } from 'firebase/firestore';
 
 export default function DashboardPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [role, setRole] = useState<string>('volunteer');
+  const [aiInsight, setAiInsight] = useState<string>('กำลังวิเคราะห์ข้อมูล...');
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const userStr = localStorage.getItem('oonjai_user');
+    if (userStr) {
       try {
-        const res = await fetch('/api/dashboard/stats');
-        if (res.ok) {
-          const result = await res.json();
-          setData(result);
+        const user = JSON.parse(userStr);
+        setRole(user.role || 'volunteer');
+      } catch (e) {
+        setRole('volunteer');
+      }
+    }
+    
+    const casesRef = collection(db, 'cases');
+    const q = query(casesRef); // Fetch all
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      try {
+        let total = 0;
+        let waiting = 0;
+        let inProgress = 0;
+        let completed = 0;
+        
+        const typeCount: Record<string, number> = {};
+        const severityCount: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+        const allCases: any[] = [];
+        const locationCount: Record<string, number> = {};
+
+        snapshot.forEach((doc) => {
+          const caseData = doc.data();
+          total++;
+          
+          const status = caseData.status || '';
+          if (['wait', 'รอการช่วยเหลือ', 'pending'].includes(status)) {
+            waiting++;
+          } else if (['in_progress', 'กำลังช่วยเหลือ', 'กำลังเข้าช่วยเหลือ'].includes(status)) {
+            inProgress++;
+          } else if (['เสร็จสิ้น', 'ส่งเข้าศูนย์พักพิงสำเร็จ', 'มอบถุงยังชีพเสร็จสิ้น', 'นำส่งโรงพยาบาลแล้ว', 'completed'].includes(status)) {
+            completed++;
+          }
+
+          const type = caseData.type || 'ไม่ระบุ';
+          typeCount[type] = (typeCount[type] || 0) + 1;
+
+          const severity = Number(caseData.severity) || 1;
+          if (severity >= 1 && severity <= 5) {
+            severityCount[severity] = (severityCount[severity] || 0) + 1;
+          }
+
+          if (severity === 5) {
+            const loc = caseData.address || caseData.location || caseData.subdistrict || 'พื้นที่ไม่ระบุ';
+            locationCount[loc] = (locationCount[loc] || 0) + 1;
+          }
+
+          allCases.push({
+            id: caseData.case_number ? `CAS-${String(caseData.case_number).padStart(3, '0')}` : `CAS-${doc.id.substring(0, 5)}`,
+            name: caseData.name || caseData.contactName || 'ไม่ระบุชื่อ',
+            type: type,
+            severity: severity,
+            time: caseData.createdAt ? new Date(caseData.createdAt).toLocaleString('th-TH') : (caseData.created_at ? new Date(caseData.created_at).toLocaleString('th-TH') : '-'),
+            status: status === 'wait' || status === 'pending' ? 'รอการช่วยเหลือ' : status,
+            timestamp: caseData.createdAt ? new Date(caseData.createdAt).getTime() : (caseData.created_at ? new Date(caseData.created_at).getTime() : 0)
+          });
+        });
+
+        const pieData = Object.keys(typeCount).map(key => ({
+          name: key,
+          value: typeCount[key]
+        }));
+
+        const severityData = [
+          { name: 'ระดับ 1', count: severityCount[1] },
+          { name: 'ระดับ 2', count: severityCount[2] },
+          { name: 'ระดับ 3', count: severityCount[3] },
+          { name: 'ระดับ 4', count: severityCount[4] },
+          { name: 'ระดับ 5', count: severityCount[5] },
+        ];
+
+        allCases.sort((a, b) => b.timestamp - a.timestamp);
+        const recentCases = allCases.slice(0, 5);
+
+        let maxLoc = '';
+        let maxCount = 0;
+        Object.entries(locationCount).forEach(([loc, count]) => {
+          if (count > maxCount) {
+            maxCount = count;
+            maxLoc = loc;
+          }
+        });
+
+        if (maxCount > 0) {
+          setAiInsight(`🤖 AI Analysis: ขณะนี้พบเคสวิกฤต (ระดับ 5) หนาแน่นที่สุดในบริเวณ ${maxLoc} (${maxCount} เคส) โปรดจัดเตรียมเรือท้องแบนและอุปกรณ์ชำนาญการพิเศษมุ่งหน้าไปยังพื้นที่ดังกล่าวเป็นลำดับแรก`);
+        } else {
+          setAiInsight(`🤖 AI Analysis: ขณะนี้ยังไม่พบการกระจุกตัวของเคสวิกฤต (ระดับ 5) ในพื้นที่ใดเป็นพิเศษ สถานการณ์โดยรวมอยู่ในระดับที่ควบคุมได้`);
         }
-      } catch (error) {
-        console.error('Failed to fetch stats', error);
+
+        setData({
+          stats: { total, waiting, inProgress, completed },
+          pieData: pieData.length > 0 ? pieData : [{ name: 'ไม่มีข้อมูล', value: 1 }],
+          severityData,
+          recentCases
+        });
+        setError(false);
+      } catch (err) {
+        console.error('Error processing dashboard stats:', err);
+        setError(true);
       } finally {
         setLoading(false);
       }
-    };
-    fetchStats();
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchStats, 30000);
-    return () => clearInterval(interval);
+    }, (err) => {
+      console.error('Failed to fetch dashboard stats', err);
+      setError(true);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  if (loading || !data) {
+  if (loading) {
     return (
       <>
-        <DashboardHeader title="แดชบอร์ดภาพรวม" />
+        <DashboardHeader title="กำลังโหลดข้อมูล..." />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
         </div>
@@ -42,12 +145,44 @@ export default function DashboardPage() {
     );
   }
 
+  if (error || !data) {
+    return (
+      <>
+        <DashboardHeader title="เกิดข้อผิดพลาด" />
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+          <AlertCircle className="w-16 h-16 text-red-500 mb-4" />
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white">ไม่สามารถดึงข้อมูลสถิติได้</h3>
+          <p className="text-gray-500 mt-2">กรุณาลองใหม่อีกครั้งในภายหลัง</p>
+        </div>
+      </>
+    );
+  }
+
+  const isAdmin = role === 'admin';
+
   return (
     <>
       <DashboardHeader title="แดชบอร์ดภาพรวม" />
       
       <div className="space-y-6 max-w-7xl mx-auto py-6">
-        {/* Stats Row */}
+        {/* Volunteer AI Insight Card */}
+        {!isAdmin && (
+          <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border border-orange-100 dark:border-orange-900/50 rounded-2xl p-6 shadow-sm">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-white dark:bg-black/20 rounded-full shadow-sm text-orange-600 flex-shrink-0">
+                <Bot className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">AI ช่วยวิเคราะห์สถานการณ์</h2>
+                <p className="text-gray-700 dark:text-gray-300 leading-relaxed font-medium">
+                  {aiInsight}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Stats Row (Shared) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatsCard 
             title="เคสทั้งหมด" 
@@ -75,65 +210,76 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">สัดส่วนประเภทเหตุฉุกเฉิน</h3>
-            <PieChart data={data.pieData} />
-          </Card>
-          
-          <Card>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">จำนวนเคสแยกตามความรุนแรง</h3>
-            <SeverityBar data={data.severityData} />
-          </Card>
-        </div>
+        {/* Admin Only Charts and Recent Cases */}
+        {isAdmin && (
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">สัดส่วนประเภทเหตุฉุกเฉิน</h3>
+                <PieChart data={data.pieData} />
+              </Card>
+              
+              <Card>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">จำนวนเคสแยกตามความรุนแรง</h3>
+                <SeverityBar data={data.severityData} />
+              </Card>
+            </div>
 
-        {/* Recent Cases */}
-        <Card>
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">เคสฉุกเฉินล่าสุด</h3>
-            <button className="text-[#ff6600] text-sm font-medium hover:underline">ดูทั้งหมด</button>
-          </div>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
-                  <th className="pb-3 font-medium">รหัสเคส</th>
-                  <th className="pb-3 font-medium">ผู้แจ้ง</th>
-                  <th className="pb-3 font-medium">ประเภทเหตุ</th>
-                  <th className="pb-3 font-medium">ระดับ</th>
-                  <th className="pb-3 font-medium">เวลา</th>
-                  <th className="pb-3 font-medium">สถานะ</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+            <Card>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">เคสฉุกเฉินล่าสุด</h3>
+                <Link href="/cases" className="text-[#ff6600] text-sm font-medium hover:underline flex items-center gap-1">
+                  ดูทั้งหมด <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+              
+              <div className="space-y-4">
                 {data.recentCases.length > 0 ? data.recentCases.map((row: any, i: number) => (
-                  <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                    <td className="py-4 font-medium text-gray-900 dark:text-white">{row.id}</td>
-                    <td className="py-4 text-gray-600 dark:text-gray-300">{row.name}</td>
-                    <td className="py-4 text-gray-600 dark:text-gray-300">{row.type}</td>
-                    <td className="py-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-bold ${row.severity >= 4 ? 'bg-red-100 text-red-600 dark:bg-red-900/30' : 'bg-orange-100 text-orange-600 dark:bg-orange-900/30'}`}>
-                        ระดับ {row.severity}
-                      </span>
-                    </td>
-                    <td className="py-4 text-gray-500 text-sm">{row.time}</td>
-                    <td className="py-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${row.status === 'รอการช่วยเหลือ' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30' : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30'}`}>
+                  <div key={i} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-gray-100 dark:border-gray-800 hover:shadow-sm transition-shadow gap-4">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-gray-900 dark:text-white">{row.id}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${row.severity >= 4 ? 'bg-red-100 text-red-600 dark:bg-red-900/30' : 'bg-orange-100 text-orange-600 dark:bg-orange-900/30'}`}>
+                          ระดับ {row.severity}
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">{row.type}</div>
+                      <div className="text-xs text-gray-500">ผู้แจ้ง: {row.name}</div>
+                    </div>
+                    
+                    <div className="flex flex-col items-start sm:items-end gap-2">
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${row.status === 'รอการช่วยเหลือ' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30' : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30'}`}>
                         {row.status}
                       </span>
-                    </td>
-                  </tr>
+                      <div className="text-xs text-gray-500 flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> {row.time}
+                      </div>
+                    </div>
+                  </div>
                 )) : (
-                  <tr>
-                    <td colSpan={6} className="py-8 text-center text-gray-500">ไม่มีเคสใหม่</td>
-                  </tr>
+                  <div className="py-8 text-center text-gray-500 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-gray-100 dark:border-gray-800">
+                    ไม่มีเคสใหม่
+                  </div>
                 )}
-              </tbody>
-            </table>
+              </div>
+            </Card>
+          </>
+        )}
+
+        {/* Volunteer Task Board */}
+        {!isAdmin && (
+          <div className="mt-8">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+              🔥 เคสเร่งด่วนสูงสุด (Top 3)
+            </h2>
+            <VolunteerTaskBoard severityFilter="5" limit={3} />
+            <div className="mt-6 flex justify-end">
+              <Link href="/cases" className="text-[#ff6600] font-medium hover:underline flex items-center gap-1">
+                ดูเคสทั้งหมด <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
           </div>
-        </Card>
+        )}
       </div>
     </>
   );
