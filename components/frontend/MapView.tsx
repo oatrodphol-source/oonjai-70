@@ -171,7 +171,7 @@ export default function MapView() {
   const heatmapPoints: [number, number, number][] = cases.map(c => [c.latitude, c.longitude, c.severity]);
 
   return (
-    <div className="flex-1 w-full relative z-0 h-full min-h-[400px]">
+    <div className="flex-1 w-full relative z-0 h-full min-h-[50vh] md:min-h-[400px]">
       
       {/* GPS Locate Button */}
       <div className="absolute bottom-44 right-4 z-[9999] flex flex-col gap-3 pointer-events-none">

@@ -184,16 +184,16 @@ export const SOSButton = () => {
         <button
           disabled={isLoading || status === 'success' || cooldownRemaining > 0}
           onClick={handleSOSClick}
-          className={`relative z-10 w-64 h-64 rounded-full flex flex-col items-center justify-center border-[12px] shadow-2xl transition-all duration-300 transform active:scale-95 ${
+          className={`relative z-10 w-64 h-64 md:w-80 md:h-80 rounded-full flex flex-col items-center justify-center border-[12px] shadow-[0_20px_50px_rgba(255,102,0,0.3)] transition-all duration-300 transform active:scale-95 ${
             cooldownRemaining > 0
               ? 'bg-gray-400 border-gray-300 shadow-none text-white cursor-not-allowed opacity-80'
               : status === 'success' 
-              ? 'bg-emerald-500 border-emerald-400 shadow-emerald-500/40 text-white' 
+              ? 'bg-emerald-500 border-emerald-400 shadow-[0_20px_50px_rgba(16,185,129,0.4)] text-white' 
               : status === 'error'
-              ? 'bg-red-600 border-red-500 shadow-red-600/40 text-white'
+              ? 'bg-red-600 border-red-500 shadow-[0_20px_50px_rgba(220,38,38,0.4)] text-white'
               : isLoading
-              ? 'bg-orange-500 border-orange-400 shadow-orange-500/40 text-white cursor-wait'
-              : 'bg-red-600 border-[#0b1325] shadow-red-600/50 hover:bg-red-500 text-white'
+              ? 'bg-orange-500 border-orange-400 shadow-[0_20px_50px_rgba(249,115,22,0.4)] text-white cursor-wait'
+              : 'bg-red-600 border-[#0b1325] shadow-[0_20px_50px_rgba(220,38,38,0.5)] hover:bg-red-500 text-white'
           }`}
         >
           {isLoading && status !== 'success' && (

@@ -263,7 +263,7 @@ export const ReportStepForm = () => {
     }
   };
 
-  const inputClass = "text-base border border-gray-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 rounded-xl";
+  const inputClass = "text-base p-3 md:p-4 border border-gray-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 rounded-xl";
 
   return (
     <div className="p-4 sm:p-6 w-full max-w-lg mx-auto pb-24 space-y-6">

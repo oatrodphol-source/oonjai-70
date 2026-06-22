@@ -27,28 +27,25 @@ export const BottomNav: React.FC = () => {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 w-full bg-[#151b2c]/90 backdrop-blur-md rounded-t-[30px] border-t-2 border-[#ff6600] z-[9999] shadow-[0_-10px_40px_rgba(0,0,0,0.5)] pointer-events-auto pb-[env(safe-area-inset-bottom)]">
-      <div className="flex justify-between items-center h-[72px] px-4 w-full relative">
+    <div className="fixed bottom-0 left-0 right-0 w-full bg-[#1E293B] rounded-t-[32px] border-t border-[#ff6600]/50 z-[9999] shadow-[0_-20px_50px_rgba(0,0,0,0.6)] pointer-events-auto pb-[env(safe-area-inset-bottom)]">
+      <div className="flex justify-around items-center h-[72px] px-2 w-full relative">
         
-        {/* Left Items */}
-        <div className="flex gap-4 w-[40%] justify-around">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href;
-            const Icon = item.icon;
-            return (
-              <Link 
-                key={item.href} 
-                href={item.href} 
-                className={`flex flex-col items-center justify-center w-16 min-h-[48px] gap-1 transition-all ${
-                  isActive ? "text-[#ff6600]" : "text-gray-400 hover:text-[#ff6600]/70"
-                }`}
-              >
-                <Icon size={24} strokeWidth={isActive ? 2 : 1.5} />
-                <span className="text-[10px] font-semibold">{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
+        {navItems.map((item) => {
+          const isActive = pathname === item.href;
+          const Icon = item.icon;
+          return (
+            <Link 
+              key={item.href} 
+              href={item.href} 
+              className={`flex flex-col items-center justify-center w-full flex-1 min-h-[48px] gap-1 transition-all ${
+                isActive ? "text-[#ff6600]" : "text-gray-400 hover:text-[#ff6600]/70"
+              }`}
+            >
+              <Icon size={24} strokeWidth={isActive ? 2 : 1.5} />
+              <span className="text-[10px] font-semibold">{item.label}</span>
+            </Link>
+          );
+        })}
 
         {/* Center SOS Button (Floating) */}
         <div className="relative w-20 flex justify-center shrink-0">
@@ -68,25 +65,22 @@ export const BottomNav: React.FC = () => {
           </span>
         </div>
 
-        {/* Right Items */}
-        <div className="flex gap-4 w-[40%] justify-around">
-          {navItemsRight.map((item) => {
-            const isActive = pathname === item.href;
-            const Icon = item.icon;
-            return (
-              <Link 
-                key={item.href} 
-                href={item.href} 
-                className={`flex flex-col items-center justify-center w-16 min-h-[48px] gap-1 transition-all ${
-                  isActive ? "text-[#ff6600]" : "text-gray-400 hover:text-[#ff6600]/70"
-                }`}
-              >
-                <Icon size={24} strokeWidth={isActive ? 2 : 1.5} />
-                <span className="text-[10px] font-semibold">{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
+        {navItemsRight.map((item) => {
+          const isActive = pathname === item.href;
+          const Icon = item.icon;
+          return (
+            <Link 
+              key={item.href} 
+              href={item.href} 
+              className={`flex flex-col items-center justify-center w-full flex-1 min-h-[48px] gap-1 transition-all ${
+                isActive ? "text-[#ff6600]" : "text-gray-400 hover:text-[#ff6600]/70"
+              }`}
+            >
+              <Icon size={24} strokeWidth={isActive ? 2 : 1.5} />
+              <span className="text-[10px] font-semibold">{item.label}</span>
+            </Link>
+          );
+        })}
         
       </div>
     </div>

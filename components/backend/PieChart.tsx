@@ -44,7 +44,7 @@ export const PieChart = ({ data: inputData }: { data?: { name: string, value: nu
   };
 
   return (
-    <div className="w-full h-64 flex items-center justify-center">
+    <div className="w-full h-[300px] flex items-center justify-center">
       <Doughnut data={data} options={options} />
     </div>
   );

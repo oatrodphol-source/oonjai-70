@@ -231,7 +231,7 @@ export const VolunteerTaskBoard = ({
         const isPending = !c.assigned_volunteer_id && !c.rescuerId;
         
         return (
-          <div key={c.id} className="bg-white dark:bg-[#151b2c] rounded-2xl shadow-md border border-gray-100 dark:border-gray-800 p-4 mb-4">
+          <div key={c.id} className="bg-white dark:bg-[#151b2c] rounded-[24px] shadow-xl shadow-orange-500/5 border border-gray-100 dark:border-gray-800/60 p-5 md:p-6 mb-6 transition-all hover:shadow-2xl hover:shadow-orange-500/10">
             
             {/* Gig App Header */}
             <div className="flex justify-between items-start mb-3">

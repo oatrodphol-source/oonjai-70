@@ -53,7 +53,7 @@ export const StatusTimeline = ({
   };
 
   return (
-    <Card className="w-full">
+    <Card className="w-full rounded-2xl overflow-hidden p-4 md:p-6 shadow-xl shadow-orange-500/5 border border-gray-100 dark:border-gray-800">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-[#ff6600]">การติดตามสถานะ : เคส {caseId}</h2>
       </div>
@@ -114,7 +114,7 @@ export const StatusTimeline = ({
           </div>
 
           <div className="mt-8 flex justify-end">
-            <Button variant="secondary" className="flex gap-2">
+            <Button variant="secondary" className="flex gap-2 py-4 px-6 rounded-xl w-full md:w-auto justify-center">
               <Share2 className="w-4 h-4" /> แชร์สถานะ
             </Button>
           </div>
