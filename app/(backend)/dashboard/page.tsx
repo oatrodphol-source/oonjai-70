@@ -49,9 +49,9 @@ export default function DashboardPage() {
           total++;
           
           const status = caseData.status || '';
-          if (['wait', 'รอการช่วยเหลือ', 'pending'].includes(status)) {
+          if (['wait', 'รอการช่วยเหลือ', 'pending', 'รอดำเนินการ'].includes(status)) {
             waiting++;
-          } else if (['in_progress', 'กำลังช่วยเหลือ', 'กำลังเข้าช่วยเหลือ'].includes(status)) {
+          } else if (['in_progress', 'กำลังช่วยเหลือ', 'กำลังเข้าช่วยเหลือ', 'กำลังดำเนินการ', 'accepted'].includes(status)) {
             inProgress++;
           } else if (['เสร็จสิ้น', 'ส่งเข้าศูนย์พักพิงสำเร็จ', 'มอบถุงยังชีพเสร็จสิ้น', 'นำส่งโรงพยาบาลแล้ว', 'completed'].includes(status)) {
             completed++;

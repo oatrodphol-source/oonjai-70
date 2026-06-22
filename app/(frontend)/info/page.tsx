@@ -147,27 +147,27 @@ export default function InfoPage() {
         <div className="w-full min-w-0 h-full bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800/50 p-3 sm:p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-sm overflow-hidden min-h-[100px] sm:min-h-[120px]">
           <Clock className="w-8 h-8 text-orange-500 mb-2 hidden sm:block" />
           <h3 className="text-2xl sm:text-3xl font-bold text-orange-600 dark:text-orange-500">{stats.pendingCount}</h3>
-          <p className="whitespace-normal break-words text-xs sm:text-sm text-center leading-tight w-full font-semibold text-orange-800 dark:text-orange-400 mt-1">รอการช่วยเหลือ</p>
+          <p className="whitespace-normal break-words text-center text-xs sm:text-sm w-full leading-tight font-semibold text-orange-800 dark:text-orange-400 mt-1">รอการช่วยเหลือ</p>
         </div>
         
         <div className="w-full min-w-0 h-full bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800/50 p-3 sm:p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-sm overflow-hidden min-h-[100px] sm:min-h-[120px]">
           <CheckCircle2 className="w-8 h-8 text-green-500 mb-2 hidden sm:block" />
           <h3 className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-500">{stats.completedCount}</h3>
-          <p className="whitespace-normal break-words text-xs sm:text-sm text-center leading-tight w-full font-semibold text-green-800 dark:text-green-400 mt-1">ช่วยเหลือสำเร็จ</p>
+          <p className="whitespace-normal break-words text-center text-xs sm:text-sm w-full leading-tight font-semibold text-green-800 dark:text-green-400 mt-1">ช่วยเหลือสำเร็จ</p>
         </div>
 
         {/* Shelter */}
         <div className="w-full min-w-0 h-full bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 p-3 sm:p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-sm overflow-hidden min-h-[100px] sm:min-h-[120px]">
           <span className="text-3xl mb-1 hidden sm:block">🏠</span>
           <h3 className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-500">{stats.shelterCount}</h3>
-          <p className="whitespace-normal break-words text-xs sm:text-sm text-center leading-tight w-full font-semibold text-blue-800 dark:text-blue-400 mt-1">ศูนย์พักพิง</p>
+          <p className="whitespace-normal break-words text-center text-xs sm:text-sm w-full leading-tight font-semibold text-blue-800 dark:text-blue-400 mt-1">ศูนย์พักพิง</p>
         </div>
 
         {/* Hospital */}
         <div className="w-full min-w-0 h-full bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/50 p-3 sm:p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-sm overflow-hidden min-h-[100px] sm:min-h-[120px]">
           <span className="text-3xl mb-1 hidden sm:block">🏥</span>
           <h3 className="text-2xl sm:text-3xl font-bold text-red-600 dark:text-red-500">{stats.hospitalCount}</h3>
-          <p className="whitespace-normal break-words text-xs sm:text-sm text-center leading-tight w-full font-semibold text-red-800 dark:text-red-400 mt-1">โรงพยาบาล/หน่วยแพทย์</p>
+          <p className="whitespace-normal break-words text-center text-xs sm:text-sm w-full leading-tight font-semibold text-red-800 dark:text-red-400 mt-1">โรงพยาบาล/หน่วยแพทย์</p>
         </div>
       </div>
 

@@ -105,15 +105,6 @@ export const Sidebar = ({ role = 'volunteer', userName = 'กำลังโห�
       </div>
 
       <div className="p-4 border-t border-gray-800">
-        <div className="flex items-center gap-3 px-4 py-3 bg-white/5 rounded-xl mb-4">
-          <div className="w-8 h-8 rounded-full bg-[#ff6600] flex items-center justify-center text-sm font-bold uppercase">
-            {clientRole.charAt(0)}
-          </div>
-          <div className="flex-1 overflow-hidden">
-            <p className="text-sm font-medium truncate">{clientName}</p>
-            <p className="text-xs text-gray-400 capitalize">{clientRole}</p>
-          </div>
-        </div>
         <Link href="/login" className="flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-colors">
           <LogOut className="w-5 h-5" />
           <span className="font-medium">ออกจากระบบ</span>

@@ -96,7 +96,23 @@ export const CaseTable = ({
   }, []);
 
   const filteredCases = cases.filter(c => {
-    const matchStatus = statusFilter === 'all' || c.status === statusFilter || (statusFilter === 'รอการช่วยเหลือ' && c.status === 'wait');
+    const status = c.status || '';
+    const isWait = ['wait', 'pending', 'รอการช่วยเหลือ', 'รอดำเนินการ'].includes(status);
+    const isInProgress = ['in_progress', 'กำลังช่วยเหลือ', 'กำลังเข้าช่วยเหลือ', 'กำลังดำเนินการ', 'accepted'].includes(status);
+    const isCompleted = ['เสร็จสิ้น', 'ส่งเข้าศูนย์พักพิงสำเร็จ', 'มอบถุงยังชีพเสร็จสิ้น', 'นำส่งโรงพยาบาลแล้ว', 'completed', 'ปลอดภัยแล้ว'].includes(status);
+
+    let matchStatus = false;
+    if (statusFilter === 'all') {
+      matchStatus = true;
+    } else if (statusFilter === 'รอการช่วยเหลือ') {
+      matchStatus = isWait;
+    } else if (statusFilter === 'กำลังช่วยเหลือ' || statusFilter === 'กำลังดำเนินการ') {
+      matchStatus = isInProgress;
+    } else if (statusFilter === 'เสร็จสิ้น') {
+      matchStatus = isCompleted;
+    } else {
+      matchStatus = status === statusFilter;
+    }
     const matchSeverity = severityFilter === 'all' || c.severity.toString() === severityFilter;
     const searchLower = searchQuery.toLowerCase();
     const matchSearch = searchQuery === '' || 

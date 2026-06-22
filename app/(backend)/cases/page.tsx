@@ -50,7 +50,7 @@ export default function CasesPage() {
               options={[
                 { label: 'ทุกสถานะ', value: 'all' },
                 { label: 'รอการช่วยเหลือ', value: 'รอการช่วยเหลือ' },
-                { label: 'กำลังช่วยเหลือ', value: 'กำลังช่วยเหลือ' },
+                { label: 'กำลังดำเนินการ', value: 'กำลังดำเนินการ' },
                 { label: 'เสร็จสิ้น', value: 'เสร็จสิ้น' },
               ]}
             />
