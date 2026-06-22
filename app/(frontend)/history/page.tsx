@@ -6,59 +6,81 @@ import { db } from '@/lib/firebase';
 import { collection, onSnapshot, query, where, documentId } from 'firebase/firestore';
 
 export default function HistoryPage() {
-  const [cases, setCases] = useState<any[]>([]);
+  const [allCases, setAllCases] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const myCases = JSON.parse(localStorage.getItem('oonjai_my_cases') || '[]');
-      
-      if (!Array.isArray(myCases) || myCases.length === 0) {
-        setIsLoading(false);
-        return;
-      }
+    let unsubscribe: (() => void) | undefined;
 
-      // Safe limit for Firebase 'in' query is 10
-      const recentCases = myCases.slice(-10);
-
-      const q = query(
-        collection(db, 'cases'),
-        where(documentId(), 'in', recentCases)
-      );
-
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const fetchedCases: any[] = [];
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          fetchedCases.push({
-            id: data.case_number ? `CAS-${String(data.case_number).padStart(3, '0')}` : `CAS-${doc.id.substring(0, 5)}`,
-            rawId: doc.id,
-            type: data.type || 'ไม่ระบุ',
-            status: data.status || 'รอการช่วยเหลือ',
-            time: data.updatedAt ? new Date(data.updatedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : 
-                  data.createdAt ? new Date(data.createdAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-',
-            timestamp: data.updatedAt || data.createdAt || 0
-          });
-        });
+    const loadCases = () => {
+      try {
+        const myCases = JSON.parse(localStorage.getItem('oonjai_my_cases') || '[]');
         
-        // Sort by timestamp descending
-        fetchedCases.sort((a, b) => {
-          return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+        if (!Array.isArray(myCases) || myCases.length === 0) {
+          setAllCases([]);
+          setIsLoading(false);
+          return;
+        }
+
+        const recentCases = myCases.slice(0, 10);
+
+        const q = query(
+          collection(db, 'cases'),
+          where(documentId(), 'in', recentCases)
+        );
+
+        if (unsubscribe) {
+          unsubscribe();
+        }
+
+        unsubscribe = onSnapshot(q, (snapshot) => {
+          const fetchedCases: any[] = [];
+          snapshot.forEach((doc) => {
+            const data = doc.data();
+            fetchedCases.push({
+              id: data.case_number ? `CAS-${String(data.case_number).padStart(3, '0')}` : `CAS-${doc.id.substring(0, 5)}`,
+              rawId: doc.id,
+              type: data.type || 'ไม่ระบุ',
+              status: data.status || 'รอการช่วยเหลือ',
+              time: data.updatedAt ? new Date(data.updatedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : 
+                    data.createdAt ? new Date(data.createdAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-',
+              timestamp: data.updatedAt || data.createdAt || 0
+            });
+          });
+          
+          // Sort by timestamp descending
+          fetchedCases.sort((a, b) => {
+            return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+          });
+
+          setAllCases(fetchedCases);
+          setIsLoading(false);
+        }, (error) => {
+          console.error('Error fetching history:', error);
+          setIsLoading(false);
         });
 
-        setCases(fetchedCases);
+      } catch (error) {
+        console.error("Error reading local storage:", error);
         setIsLoading(false);
-      }, (error) => {
-        console.error('Error fetching history:', error);
-        setIsLoading(false);
-      });
+      }
+    };
 
-      return () => unsubscribe();
-    } catch (error) {
-      console.error("Error reading local storage:", error);
-      setIsLoading(false);
-    }
+    loadCases();
+
+    window.addEventListener('localCasesUpdated', loadCases);
+
+    return () => {
+      window.removeEventListener('localCasesUpdated', loadCases);
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, []);
+
+  const completedStatuses = ["ปลอดภัยแล้ว", "ส่งเข้าศูนย์พักพิงสำเร็จ", "มอบถุงยังชีพเสร็จสิ้น", "นำส่งโรงพยาบาลแล้ว", "เสร็จสิ้น", "ยุติการช่วยเหลือ", "completed", "cancelled", "ยกเลิก"];
+  const activeCases = allCases.filter(c => !completedStatuses.includes(c.status));
+  const pastCases = allCases.filter(c => completedStatuses.includes(c.status));
 
   return (
     <main className="min-h-screen bg-slate-50 dark:bg-gray-900 pt-24 pb-32 px-4">
@@ -67,7 +89,7 @@ export default function HistoryPage() {
 
         {isLoading ? (
           <p className="text-center text-gray-500 mt-10">กำลังโหลดข้อมูล...</p>
-        ) : cases.length === 0 ? (
+        ) : allCases.length === 0 ? (
           <div className="text-center mt-10 p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
             <p className="text-gray-500 dark:text-gray-400">📭 ยังไม่มีประวัติการแจ้งเหตุในอุปกรณ์นี้</p>
           </div>
@@ -75,12 +97,14 @@ export default function HistoryPage() {
           <div className="space-y-8 animate-in fade-in duration-300">
             {/* Active Cases */}
             <div>
-              <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-wider flex items-center gap-2">
-                🔴 เคสปัจจุบัน (กำลังดำเนินการ)
-              </h2>
-              {cases.filter(c => ['รอการช่วยเหลือ', 'กำลังเข้าช่วยเหลือ', 'รอดำเนินการ'].includes(c.status)).length > 0 ? (
+              {activeCases.length > 0 && (
+                <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-wider flex items-center gap-2">
+                  🔴 เคสปัจจุบัน (กำลังดำเนินการ)
+                </h2>
+              )}
+              {activeCases.length > 0 ? (
                 <div className="space-y-4">
-                  {cases.filter(c => ['รอการช่วยเหลือ', 'กำลังเข้าช่วยเหลือ', 'รอดำเนินการ'].includes(c.status)).map(c => (
+                  {activeCases.map(c => (
                     <Link 
                       href={`/tracking/${c.rawId}`} 
                       key={c.id}
@@ -112,9 +136,9 @@ export default function HistoryPage() {
               <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-wider flex items-center gap-2">
                 ⚪ ประวัติในอดีต (ดำเนินการเสร็จสิ้น)
               </h2>
-              {cases.filter(c => ['ปลอดภัยแล้ว', 'ส่งเข้าศูนย์พักพิงสำเร็จ', 'มอบถุงยังชีพเสร็จสิ้น', 'นำส่งโรงพยาบาลแล้ว', 'เสร็จสิ้น', 'ยุติการช่วยเหลือ', 'completed', 'cancelled', 'ยกเลิก'].includes(c.status)).length > 0 ? (
+              {pastCases.length > 0 ? (
                 <div className="space-y-3">
-                  {cases.filter(c => ['ปลอดภัยแล้ว', 'ส่งเข้าศูนย์พักพิงสำเร็จ', 'มอบถุงยังชีพเสร็จสิ้น', 'นำส่งโรงพยาบาลแล้ว', 'เสร็จสิ้น', 'ยุติการช่วยเหลือ', 'completed', 'cancelled', 'ยกเลิก'].includes(c.status)).map(c => (
+                  {pastCases.map(c => (
                     <Link 
                       href={`/tracking/${c.rawId}`} 
                       key={c.id}

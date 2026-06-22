@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { CaseDetailModal } from './CaseDetailModal';
 import { FileSearch, CheckCircle2 } from 'lucide-react';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, query } from 'firebase/firestore';
+import { collection, onSnapshot, query, doc, updateDoc } from 'firebase/firestore';
 export const CaseTable = ({ 
   statusFilter = 'all', 
   severityFilter = 'all', 
@@ -19,6 +19,43 @@ export const CaseTable = ({
   const [selectedCase, setSelectedCase] = useState<any>(null);
   const [cases, setCases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingSeverity, setEditingSeverity] = useState<string | null>(null);
+
+  const handleUpdateSeverity = async (caseId: string, newSeverity: number) => {
+    try {
+      const caseRef = doc(db, 'cases', caseId);
+      await updateDoc(caseRef, {
+        severity: newSeverity,
+        updated_at: new Date().toISOString()
+      });
+      setEditingSeverity(null);
+    } catch (e) {
+      console.error("Error updating severity:", e);
+      alert('เกิดข้อผิดพลาดในการอัปเดตระดับความรุนแรง');
+    }
+  };
+
+  const getSeverityColor = (severity: number) => {
+    switch (severity) {
+      case 5: return 'bg-red-500 text-white';
+      case 4: return 'bg-orange-600 text-white';
+      case 3: return 'bg-orange-500 text-white';
+      case 2: return 'bg-yellow-500 text-white';
+      case 1: return 'bg-green-500 text-white';
+      default: return 'bg-gray-500 text-white';
+    }
+  };
+
+  const getSeverityText = (severity: number) => {
+    switch (severity) {
+      case 5: return 'วิกฤต (ระดับ 5)';
+      case 4: return 'รุนแรง (ระดับ 4)';
+      case 3: return 'ปานกลาง (ระดับ 3)';
+      case 2: return 'เฝ้าระวัง (ระดับ 2)';
+      case 1: return 'ทั่วไป (ระดับ 1)';
+      default: return `ระดับ ${severity}`;
+    }
+  };
 
   useEffect(() => {
     const casesRef = collection(db, 'cases');
@@ -89,9 +126,35 @@ export const CaseTable = ({
             <Card key={i} className="bg-white dark:bg-[#151b2c] rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-4 space-y-3 hover:shadow-md transition-shadow">
               <div className="flex justify-between items-start">
                 <div>
-                  <Badge variant={row.severity >= 4 ? 'danger' : row.severity === 3 ? 'warning' : 'success'} className="mb-2">
-                    ระดับ {row.severity}
-                  </Badge>
+                  <div className="flex items-center gap-2 mb-2 relative">
+                    <span className={`px-2 py-0.5 text-xs font-bold rounded-full inline-block ${getSeverityColor(row.severity)}`}>
+                      {getSeverityText(row.severity || 1)}
+                    </span>
+                    <button 
+                      onClick={() => setEditingSeverity(editingSeverity === row.originalId ? null : row.originalId)}
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1"
+                      title="แก้ไขระดับความรุนแรง"
+                    >
+                      ✏️
+                    </button>
+                    {editingSeverity === row.originalId && (
+                      <div className="absolute top-full left-0 mt-1 z-50 bg-white dark:bg-[#151b2c] shadow-2xl border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden whitespace-nowrap min-w-[240px] animate-in zoom-in-95 duration-200">
+                        <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800 text-xs font-bold text-gray-500">
+                          ปรับระดับความรุนแรง (Admin Override)
+                        </div>
+                        {[5,4,3,2,1].map(lvl => (
+                          <button 
+                            key={lvl} 
+                            className="block w-full text-left px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-gray-800/50 flex items-center gap-3 border-b border-gray-50 dark:border-gray-800/50 last:border-0 transition-colors"
+                            onClick={() => handleUpdateSeverity(row.originalId, lvl)}
+                          >
+                            <span className={`w-3 h-3 rounded-full ${getSeverityColor(lvl).split(' ')[0]}`}></span>
+                            <span className="text-gray-700 dark:text-gray-300 font-medium">{getSeverityText(lvl)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <div className="font-bold text-lg text-gray-900 dark:text-white">{row.id}</div>
                 </div>
                 <Button variant="ghost" size="sm" className="w-10 h-10 p-0 text-orange-500 hover:text-orange-600 hover:bg-orange-50 rounded-full" onClick={() => setSelectedCase(row)}>

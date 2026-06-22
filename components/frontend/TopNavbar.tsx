@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Search, Bell, User, LogOut, Sun, Moon, History, PhoneCall } from 'lucide-react';
+import { Search, Bell, User, LogOut, Sun, Moon, History, PhoneCall, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, query, orderBy, limit as firestoreLimit, doc, where, documentId } from 'firebase/firestore';
@@ -172,17 +172,10 @@ export const TopNavbar: React.FC = () => {
                   </div>
                   <div className="mt-3">
                     {visibleNotifications.length > 0 ? visibleNotifications.map(caseItem => {
-                      const details = (() => {
-                        switch(caseItem.status) {
-                          case 'pending': return { text: "🚨 เคสของคุณ: อยู่ระหว่างรอดำเนินการ", bg: "hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30", color: "text-red-600 dark:text-red-400" };
-                          case 'accepted': return { text: "🚒 เคสของคุณ: เจ้าหน้าที่รับเรื่องแล้ว", bg: "hover:bg-orange-50 dark:hover:bg-orange-900/20 border-orange-100 dark:border-orange-900/30", color: "text-orange-600 dark:text-orange-400" };
-                          case 'in_progress': return { text: "⏳ เคสของคุณ: เจ้าหน้าที่กำลังเข้าช่วยเหลือ", bg: "hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-100 dark:border-blue-900/30", color: "text-blue-600 dark:text-blue-400" };
-                          case 'completed': return { text: "✅ เคสของคุณ: ช่วยเหลือสำเร็จเสร็จสิ้นแล้ว", bg: "hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border-emerald-100 dark:border-emerald-900/30", color: "text-emerald-600 dark:text-emerald-400" };
-                          case 'cancelled': return { text: "❌ เคสของคุณ: ถูกยกเลิกแล้ว", bg: "hover:bg-gray-50 dark:hover:bg-gray-800/50 border-gray-100 dark:border-gray-800", color: "text-gray-600 dark:text-gray-400" };
-                          case 'ปลอดภัยแล้ว': return { text: "✅ เคสของคุณ: ปลอดภัยแล้ว", bg: "hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border-emerald-100 dark:border-emerald-900/30", color: "text-emerald-600 dark:text-emerald-400" };
-                          default: return { text: "🚨 เคสของคุณ: กำลังดำเนินการ", bg: "hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30", color: "text-red-600 dark:text-red-400" };
-                        }
-                      })();
+                      const isCompleted = ["ปลอดภัยแล้ว", "ส่งเข้าศูนย์พักพิงสำเร็จ", "มอบถุงยังชีพเสร็จสิ้น", "นำส่งโรงพยาบาลแล้ว", "เสร็จสิ้น", "ยุติการช่วยเหลือ", "completed", "cancelled", "ยกเลิก"].includes(caseItem.status);
+                      const details = isCompleted
+                        ? { text: `✅ เคสของคุณ: ${caseItem.status}`, bg: "hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border-emerald-100 dark:border-emerald-900/30", color: "text-emerald-600 dark:text-emerald-400" }
+                        : { text: `🚨 เคสของคุณ: ${caseItem.status}`, bg: "hover:bg-orange-50 dark:hover:bg-orange-900/20 border-orange-100 dark:border-orange-900/30", color: "text-orange-600 dark:text-orange-400" };
                       return (
                         <button 
                           key={caseItem.id}
@@ -234,6 +227,14 @@ export const TopNavbar: React.FC = () => {
                     <p className="text-xs text-gray-500 dark:text-gray-400">สถานะ</p>
                     <p className="font-bold text-gray-900 dark:text-white truncate">ผู้ใช้งานทั่วไป</p>
                   </div>
+
+                  <button 
+                    onClick={() => { setShowProfile(false); router.push(`/profile`); }}
+                    className="flex items-center gap-3 px-3 py-2.5 min-h-[48px] text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors w-full text-left"
+                  >
+                    <Settings className="w-4 h-4 text-gray-400" />
+                    ตั้งค่าบัญชี
+                  </button>
 
                   <button 
                     onClick={() => { setShowProfile(false); router.push(`/history`); }}

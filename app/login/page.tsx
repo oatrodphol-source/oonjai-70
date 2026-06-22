@@ -34,7 +34,7 @@ export default function LoginPage() {
         // Optional: save token to localStorage or context
         localStorage.setItem("token", data.token);
         if (data.user) {
-          localStorage.setItem("oonjai_user", JSON.stringify({ uid: data.user.userId || data.user.id, name: data.user.name || data.user.username, role: data.user.role || role }));
+          localStorage.setItem("oonjai_user", JSON.stringify({ uid: data.user.userId || data.user.id, name: data.user.name || data.user.username, role: data.user.role || role, rescueUnit: data.user.agency || "", phone: data.user.phone || "" }));
         }
         router.push("/dashboard");
       } else {

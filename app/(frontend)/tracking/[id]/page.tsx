@@ -21,6 +21,7 @@ interface CaseData {
   rescuer_phone?: string;
   assigned_volunteer_name?: string;
   assigned_volunteer_phone?: string;
+  assigned_volunteer_unit?: string;
   destination?: string;
 }
 
@@ -200,25 +201,33 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
 
       {/* Rescuer Information Card */}
       {caseData.status !== 'รอการช่วยเหลือ' && caseData.status !== 'wait' && caseData.status !== 'pending' && (caseData.assigned_volunteer_name || caseData.rescuer_name) && (
-        <Card className="p-4 border-2 border-blue-100 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/10 shadow-sm mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white dark:bg-[#0b1325] rounded-full flex items-center justify-center shadow-sm border border-blue-200 dark:border-blue-800">
-              <Truck className="w-6 h-6 text-blue-500" />
+        <div className="bg-white dark:bg-[#151b2c] rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-5 mb-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center text-2xl shrink-0">
+              🚑
             </div>
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">ผู้เข้าช่วยเหลือ</p>
-              <h3 className="font-bold text-gray-800 dark:text-gray-200">{caseData.assigned_volunteer_name || caseData.rescuer_name}</h3>
+            <div className="flex flex-col">
+              <span className="text-lg font-bold text-gray-900 dark:text-white leading-tight">
+                {caseData.assigned_volunteer_name || caseData.rescuer_name}
+              </span>
+              <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                {caseData.assigned_volunteer_unit || "อาสาสมัคร"}
+              </span>
             </div>
           </div>
+          
           {(caseData.assigned_volunteer_phone || caseData.rescuer_phone) && (caseData.assigned_volunteer_phone !== 'ไม่ระบุเบอร์โทร') && (
-            <a 
-              href={`tel:${caseData.assigned_volunteer_phone || caseData.rescuer_phone}`} 
-              className="flex items-center gap-1.5 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-lg transition-colors shadow-sm whitespace-nowrap"
-            >
-              📞 โทรติดต่อ
-            </a>
+            <>
+              <hr className="my-4 border-gray-50 dark:border-gray-800/50" />
+              <a 
+                href={`tel:${caseData.assigned_volunteer_phone || caseData.rescuer_phone}`} 
+                className="w-full flex items-center justify-center gap-2 bg-green-500 active:bg-green-600 text-white py-3.5 px-4 rounded-xl font-bold text-base transition-transform active:scale-[0.98]"
+              >
+                📞 โทรติดต่อเจ้าหน้าที่
+              </a>
+            </>
           )}
-        </Card>
+        </div>
       )}
 
       <h3 className="font-bold text-lg mb-6 text-gray-800 dark:text-gray-200">สถานะปัจจุบัน</h3>

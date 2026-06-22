@@ -20,6 +20,11 @@ export const ReportStepForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [phoneError, setPhoneError] = useState('');
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
+
+  const [showTriageModal, setShowTriageModal] = useState(false);
+  const [triagePhase, setTriagePhase] = useState(1);
+  const [calculatedSeverity, setCalculatedSeverity] = useState(1);
+  const [visionFeedback, setVisionFeedback] = useState('');
   
   const [formData, setFormData] = useState({
     name: '',
@@ -33,6 +38,7 @@ export const ReportStepForm = () => {
     latitude: 0,
     longitude: 0,
     image_url: '',
+    image_name: '',
     locationReady: false,
   });
 
@@ -85,6 +91,57 @@ export const ReportStepForm = () => {
     return phoneRegex.test(phone);
   };
 
+  const calculateSeverity = () => {
+    let score = 1;
+    let feedback = '';
+
+    if (formData.waterLevel === 'ท่วมมิดหลังคา') score += 3;
+    else if (formData.waterLevel === 'ระดับอก/ท่วมในบ้าน') score += 2;
+    else if (formData.waterLevel === 'ระดับเอว') score += 1;
+    
+    if (formData.bedridden) score += 2;
+    if (formData.elderly) score += 1;
+    
+    if (formData.type === 'ฉุกเฉิน/ป่วยต้องการหมออาสา' || formData.type === 'อพยพ/เคลื่อนย้ายออกนอกพื้นที่') score += 1;
+    
+    if (formData.image_url) {
+      const fileName = formData.image_name?.toLowerCase() || '';
+      const isIrrelevant = ['slip', 'สลิป', 'receipt', 'ใบเสร็จ', 'โอน', 'transfer', 'pay'].some(keyword => fileName.includes(keyword));
+      
+      if (isIrrelevant) {
+        feedback = '⚠️ ภาพอาจไม่เกี่ยวข้องกับภัยพิบัติ (ไม่นำภาพมาคำนวณความเสี่ยง)';
+      } else {
+        score += 1;
+        feedback = '✅ AI ประเมินภาพถ่ายเบื้องต้น (+1 ระดับความเสี่ยง) *รอศูนย์ฯ ยืนยัน*';
+      }
+    }
+    
+    setVisionFeedback(feedback);
+    return Math.min(Math.max(score, 1), 5);
+  };
+
+  const getSeverityColor = (severity: number) => {
+    switch (severity) {
+      case 5: return 'bg-red-600';
+      case 4: return 'bg-orange-600';
+      case 3: return 'bg-orange-500';
+      case 2: return 'bg-yellow-500';
+      case 1: return 'bg-green-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
+  const getSeverityText = (severity: number) => {
+    switch (severity) {
+      case 5: return 'พื้นที่เสี่ยงวิกฤต (ระดับ 5)';
+      case 4: return 'พื้นที่เสี่ยงรุนแรง (ระดับ 4)';
+      case 3: return 'พื้นที่เสี่ยงปานกลาง (ระดับ 3)';
+      case 2: return 'พื้นที่เฝ้าระวัง (ระดับ 2)';
+      case 1: return 'พื้นที่ปลอดภัย/ทั่วไป (ระดับ 1)';
+      default: return `ระดับ ${severity}`;
+    }
+  };
+
   const handleNext = () => {
     if (!formData.name.trim()) {
       alert('กรุณาระบุชื่อ-นามสกุล');
@@ -99,11 +156,15 @@ export const ReportStepForm = () => {
       alert('กรุณาระบุระดับน้ำ');
       return;
     }
-    if (step === 1) setStep(2);
-  };
+    
+    const severity = calculateSeverity();
+    setCalculatedSeverity(severity);
+    setShowTriageModal(true);
+    setTriagePhase(1);
 
-  const handleBack = () => {
-    if (step === 2) setStep(1);
+    setTimeout(() => {
+      setTriagePhase(2);
+    }, 1500);
   };
 
   const getLocation = () => {
@@ -129,7 +190,7 @@ export const ReportStepForm = () => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData({ ...formData, image_url: reader.result as string });
+        setFormData({ ...formData, image_url: reader.result as string, image_name: file.name });
       };
       reader.readAsDataURL(file);
     }
@@ -161,6 +222,7 @@ export const ReportStepForm = () => {
           details: formData.details.trim(),
           latitude: formData.latitude,
           longitude: formData.longitude,
+          severity: calculatedSeverity,
           image_url: formData.image_url || undefined,
         }),
       });
@@ -212,8 +274,6 @@ export const ReportStepForm = () => {
         <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">แจ้งเหตุฉุกเฉิน</h2>
         <p className="text-base text-gray-500 dark:text-gray-400">กรอกข้อมูลเพื่อให้เจ้าหน้าที่ช่วยเหลือได้รวดเร็วและแม่นยำที่สุด</p>
       </div>
-
-      <Stepper currentStep={step} totalSteps={2} labels={['ข้อมูลเบื้องต้น', 'ยืนยันข้อมูล']} />
 
       <Card className="mt-8 border border-gray-200 dark:border-[#ff6600]/20 shadow-xl shadow-orange-500/10 bg-white dark:bg-[#0b1325] relative z-10 overflow-hidden rounded-2xl">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#ff6600] to-orange-400"></div>
@@ -400,93 +460,8 @@ export const ReportStepForm = () => {
                   onClick={handleNext}
                   disabled={cooldownRemaining > 0}
                 >
-                  ถัดไป
+                  ถัดไป (วิเคราะห์ความเสี่ยง)
                 </Button>
-              </div>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
-              <div className="bg-gray-50 dark:bg-[#0b1325] p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-inner">
-                <h3 className="font-bold text-xl mb-5 text-[#ff6600] border-b border-orange-200 dark:border-orange-900/50 pb-3 flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5" /> ตรวจสอบข้อมูลก่อนส่ง
-                </h3>
-                
-                <div className="space-y-4 text-sm">
-                  <div className="grid grid-cols-3 gap-3 border-b border-gray-200 dark:border-gray-800 pb-3">
-                    <span className="text-gray-500 dark:text-gray-400">ชื่อ-นามสกุล</span>
-                    <span className="col-span-2 font-semibold text-gray-900 dark:text-white">{formData.name || '-'}</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3 border-b border-gray-200 dark:border-gray-800 pb-3">
-                    <span className="text-gray-500 dark:text-gray-400">เบอร์โทรศัพท์</span>
-                    <span className="col-span-2 font-semibold text-gray-900 dark:text-white">{formData.phone || '-'}</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3 border-b border-gray-200 dark:border-gray-800 pb-3">
-                    <span className="text-gray-500 dark:text-gray-400">ประเภท</span>
-                    <span className="col-span-2 font-semibold text-[#ff6600]">{formData.type}</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3 border-b border-gray-200 dark:border-gray-800 pb-3">
-                    <span className="text-gray-500 dark:text-gray-400">จำนวนคน</span>
-                    <span className="col-span-2 font-semibold text-gray-900 dark:text-white">{formData.peopleCount} คน</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3 border-b border-gray-200 dark:border-gray-800 pb-3">
-                    <span className="text-gray-500 dark:text-gray-400">กลุ่มเปราะบาง</span>
-                    <span className="col-span-2 font-semibold text-gray-900 dark:text-white flex flex-col gap-1">
-                      {formData.bedridden && <span className="text-orange-600 bg-orange-100 px-2 py-0.5 rounded text-xs w-max">ผู้ป่วยติดเตียง</span>}
-                      {formData.elderly && <span className="text-orange-600 bg-orange-100 px-2 py-0.5 rounded text-xs w-max">เด็กเล็ก/ผู้สูงอายุ</span>}
-                      {!formData.bedridden && !formData.elderly && <span>ไม่มี</span>}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3 border-b border-gray-200 dark:border-gray-800 pb-3">
-                    <span className="text-gray-500 dark:text-gray-400">ระดับน้ำ</span>
-                    <span className="col-span-2 font-semibold text-red-600">{formData.waterLevel}</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3 border-b border-gray-200 dark:border-gray-800 pb-3">
-                    <span className="text-gray-500 dark:text-gray-400">พิกัด GPS</span>
-                    <span className="col-span-2 font-semibold flex items-center gap-1">
-                      {formData.locationReady ? (
-                        <span className="text-emerald-600 flex items-center gap-1"><MapPin className="w-4 h-4"/> พร้อมส่ง</span>
-                      ) : (
-                        <span className="text-red-500">ยังไม่ระบุ</span>
-                      )}
-                    </span>
-                  </div>
-                  {formData.image_url && (
-                    <div className="grid grid-cols-3 gap-3 border-b border-gray-200 dark:border-gray-800 pb-3">
-                      <span className="text-gray-500 dark:text-gray-400">รูปถ่ายหน้างาน</span>
-                      <span className="col-span-2 font-semibold text-emerald-600 flex items-center gap-1">
-                        <CheckCircle2 className="w-4 h-4"/> แนบไฟล์แล้ว
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex gap-4 pt-4">
-                <Button type="button" variant="outline" className="w-1/3 py-6 font-medium" onClick={handleBack} disabled={isSubmitting}>แก้ไข</Button>
-                <div className="w-2/3 flex flex-col items-center justify-center">
-                  <Button 
-                    type="button"
-                    variant="primary" 
-                    className={`w-full py-6 font-bold text-lg shadow-lg ${cooldownRemaining > 0 ? 'opacity-50 cursor-not-allowed bg-gray-400 border-gray-400 shadow-none' : 'shadow-[#ff6600]/30'}`} 
-                    onClick={handleSubmit} 
-                    isLoading={isSubmitting}
-                    disabled={isSubmitting || cooldownRemaining > 0}
-                  >
-                    {isSubmitting ? (
-                      <div className="flex items-center justify-center gap-2">
-                        <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        กำลังส่งข้อมูล...
-                      </div>
-                    ) : cooldownRemaining > 0 ? (
-                      `รอ ${formatTime(cooldownRemaining)} นาที`
-                    ) : 'ยืนยันการแจ้งเหตุ'}
-                  </Button>
-                </div>
               </div>
             </div>
           )}
@@ -525,6 +500,68 @@ export const ReportStepForm = () => {
             >
               ดูรายการขอความช่วยเหลือ
             </Button>
+          </div>
+        </div>
+      )}
+
+      {/* AI Triage Modal */}
+      {showTriageModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-[#0b1325] rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl border border-orange-100 dark:border-orange-900/30 scale-100 animate-in zoom-in-95 duration-300">
+            
+            {triagePhase === 1 ? (
+              <div className="flex flex-col items-center py-8">
+                <div className="relative w-24 h-24 mb-6">
+                  <div className="absolute inset-0 border-4 border-orange-200 dark:border-orange-900/50 rounded-full animate-ping opacity-75"></div>
+                  <div className="absolute inset-0 border-4 border-[#ff6600] rounded-full border-t-transparent animate-spin"></div>
+                  <div className="absolute inset-0 flex items-center justify-center text-3xl">🤖</div>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">กำลังประเมินสถานการณ์...</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">AI Triage กำลังวิเคราะห์ข้อมูลและรูปภาพ</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center py-4">
+                <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle2 className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">วิเคราะห์เสร็จสิ้น</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">ระบบจัดให้คุณอยู่ใน</p>
+                
+                <div className={`px-4 py-2 rounded-full font-bold text-white mb-2 ${getSeverityColor(calculatedSeverity)} shadow-lg`}>
+                  {getSeverityText(calculatedSeverity)}
+                </div>
+                
+                {visionFeedback && (
+                  <p className="text-sm text-gray-500 mb-6 text-center px-4 leading-relaxed bg-gray-50 dark:bg-gray-800/50 py-2 rounded-xl w-full border border-gray-100 dark:border-gray-800">
+                    {visionFeedback}
+                  </p>
+                )}
+
+                <Button 
+                  type="button"
+                  variant="primary" 
+                  className="w-full py-5 text-xl font-bold shadow-lg shadow-red-500/30 bg-red-600 hover:bg-red-700 text-white animate-pulse"
+                  onClick={() => {
+                    setShowTriageModal(false);
+                    handleSubmit();
+                  }}
+                  isLoading={isSubmitting}
+                  disabled={isSubmitting}
+                >
+                  🚨 ยืนยันการแจ้งเหตุ
+                </Button>
+                
+                <button 
+                  type="button" 
+                  className="mt-4 text-sm font-medium text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                  onClick={() => setShowTriageModal(false)}
+                  disabled={isSubmitting}
+                >
+                  ยกเลิก / แก้ไขข้อมูล
+                </button>
+              </div>
+            )}
+            
           </div>
         </div>
       )}

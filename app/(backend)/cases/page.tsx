@@ -62,9 +62,11 @@ export default function CasesPage() {
               onChange={(e) => setSeverityFilter(e.target.value)}
               options={[
                 { label: 'ทุกระดับความรุนแรง', value: 'all' },
-                { label: 'วิกฤต (ระดับ 5)', value: '5' },
-                { label: 'รุนแรง (ระดับ 4)', value: '4' },
-                { label: 'ปานกลาง (ระดับ 3)', value: '3' },
+                { label: 'พื้นที่เสี่ยงวิกฤต (ระดับ 5)', value: '5' },
+                { label: 'พื้นที่เสี่ยงรุนแรง (ระดับ 4)', value: '4' },
+                { label: 'พื้นที่เสี่ยงปานกลาง (ระดับ 3)', value: '3' },
+                { label: 'พื้นที่เฝ้าระวัง (ระดับ 2)', value: '2' },
+                { label: 'พื้นที่ปลอดภัย/ทั่วไป (ระดับ 1)', value: '1' },
               ]}
             />
           </div>

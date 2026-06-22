@@ -13,6 +13,28 @@ interface CaseDetailModalProps {
 export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({ isOpen, onClose, caseData }) => {
   const [isUpdating, setIsUpdating] = useState(false);
 
+  const getSeverityColor = (severity: number) => {
+    switch (severity) {
+      case 5: return 'bg-red-500 text-white';
+      case 4: return 'bg-orange-600 text-white';
+      case 3: return 'bg-orange-500 text-white';
+      case 2: return 'bg-yellow-500 text-white';
+      case 1: return 'bg-green-500 text-white';
+      default: return 'bg-gray-500 text-white';
+    }
+  };
+
+  const getSeverityText = (severity: number) => {
+    switch (severity) {
+      case 5: return 'วิกฤต (ระดับ 5)';
+      case 4: return 'รุนแรง (ระดับ 4)';
+      case 3: return 'ปานกลาง (ระดับ 3)';
+      case 2: return 'เฝ้าระวัง (ระดับ 2)';
+      case 1: return 'ทั่วไป (ระดับ 1)';
+      default: return `ระดับ ${severity}`;
+    }
+  };
+
   const updateStatus = async (newStatus: string) => {
     if (!caseData || !caseData.rawId) return;
     setIsUpdating(true);
@@ -54,9 +76,9 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({ isOpen, onClos
             </div>
           </div>
           <div className="flex flex-col items-end gap-2">
-            <Badge variant={caseData.severity >= 4 ? 'danger' : 'warning'}>
-              ความรุนแรงระดับ {caseData.severity}
-            </Badge>
+            <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${getSeverityColor(caseData.severity)}`}>
+              {getSeverityText(caseData.severity || 1)}
+            </span>
             <Badge variant={
               caseData.status === 'รอการช่วยเหลือ' ? 'wait' :
               caseData.status === 'กำลังช่วยเหลือ' ? 'in_progress' :

@@ -31,6 +31,18 @@ export default function MapView() {
   const [safeArea, setSafeArea] = useState('');
   const [isSubmittingSafe, setIsSubmittingSafe] = useState(false);
 
+  const getSeverityText = (severity: number) => {
+    switch (severity) {
+      case 5: return 'วิกฤต (ระดับ 5)';
+      case 4: return 'รุนแรง (ระดับ 4)';
+      case 3: return 'ปานกลาง (ระดับ 3)';
+      case 2: return 'เฝ้าระวัง (ระดับ 2)';
+      case 1: return 'ทั่วไป (ระดับ 1)';
+      default: return `ระดับ ${severity}`;
+    }
+  };
+
+
   useEffect(() => {
     // Fix leaflet icon issue in Next.js by initializing only on the client
     if (typeof window !== 'undefined') {
@@ -227,7 +239,7 @@ export default function MapView() {
               <div className="font-sans">
                 <p className="font-bold mb-1">รหัสเคส: CAS-{c.case_number || String(c.id).substring(0,6)}</p>
                 <p className="text-sm">ประเภท: {c.type}</p>
-                <p className="text-sm">ความรุนแรง: {c.severity}</p>
+                <p className="text-sm">ความรุนแรง: {getSeverityText(c.severity)}</p>
               </div>
             </Popup>
           </Marker>

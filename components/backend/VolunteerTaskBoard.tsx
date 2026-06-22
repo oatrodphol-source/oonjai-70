@@ -18,15 +18,30 @@ export const VolunteerTaskBoard = ({
 }) => {
   const [cases, setCases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<{uid: string, name: string} | null>(null);
+  const [currentUser, setCurrentUser] = useState<{uid: string, name: string, phone?: string, rescueUnit?: string} | null>(null);
   const [updatingCaseId, setUpdatingCaseId] = useState<string | null>(null);
+  const [editingSeverity, setEditingSeverity] = useState<string | null>(null);
+
+  const handleUpdateSeverity = async (caseId: string, newSeverity: number) => {
+    try {
+      const caseRef = doc(db, 'cases', caseId);
+      await updateDoc(caseRef, {
+        severity: newSeverity,
+        updated_at: new Date().toISOString()
+      });
+      setEditingSeverity(null);
+    } catch (e) {
+      console.error("Error updating severity:", e);
+      alert('เกิดข้อผิดพลาดในการอัปเดตระดับความรุนแรง');
+    }
+  };
 
   useEffect(() => {
     try {
       const stored = localStorage.getItem('oonjai_user');
       if (stored) {
         const user = JSON.parse(stored);
-        setCurrentUser({ uid: user.uid, name: user.name });
+        setCurrentUser({ uid: user.uid, name: user.name, phone: user.phone, rescueUnit: user.rescueUnit });
       }
     } catch (e) {
       console.error(e);
@@ -71,12 +86,23 @@ export const VolunteerTaskBoard = ({
 
   const getSeverityColor = (severity: number) => {
     switch (severity) {
-      case 5: return 'bg-red-600 text-white';
-      case 4: return 'bg-orange-500 text-white';
-      case 3: return 'bg-yellow-500 text-white';
-      case 2: return 'bg-blue-500 text-white';
+      case 5: return 'bg-red-500 text-white';
+      case 4: return 'bg-orange-600 text-white';
+      case 3: return 'bg-orange-500 text-white';
+      case 2: return 'bg-yellow-500 text-white';
       case 1: return 'bg-green-500 text-white';
       default: return 'bg-gray-500 text-white';
+    }
+  };
+
+  const getSeverityText = (severity: number) => {
+    switch (severity) {
+      case 5: return 'วิกฤต (ระดับ 5)';
+      case 4: return 'รุนแรง (ระดับ 4)';
+      case 3: return 'ปานกลาง (ระดับ 3)';
+      case 2: return 'เฝ้าระวัง (ระดับ 2)';
+      case 1: return 'ทั่วไป (ระดับ 1)';
+      default: return `ระดับ ${severity}`;
     }
   };
 
@@ -90,6 +116,7 @@ export const VolunteerTaskBoard = ({
         status: 'กำลังเข้าช่วยเหลือ',
         assigned_volunteer_id: currentUser.uid,
         assigned_volunteer_name: currentUser.name,
+        assigned_volunteer_unit: currentUser.rescueUnit || "อาสาสมัคร",
         assigned_volunteer_phone: currentUser.phone || 'ไม่ระบุเบอร์โทร',
         updated_at: new Date().toISOString()
       });
@@ -207,14 +234,40 @@ export const VolunteerTaskBoard = ({
           <div key={c.id} className="bg-white dark:bg-[#151b2c] rounded-2xl shadow-md border border-gray-100 dark:border-gray-800 p-4 mb-4">
             
             {/* Gig App Header */}
-            <div className="flex justify-between items-center mb-3">
-              <div className="flex items-center gap-2">
-                <span className={`px-3 py-1 text-xs font-bold rounded-full ${getSeverityColor(c.severity)}`}>
-                  Level {c.severity || 1}
-                </span>
-                <span className="font-bold text-gray-900 dark:text-white text-lg">{c.displayId}</span>
+            <div className="flex justify-between items-start mb-3">
+              <div className="flex items-center gap-2 relative">
+                <div className="flex items-center gap-2">
+                  <span className={`px-3 py-1 text-xs font-bold rounded-full ${getSeverityColor(c.severity)}`}>
+                    {getSeverityText(c.severity || 1)}
+                  </span>
+                  <button 
+                    onClick={() => setEditingSeverity(editingSeverity === c.id ? null : c.id)}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1"
+                    title="แก้ไขระดับความรุนแรง"
+                  >
+                    ✏️
+                  </button>
+                </div>
+                {editingSeverity === c.id && (
+                  <div className="absolute top-full left-0 mt-1 z-50 bg-white dark:bg-[#151b2c] shadow-2xl border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden whitespace-nowrap min-w-[240px] animate-in zoom-in-95 duration-200">
+                    <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800 text-xs font-bold text-gray-500">
+                      ปรับระดับความรุนแรง (Override)
+                    </div>
+                    {[5,4,3,2,1].map(lvl => (
+                      <button 
+                        key={lvl} 
+                        className="block w-full text-left px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-gray-800/50 flex items-center gap-3 border-b border-gray-50 dark:border-gray-800/50 last:border-0 transition-colors"
+                        onClick={() => handleUpdateSeverity(c.id, lvl)}
+                      >
+                        <span className={`w-3 h-3 rounded-full ${getSeverityColor(lvl).split(' ')[0]}`}></span>
+                        <span className="text-gray-700 dark:text-gray-300 font-medium">{getSeverityText(lvl)}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <span className="font-bold text-gray-900 dark:text-white text-lg ml-1">{c.displayId}</span>
               </div>
-              <div className="text-sm text-gray-500 flex items-center gap-1">
+              <div className="text-sm text-gray-500 flex items-center gap-1 mt-1">
                 <Clock className="w-4 h-4" /> 
                 {c.createdAt ? new Date(c.createdAt).toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'}) : 
                  (c.created_at ? new Date(c.created_at).toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'}) : '-')}
