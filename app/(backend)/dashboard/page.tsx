@@ -7,6 +7,7 @@ import { PieChart } from '@/components/backend/PieChart';
 import { SeverityBar } from '@/components/backend/SeverityBar';
 import { VolunteerTaskBoard } from '@/components/backend/VolunteerTaskBoard';
 import { Card } from '@/components/ui/Card';
+import { getSeverityBadgeStyle } from '@/lib/utils';
 import { AlertCircle, CheckCircle2, Clock, Users, Bot, ArrowRight } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, query } from 'firebase/firestore';
@@ -239,7 +240,7 @@ export default function DashboardPage() {
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-gray-900 dark:text-white">{row.id}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${row.severity >= 4 ? 'bg-red-100 text-red-600 dark:bg-red-900/30' : 'bg-orange-100 text-orange-600 dark:bg-orange-900/30'}`}>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold border ${getSeverityBadgeStyle(row.severity || 1)}`}>
                           ระดับ {row.severity}
                         </span>
                       </div>

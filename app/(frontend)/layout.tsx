@@ -16,9 +16,9 @@ export default function FrontendLayout({
         <ActiveCaseBanner />
       </div>
       
-      <main className="flex-1 pb-24 relative z-0 flex flex-col w-full max-w-full overflow-x-hidden">
+      <main className="min-h-[calc(100dvh-80px)] pb-20 md:pb-8 flex flex-col items-center justify-start bg-slate-50 dark:bg-[#0b1325] relative z-0 w-full max-w-full overflow-x-hidden">
         {/* Full-width spanning layout wrapper */}
-        <div className="w-full max-w-full flex-1 bg-white dark:bg-[#0b1325] relative z-10 flex flex-col overflow-x-hidden">
+        <div className="w-full max-w-full flex-1 relative z-10 flex flex-col overflow-x-hidden">
           {children}
         </div>
       </main>

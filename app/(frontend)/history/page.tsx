@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, query, where, documentId } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, documentId, doc } from 'firebase/firestore';
 
 export default function HistoryPage() {
   const [allCases, setAllCases] = useState<any[]>([]);
@@ -14,51 +14,68 @@ export default function HistoryPage() {
 
     const loadCases = () => {
       try {
-        const myCases = JSON.parse(localStorage.getItem('oonjai_my_cases') || '[]');
+        let myCases = JSON.parse(localStorage.getItem('oonjai_my_cases') || '[]');
+        if (!Array.isArray(myCases)) myCases = [];
+
+        const keys = ['oonjai_last_sos', 'oonjai_last_report'];
+        keys.forEach(key => {
+          const dataStr = localStorage.getItem(key);
+          if (dataStr) {
+            try {
+              const data = JSON.parse(dataStr);
+              if (data && data.caseId && !myCases.includes(data.caseId)) {
+                myCases.push(data.caseId);
+              }
+            } catch (e) {
+              console.error(e);
+            }
+          }
+        });
         
-        if (!Array.isArray(myCases) || myCases.length === 0) {
+        if (myCases.length === 0) {
           setAllCases([]);
           setIsLoading(false);
           return;
         }
 
-        const recentCases = myCases.slice(0, 10);
+        const unsubscribers: (() => void)[] = [];
+        const casesMap = new Map();
 
-        const q = query(
-          collection(db, 'cases'),
-          where(documentId(), 'in', recentCases)
-        );
-
-        if (unsubscribe) {
-          unsubscribe();
-        }
-
-        unsubscribe = onSnapshot(q, (snapshot) => {
-          const fetchedCases: any[] = [];
-          snapshot.forEach((doc) => {
-            const data = doc.data();
-            fetchedCases.push({
-              id: data.case_number ? `CAS-${String(data.case_number).padStart(3, '0')}` : `CAS-${doc.id.substring(0, 5)}`,
-              rawId: doc.id,
-              type: data.type || 'ไม่ระบุ',
-              status: data.status || 'รอการช่วยเหลือ',
-              time: data.updatedAt ? new Date(data.updatedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : 
-                    data.createdAt ? new Date(data.createdAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-',
-              timestamp: data.updatedAt || data.createdAt || 0
+        myCases.forEach((id: string) => {
+          if (typeof id !== 'string') return;
+          const docRef = doc(db, 'cases', id);
+          const unsub = onSnapshot(docRef, (docSnap) => {
+            if (docSnap.exists()) {
+              const data = docSnap.data();
+              casesMap.set(id, {
+                id: data.case_number ? `CAS-${String(data.case_number).padStart(3, '0')}` : `CAS-${docSnap.id.substring(0, 5)}`,
+                rawId: docSnap.id,
+                type: data.type || 'ไม่ระบุ',
+                status: data.status || 'รอการช่วยเหลือ',
+                time: data.updatedAt ? new Date(data.updatedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : 
+                      data.createdAt ? new Date(data.createdAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-',
+                timestamp: data.updatedAt || data.createdAt || 0
+              });
+            } else {
+              casesMap.delete(id);
+            }
+            
+            const fetchedCases = Array.from(casesMap.values());
+            fetchedCases.sort((a, b) => {
+              return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
             });
-          });
-          
-          // Sort by timestamp descending
-          fetchedCases.sort((a, b) => {
-            return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-          });
 
-          setAllCases(fetchedCases);
-          setIsLoading(false);
-        }, (error) => {
-          console.error('Error fetching history:', error);
-          setIsLoading(false);
+            setAllCases(fetchedCases);
+            setIsLoading(false);
+          }, (error) => {
+             console.error('Error listening to case:', id, error);
+          });
+          unsubscribers.push(unsub);
         });
+
+        unsubscribe = () => {
+          unsubscribers.forEach(u => u());
+        };
 
       } catch (error) {
         console.error("Error reading local storage:", error);
@@ -78,9 +95,15 @@ export default function HistoryPage() {
     };
   }, []);
 
-  const completedStatuses = ["ปลอดภัยแล้ว", "ส่งเข้าศูนย์พักพิงสำเร็จ", "มอบถุงยังชีพเสร็จสิ้น", "นำส่งโรงพยาบาลแล้ว", "เสร็จสิ้น", "ยุติการช่วยเหลือ", "completed", "cancelled", "ยกเลิก"];
-  const activeCases = allCases.filter(c => !completedStatuses.includes(c.status));
-  const pastCases = allCases.filter(c => completedStatuses.includes(c.status));
+  const activeStatuses = ['รอดำเนินการ', 'กำลังดำเนินการ', 'กำลังเข้าช่วยเหลือ', 'pending', 'active', 'in_progress', 'dispatched', 'รอการช่วยเหลือ', 'รับเรื่องแล้ว', 'กำลังช่วยเหลือ', 'wait', 'accepted'];
+  const activeCases = allCases.filter(c => {
+    const s = typeof c.status === 'string' ? c.status.toLowerCase() : String(c.status);
+    return activeStatuses.includes(s);
+  });
+  const pastCases = allCases.filter(c => {
+    const s = typeof c.status === 'string' ? c.status.toLowerCase() : String(c.status);
+    return !activeStatuses.includes(s);
+  });
 
   return (
     <main className="min-h-screen bg-slate-50 dark:bg-gray-900 pt-24 pb-32 px-4">

@@ -2,6 +2,16 @@
 import React from 'react';
 import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import { getSeverityBadgeStyle } from '@/lib/utils';
+
+const getHexColor = (severity: any) => {
+  const level = String(severity || '');
+  if (level.includes('5')) return '#ef4444';
+  if (level.includes('4')) return '#f97316';
+  if (level.includes('3')) return '#eab308';
+  if (level.includes('2')) return '#3b82f6';
+  return '#22c55e'; // Default Level 1
+};
 
 interface HeatmapMapProps {
   cases: any[];
@@ -11,12 +21,13 @@ export default function HeatmapMap({ cases }: HeatmapMapProps) {
   const position: [number, number] = [13.7563, 100.5018]; // BKK Default
 
   const getMarkerStyle = (severity: number) => {
+    const hex = getHexColor(severity);
     switch (severity) {
-      case 5: return { color: '#DC2626', fillColor: '#DC2626', radius: 12, className: 'animate-pulse' };
-      case 4: return { color: '#EA580C', fillColor: '#EA580C', radius: 10 };
-      case 3: return { color: '#F97316', fillColor: '#F97316', radius: 8 };
-      case 2: return { color: '#EAB308', fillColor: '#EAB308', radius: 7 };
-      case 1: default: return { color: '#22C55E', fillColor: '#22C55E', radius: 6 };
+      case 5: return { color: hex, fillColor: hex, radius: 12, className: 'animate-pulse' };
+      case 4: return { color: hex, fillColor: hex, radius: 10 };
+      case 3: return { color: hex, fillColor: hex, radius: 8 };
+      case 2: return { color: hex, fillColor: hex, radius: 7 };
+      case 1: default: return { color: hex, fillColor: hex, radius: 6 };
     }
   };
 
@@ -44,12 +55,7 @@ export default function HeatmapMap({ cases }: HeatmapMapProps) {
               <div className="p-1">
                 <div className="flex items-center justify-between gap-3 border-b pb-2 mb-2">
                   <span className="font-bold text-gray-900">{c.id}</span>
-                  <span className={`px-2 py-0.5 text-xs font-bold rounded-full text-white ${
-                    c.severity === 5 ? 'bg-red-500' :
-                    c.severity === 4 ? 'bg-orange-600' :
-                    c.severity === 3 ? 'bg-orange-500' :
-                    c.severity === 2 ? 'bg-yellow-500' : 'bg-green-500'
-                  }`}>
+                  <span className={`px-2 py-0.5 text-xs font-bold rounded-full border ${getSeverityBadgeStyle(c.severity || 1)}`}>
                     {c.severity === 5 ? 'วิกฤต (ระดับ 5)' :
                      c.severity === 4 ? 'รุนแรง (ระดับ 4)' :
                      c.severity === 3 ? 'ปานกลาง (ระดับ 3)' :

@@ -6,8 +6,31 @@ import L from 'leaflet';
 import HeatmapLayer from './HeatmapLayer';
 import { Button } from '@/components/ui/Button';
 import { Layers, MapPin, Crosshair, ShieldCheck, X } from 'lucide-react';
+import { getSeverityText } from '@/lib/ai-triage';
+import { getSeveritySolidColor } from '@/lib/utils';
 import { db } from '@/lib/firebase';
+
+// Helper function for AI Triage colors
+const getTriageColor = (severity: any) => {
+  const level = String(severity || '');
+  if (level.includes('5')) return 'bg-red-600';
+  if (level.includes('4')) return 'bg-orange-500';
+  if (level.includes('3')) return 'bg-yellow-500';
+  if (level.includes('2')) return 'bg-blue-500';
+  return 'bg-green-500'; // Default Level 1
+};
 import { collection, onSnapshot, addDoc, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+
+const getDistanceKm = (lat1: any, lon1: any, lat2: any, lon2: any) => {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * (Math.PI/180)) * Math.cos(lat2 * (Math.PI/180)) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+};
 
 interface CasePoint {
   id: string | number;
@@ -16,6 +39,7 @@ interface CasePoint {
   latitude: number;
   longitude: number;
   severity: number;
+  status?: string;
 }
 
 export default function MapView() {
@@ -74,7 +98,8 @@ export default function MapView() {
             type: data.type || 'ไม่ระบุ',
             latitude: data.latitude,
             longitude: data.longitude,
-            severity: data.severity || 1
+            severity: data.severity || 1,
+            status: data.status
           });
         }
       });
@@ -185,12 +210,22 @@ export default function MapView() {
         </div>
       </div>
 
-      {/* Layer Toggles */}
-      <div className="absolute bottom-28 right-4 z-[9999] flex flex-col gap-3 pointer-events-none">
+      {/* Floating Action Buttons */}
+      <div className="absolute bottom-8 lg:bottom-10 right-4 z-[1000] flex flex-col gap-2 pointer-events-none">
+        <div className="pointer-events-auto">
+          <button 
+            onClick={() => setShowSafeModal(true)}
+            className="bg-[#00B900] text-white shadow-lg shadow-green-500/30 flex items-center justify-center gap-2 px-5 py-3 rounded-full font-bold transition-all duration-200 active:scale-95 border-2 border-green-500 w-full"
+          >
+            <ShieldCheck className="w-5 h-5" />
+            <span className="font-bold">ฉันปลอดภัยดี</span>
+          </button>
+        </div>
+        
         <div className="pointer-events-auto">
           <button 
             onClick={() => setShowHeatmap(!showHeatmap)}
-            className={`backdrop-blur-md flex items-center justify-center gap-2 px-5 py-3 rounded-full font-bold transition-all duration-200 active:scale-95 ${
+            className={`backdrop-blur-md flex items-center justify-center gap-2 px-5 py-3 rounded-full font-bold transition-all duration-200 active:scale-95 w-full ${
               showHeatmap 
                 ? 'bg-orange-500 text-white shadow-lg border-2 border-orange-400' 
                 : 'bg-white text-gray-700 border border-gray-200 shadow-sm dark:bg-[#0b1325]/95 dark:text-gray-300 dark:border-gray-800'
@@ -198,19 +233,6 @@ export default function MapView() {
           >
             {showHeatmap ? <MapPin className="w-5 h-5" /> : <Layers className="w-5 h-5" />}
             <span className="font-bold">{showHeatmap ? 'ดูแบบหมุด' : 'ดูพื้นที่เสี่ยง'}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Safe Button */}
-      <div className="absolute bottom-[240px] right-4 z-[9999] flex flex-col gap-3 pointer-events-none">
-        <div className="pointer-events-auto">
-          <button 
-            onClick={() => setShowSafeModal(true)}
-            className="bg-[#00B900] text-white shadow-lg shadow-green-500/30 flex items-center justify-center gap-2 px-5 py-3 rounded-full font-bold transition-all duration-200 active:scale-95 border-2 border-green-500"
-          >
-            <ShieldCheck className="w-5 h-5" />
-            <span className="font-bold">ฉันปลอดภัยดี</span>
           </button>
         </div>
       </div>
@@ -229,21 +251,81 @@ export default function MapView() {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         
-        {!showHeatmap && icons && cases.map((c) => (
-          <Marker 
-            key={c.id} 
-            position={[c.latitude, c.longitude]} 
-            icon={c.severity >= 4 ? icons.red : icons.yellow}
-          >
-            <Popup>
-              <div className="font-sans">
-                <p className="font-bold mb-1">รหัสเคส: CAS-{c.case_number || String(c.id).substring(0,6)}</p>
-                <p className="text-sm">ประเภท: {c.type}</p>
-                <p className="text-sm">ความรุนแรง: {getSeverityText(c.severity)}</p>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+        {(() => {
+          if (showHeatmap || !icons) return null;
+
+          const clusters: { base: CasePoint, group: CasePoint[] }[] = [];
+          const processedIds = new Set();
+
+          cases.forEach(c => {
+            if (processedIds.has(c.id)) return;
+            const group = [c];
+            processedIds.add(c.id);
+
+            cases.forEach(other => {
+              if (!processedIds.has(other.id) && getDistanceKm(c.latitude, c.longitude, other.latitude, other.longitude) <= 0.5) {
+                group.push(other);
+                processedIds.add(other.id);
+              }
+            });
+            clusters.push({ base: c, group });
+          });
+
+          return clusters.map((cluster, idx) => {
+            const c = cluster.base;
+
+
+
+            if (cluster.group.length > 1) {
+              const maxSeverity = Math.max(...cluster.group.map(c => {
+                const match = String(c.severity || c.level || 1).match(/\d+/);
+                return match ? parseInt(match[0], 10) : 1;
+              }));
+              const clusterColor = getTriageColor(maxSeverity);
+              const countIcon = L.divIcon({
+                html: `<div class="${clusterColor} text-white font-bold rounded-full w-10 h-10 flex items-center justify-center border-2 border-white shadow-lg animate-bounce">${cluster.group.length}</div>`,
+                className: 'custom-cluster',
+                iconSize: [40, 40]
+              });
+              return (
+                <Marker key={`cluster-${idx}`} position={[c.latitude, c.longitude]} icon={countIcon}>
+                  <Popup>
+                    <div className="font-sans">
+                      <div className={`text-center ${clusterColor.replace('bg-', 'text-')} font-bold mb-2`}>🚨 มี {cluster.group.length} เคสในรัศมี 500 เมตร</div>
+                      <div className="text-xs text-gray-600">
+                        <span className="font-bold">รหัส: </span> 
+                        {cluster.group.map(g => g.case_number ? `CAS-${g.case_number}` : (g.id ? `CAS-${String(g.id).substring(0,6)}` : 'ไม่ระบุ')).join(', ')}
+                      </div>
+                    </div>
+                  </Popup>
+                </Marker>
+              );
+            }
+
+            const markerColorClass = getTriageColor(c.severity || (c as any).level || 1);
+            const singleIcon = L.divIcon({
+              html: `<div class="${markerColorClass} w-6 h-6 rounded-full border-2 border-white shadow-md animate-pulse"></div>`,
+              className: 'custom-marker',
+              iconSize: [24, 24]
+            });
+
+            return (
+              <Marker 
+                key={c.id} 
+                position={[c.latitude, c.longitude]} 
+                icon={singleIcon}
+              >
+                <Popup>
+                  <div className="font-sans">
+                    <p className="font-bold mb-1">รหัสเคส: CAS-{c.case_number || String(c.id).substring(0,6)}</p>
+                    <p className="text-sm">ประเภท: {c.type}</p>
+                    <p className="text-sm">ความรุนแรง: {getSeverityText(c.severity)}</p>
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          });
+        })()}
 
         {showHeatmap && heatmapPoints.length > 0 && (
           <HeatmapLayer points={heatmapPoints} />

@@ -8,11 +8,26 @@ import { Card } from '@/components/ui/Card';
 import { Camera, MapPin, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import { getSeveritySolidColor } from '@/lib/utils';
 
-const DraggableMap = dynamic(() => import('./DraggableMap'), { 
+// Dynamically import the map to prevent SSR Leaflet DOM errors
+const DraggableMap = dynamic(() => import('./DraggableMap'), {
   ssr: false,
-  loading: () => <div className="h-[250px] w-full bg-gray-100 dark:bg-gray-800 animate-pulse rounded-xl mt-3 flex items-center justify-center text-gray-500">กำลังโหลดแผนที่...</div>
+  loading: () => (
+    <div className="w-full h-64 bg-slate-100 animate-pulse rounded-xl flex items-center justify-center text-slate-400 text-sm">
+      กำลังโหลดแผนที่...
+    </div>
+  )
 });
+
+const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
+  const R = 6371;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * (Math.PI/180)) * Math.cos(lat2 * (Math.PI/180)) * Math.sin(dLon/2) * Math.sin(dLon/2);
+  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+};
 
 export const ReportStepForm = () => {
   const router = useRouter();
@@ -20,6 +35,7 @@ export const ReportStepForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [phoneError, setPhoneError] = useState('');
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
+  const [isProxyReport, setIsProxyReport] = useState(false);
 
   const [showTriageModal, setShowTriageModal] = useState(false);
   const [triagePhase, setTriagePhase] = useState(1);
@@ -92,18 +108,37 @@ export const ReportStepForm = () => {
   };
 
   const calculateSeverity = () => {
-    let score = 1;
+    let baseLevel = 1;
     let feedback = '';
 
-    if (formData.waterLevel === 'ท่วมมิดหลังคา') score += 3;
-    else if (formData.waterLevel === 'ระดับอก/ท่วมในบ้าน') score += 2;
-    else if (formData.waterLevel === 'ระดับเอว') score += 1;
+    // 1. Base Score from Water Level
+    switch (formData.waterLevel) {
+      case 'ข้อเท้า/ตาตุ่ม': baseLevel = 1; break;
+      case 'ระดับเข่า': baseLevel = 2; break;
+      case 'ระดับเอว': baseLevel = 3; break;
+      case 'ระดับอก/ท่วมในบ้าน': baseLevel = 4; break;
+      case 'ท่วมมิดหลังคา': baseLevel = 5; break;
+      default: baseLevel = 1;
+    }
+
+    let finalLevel = baseLevel;
+
+    // 2. AI Modifiers for Vulnerability
+    if (formData.bedridden) {
+      finalLevel += 2; // Critical priority for bedridden
+    }
+    if (formData.elderly) {
+      finalLevel += 1; // High priority for kids/elderly
+    }
+    if (formData.peopleCount && parseInt(formData.peopleCount.toString()) > 5) {
+      finalLevel += 1; // Extra priority for large groups
+    }
     
-    if (formData.bedridden) score += 2;
-    if (formData.elderly) score += 1;
-    
-    if (formData.type === 'ฉุกเฉิน/ป่วยต้องการหมออาสา' || formData.type === 'อพยพ/เคลื่อนย้ายออกนอกพื้นที่') score += 1;
-    
+    // Auto-escalate if it's a direct SOS type
+    if (formData.type === 'SOS ด่วน') {
+       finalLevel = 5;
+    }
+
     if (formData.image_url) {
       const fileName = formData.image_name?.toLowerCase() || '';
       const isIrrelevant = ['slip', 'สลิป', 'receipt', 'ใบเสร็จ', 'โอน', 'transfer', 'pay'].some(keyword => fileName.includes(keyword));
@@ -111,24 +146,15 @@ export const ReportStepForm = () => {
       if (isIrrelevant) {
         feedback = '⚠️ ภาพอาจไม่เกี่ยวข้องกับภัยพิบัติ (ไม่นำภาพมาคำนวณความเสี่ยง)';
       } else {
-        score += 1;
+        finalLevel += 1;
         feedback = '✅ AI ประเมินภาพถ่ายเบื้องต้น (+1 ระดับความเสี่ยง) *รอศูนย์ฯ ยืนยัน*';
       }
     }
     
     setVisionFeedback(feedback);
-    return Math.min(Math.max(score, 1), 5);
-  };
 
-  const getSeverityColor = (severity: number) => {
-    switch (severity) {
-      case 5: return 'bg-red-600';
-      case 4: return 'bg-orange-600';
-      case 3: return 'bg-orange-500';
-      case 2: return 'bg-yellow-500';
-      case 1: return 'bg-green-500';
-      default: return 'bg-gray-500';
-    }
+    // 3. Strict Cap at Level 5
+    return Math.min(finalLevel, 5);
   };
 
   const getSeverityText = (severity: number) => {
@@ -197,6 +223,34 @@ export const ReportStepForm = () => {
   };
 
   const handleSubmit = async () => {
+    const lastReportStr = localStorage.getItem('oonjai_last_report_data');
+    if (lastReportStr) {
+      try {
+        const lastReport = JSON.parse(lastReportStr);
+        const elapsed = Date.now() - lastReport.timestamp;
+        
+        if (elapsed < 10 * 60 * 1000) { // Under 10 mins
+          if (isProxyReport) {
+            const proxyCount = parseInt(localStorage.getItem('oonjai_proxy_count') || '0', 10);
+            if (proxyCount >= 3) {
+              alert('คุณได้แจ้งเหตุแทนบุคคลอื่นครบกำหนด (3 เคส) แล้ว กรุณารอ 10 นาทีเพื่อป้องกันสแปม');
+              return; // Block
+            }
+            // Allow through and increment later
+          } else {
+            // Not proxy, check distance
+            const dist = getDistanceKm(formData.latitude, formData.longitude, lastReport.lat, lastReport.lng);
+            if (dist <= 1.0) { // Same area <= 1km
+              alert('คุณเพิ่งแจ้งเหตุในบริเวณนี้ไปเมื่อไม่นานมานี้ ระบบจะพาไปดูสถานะเคสปัจจุบันเพื่อป้องกันการแจ้งซ้ำ');
+              router.push('/history');
+              return; // Block
+            }
+            // Distance > 1km, allow through (assumed proxy by map movement)
+          }
+        }
+      } catch (e) {}
+    }
+
     if (!validatePhone(formData.phone)) {
       setPhoneError('เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลักเท่านั้น');
       setStep(1);
@@ -237,7 +291,16 @@ export const ReportStepForm = () => {
       
       localStorage.setItem('oonjai_last_report', JSON.stringify({ caseId: caseId, timestamp: Date.now() }));
       localStorage.setItem('oonjai_user_phone', formData.phone);
-      localStorage.setItem('oonjai_last_report_time', Date.now().toString());
+      
+      localStorage.setItem('oonjai_last_report_data', JSON.stringify({
+        timestamp: Date.now(),
+        lat: formData.latitude,
+        lng: formData.longitude
+      }));
+      if (isProxyReport) {
+        const currentCount = parseInt(localStorage.getItem('oonjai_proxy_count') || '0', 10);
+        localStorage.setItem('oonjai_proxy_count', (currentCount + 1).toString());
+      }
       
       try {
         const newCaseId = caseId;
@@ -272,7 +335,7 @@ export const ReportStepForm = () => {
           <AlertTriangle className="w-8 h-8 text-[#ff6600]" />
         </div>
         <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">แจ้งเหตุฉุกเฉิน</h2>
-        <p className="text-base text-gray-500 dark:text-gray-400">กรอกข้อมูลเพื่อให้เจ้าหน้าที่ช่วยเหลือได้รวดเร็วและแม่นยำที่สุด</p>
+        <p className="text-sm leading-relaxed break-words text-balance text-gray-500 dark:text-gray-400">กรอกข้อมูลเพื่อให้เจ้าหน้าที่ช่วยเหลือได้รวดเร็วและแม่นยำที่สุด</p>
       </div>
 
       <Card className="mt-8 border border-gray-200 dark:border-[#ff6600]/20 shadow-xl shadow-orange-500/10 bg-white dark:bg-[#0b1325] relative z-10 overflow-hidden rounded-2xl">
@@ -289,6 +352,19 @@ export const ReportStepForm = () => {
 
           {step === 1 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="mb-6 bg-blue-50 border border-blue-200 p-4 rounded-xl flex items-center justify-between">
+                <div>
+                  <h4 className="font-semibold text-blue-900 text-sm">แจ้งเหตุแทนญาติ/บุคคลอื่น</h4>
+                  <p className="text-xs text-blue-700 mt-0.5">เปิดสวิตช์นี้หากคุณกำลังรายงานแทนผู้ที่ติดอยู่ในพื้นที่อื่น</p>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={() => setIsProxyReport(!isProxyReport)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isProxyReport ? 'bg-blue-600' : 'bg-slate-300'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isProxyReport ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+              </div>
               {/* Location Section */}
               <div className="space-y-3 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
                 <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">พิกัดสถานที่เกิดเหตุ (GPS)</label>
@@ -451,12 +527,12 @@ export const ReportStepForm = () => {
                 />
               </div>
 
-              <div className="flex gap-4 pt-6 mt-6 border-t border-gray-100 dark:border-gray-800">
-                <Button type="button" variant="ghost" className="w-1/3 py-6 font-medium" onClick={() => router.back()}>ยกเลิก</Button>
+              <div className="flex flex-wrap gap-2 pt-6 mt-6 border-t border-gray-100 dark:border-gray-800">
+                <Button type="button" variant="ghost" className="flex-1 min-w-fit px-4 py-3 text-[13px] sm:text-sm font-semibold rounded-xl text-center leading-tight break-words" onClick={() => router.back()}>ยกเลิก</Button>
                 <Button 
                   type="button" 
                   variant="primary" 
-                  className={`w-2/3 py-6 font-bold text-lg ${cooldownRemaining > 0 ? 'opacity-50 cursor-not-allowed bg-gray-400 border-gray-400 shadow-none text-white' : 'shadow-lg shadow-orange-500/30'}`} 
+                  className={`flex-1 min-w-fit px-4 py-3 text-[13px] sm:text-sm font-semibold rounded-xl text-center leading-tight break-words ${cooldownRemaining > 0 ? 'opacity-50 cursor-not-allowed bg-gray-400 border-gray-400 shadow-none text-white' : 'shadow-lg shadow-orange-500/30'}`} 
                   onClick={handleNext}
                   disabled={cooldownRemaining > 0}
                 >
@@ -489,13 +565,13 @@ export const ReportStepForm = () => {
               </svg>
             </div>
             <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-3 tracking-tight">แจ้งเหตุสำเร็จ!</h3>
-            <p className="text-base text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">
+            <p className="text-sm leading-relaxed break-words text-balance text-gray-600 dark:text-gray-400 mb-8">
               ระบบได้รับข้อมูลของคุณแล้ว เจ้าหน้าที่จะประเมินและรีบดำเนินการให้ความช่วยเหลือโดยเร็วที่สุด
             </p>
             <Button 
               type="button"
               variant="primary" 
-              className="w-full py-4 text-lg font-bold shadow-lg shadow-[#ff6600]/30"
+              className="flex-1 min-w-fit px-4 py-3 text-[13px] sm:text-sm font-semibold rounded-xl text-center leading-tight break-words w-full shadow-lg shadow-[#ff6600]/30"
               onClick={() => router.push(`/history`)}
             >
               ดูรายการขอความช่วยเหลือ
@@ -527,20 +603,46 @@ export const ReportStepForm = () => {
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">วิเคราะห์เสร็จสิ้น</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">ระบบจัดให้คุณอยู่ใน</p>
                 
-                <div className={`px-4 py-2 rounded-full font-bold text-white mb-2 ${getSeverityColor(calculatedSeverity)} shadow-lg`}>
+                <div className={`px-4 py-2 rounded-full font-bold text-white mb-2 ${getSeveritySolidColor(calculatedSeverity)} shadow-lg`}>
                   {getSeverityText(calculatedSeverity)}
                 </div>
                 
                 {visionFeedback && (
-                  <p className="text-sm text-gray-500 mb-6 text-center px-4 leading-relaxed bg-gray-50 dark:bg-gray-800/50 py-2 rounded-xl w-full border border-gray-100 dark:border-gray-800">
+                  <p className="text-sm text-gray-500 mb-2 text-center px-4 leading-relaxed bg-gray-50 dark:bg-gray-800/50 py-2 rounded-xl w-full border border-gray-100 dark:border-gray-800">
                     {visionFeedback}
                   </p>
                 )}
 
+                <div className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 rounded-xl p-3 mb-6 text-left text-sm space-y-2">
+                  <p className="font-semibold text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700 pb-1 mb-2">สรุปข้อมูลที่จะส่ง:</p>
+                  
+                  <div className="flex justify-between items-start">
+                    <span className="text-slate-500 dark:text-slate-400 min-w-[70px]">ชื่อ:</span>
+                    <span className="text-slate-900 dark:text-slate-100 text-right">{formData.name || '-'}</span>
+                  </div>
+                  
+                  <div className="flex justify-between items-start">
+                    <span className="text-slate-500 dark:text-slate-400 min-w-[70px]">เบอร์โทร:</span>
+                    <span className="text-slate-900 dark:text-slate-100 text-right">{formData.phone || '-'}</span>
+                  </div>
+
+                  <div className="flex justify-between items-start">
+                    <span className="text-slate-500 dark:text-slate-400 min-w-[70px]">จำนวนคน:</span>
+                    <span className="text-slate-900 dark:text-slate-100 text-right">{formData.peopleCount || 1} คน</span>
+                  </div>
+
+                  <div className="flex justify-between items-start">
+                    <span className="text-slate-500 dark:text-slate-400 min-w-[70px]">รายละเอียด:</span>
+                    <span className="text-slate-900 dark:text-slate-100 text-right break-words max-w-[180px] line-clamp-2">
+                      {formData.details || '-'}
+                    </span>
+                  </div>
+                </div>
+
                 <Button 
                   type="button"
                   variant="primary" 
-                  className="w-full py-5 text-xl font-bold shadow-lg shadow-red-500/30 bg-red-600 hover:bg-red-700 text-white animate-pulse"
+                  className="flex-1 min-w-fit px-4 py-3 text-[13px] sm:text-sm font-semibold rounded-xl text-center leading-tight break-words w-full shadow-lg shadow-red-500/30 bg-red-600 hover:bg-red-700 text-white animate-pulse"
                   onClick={() => {
                     setShowTriageModal(false);
                     handleSubmit();

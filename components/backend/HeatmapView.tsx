@@ -30,23 +30,23 @@ export const HeatmapView = ({ filteredCases = [], loading = false }: HeatmapView
         <h4 className="font-bold mb-3 text-gray-900 dark:text-white">ระดับความเสี่ยง (AI Triage)</h4>
         <div className="space-y-2">
           <div className="flex items-center">
-            <span className="w-3 h-3 rounded-full inline-block mr-2" style={{ backgroundColor: '#DC2626' }}></span>
+            <span className="w-3 h-3 rounded-full bg-red-500 inline-block mr-2"></span>
             <span className="text-gray-600 dark:text-gray-300">พื้นที่เสี่ยงวิกฤต (ระดับ 5)</span>
           </div>
           <div className="flex items-center">
-            <span className="w-3 h-3 rounded-full inline-block mr-2" style={{ backgroundColor: '#EA580C' }}></span>
+            <span className="w-3 h-3 rounded-full bg-orange-500 inline-block mr-2"></span>
             <span className="text-gray-600 dark:text-gray-300">พื้นที่เสี่ยงรุนแรง (ระดับ 4)</span>
           </div>
           <div className="flex items-center">
-            <span className="w-3 h-3 rounded-full inline-block mr-2" style={{ backgroundColor: '#F97316' }}></span>
+            <span className="w-3 h-3 rounded-full bg-yellow-500 inline-block mr-2"></span>
             <span className="text-gray-600 dark:text-gray-300">พื้นที่เสี่ยงปานกลาง (ระดับ 3)</span>
           </div>
           <div className="flex items-center">
-            <span className="w-3 h-3 rounded-full inline-block mr-2" style={{ backgroundColor: '#EAB308' }}></span>
+            <span className="w-3 h-3 rounded-full bg-blue-500 inline-block mr-2"></span>
             <span className="text-gray-600 dark:text-gray-300">พื้นที่เฝ้าระวัง (ระดับ 2)</span>
           </div>
           <div className="flex items-center">
-            <span className="w-3 h-3 rounded-full inline-block mr-2" style={{ backgroundColor: '#22C55E' }}></span>
+            <span className="w-3 h-3 rounded-full bg-green-500 inline-block mr-2"></span>
             <span className="text-gray-600 dark:text-gray-300">พื้นที่ปลอดภัย/ทั่วไป (ระดับ 1)</span>
           </div>
         </div>

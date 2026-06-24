@@ -1,12 +1,13 @@
 import React from 'react';
+import { getSeveritySolidColor } from '@/lib/utils';
 
 export const SeverityBar = ({ data: inputData }: { data?: { level: string, count: number }[] }) => {
   const defaultData = [
-    { level: 5, label: 'วิกฤต', count: 0, color: 'bg-red-500' },
-    { level: 4, label: 'รุนแรง', count: 0, color: 'bg-orange-500' },
-    { level: 3, label: 'ปานกลาง', count: 0, color: 'bg-yellow-500' },
-    { level: 2, label: 'เฝ้าระวัง', count: 0, color: 'bg-blue-500' },
-    { level: 1, label: 'ทั่วไป', count: 0, color: 'bg-green-500' },
+    { level: 5, label: 'วิกฤต', count: 0, color: getSeveritySolidColor(5) },
+    { level: 4, label: 'รุนแรง', count: 0, color: getSeveritySolidColor(4) },
+    { level: 3, label: 'ปานกลาง', count: 0, color: getSeveritySolidColor(3) },
+    { level: 2, label: 'เฝ้าระวัง', count: 0, color: getSeveritySolidColor(2) },
+    { level: 1, label: 'ทั่วไป', count: 0, color: getSeveritySolidColor(1) },
   ];
 
   const data = defaultData.map(item => {

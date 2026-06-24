@@ -6,6 +6,7 @@ import { VolunteerTaskBoard } from '@/components/backend/VolunteerTaskBoard';
 import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
 import { Filter } from 'lucide-react';
+import { useAuthProfile } from '@/hooks/useAuth';
 
 export default function CasesPage() {
   const [statusFilter, setStatusFilter] = useState('all');
@@ -13,6 +14,7 @@ export default function CasesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [role, setRole] = useState('admin');
   const [isClient, setIsClient] = useState(false);
+  const { name: userName, loading } = useAuthProfile();
 
   useEffect(() => {
     setIsClient(true);
@@ -36,6 +38,28 @@ export default function CasesPage() {
       <DashboardHeader title={role === 'admin' ? "จัดการเคสการช่วยเหลือ" : "กระดานงานอาสาสมัคร (Task Board)"} />
       
       <div className="max-w-7xl mx-auto py-6 space-y-6 px-4">
+        {/* Welcome & Stats Banner */}
+        <div className="mb-6 bg-gradient-to-r from-orange-500 to-red-600 rounded-xl p-6 text-white shadow-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h2 className="text-2xl font-bold mb-1 flex items-center gap-2">
+              👋 สวัสดี, {loading ? 'กำลังโหลด...' : userName}
+            </h2>
+            <p className="text-orange-100 text-sm">
+              รหัสประจำตัว: VOL-001 | 🟢 พร้อมปฏิบัติงาน
+            </p>
+          </div>
+          <div className="flex gap-4 bg-black/20 p-3 rounded-lg w-full sm:w-auto">
+            <div className="text-center px-4 border-r border-white/20">
+              <p className="text-3xl font-bold">12</p>
+              <p className="text-xs text-orange-100 mt-1">เคสที่ช่วยสำเร็จ</p>
+            </div>
+            <div className="text-center px-4">
+              <p className="text-3xl font-bold text-yellow-300">2</p>
+              <p className="text-xs text-orange-100 mt-1">กำลังดำเนินการ</p>
+            </div>
+          </div>
+        </div>
+
         {/* Filters */}
         <div className="bg-white dark:bg-[#151b2c] p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex flex-wrap items-end gap-4">
           <div className="flex items-center gap-2 text-gray-500 font-medium mb-1 w-full md:w-auto">

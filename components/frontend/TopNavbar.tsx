@@ -5,12 +5,14 @@ import { Search, Bell, User, LogOut, Sun, Moon, History, PhoneCall, Settings } f
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, query, orderBy, limit as firestoreLimit, doc, where, documentId } from 'firebase/firestore';
+import { useAuthProfile } from '@/hooks/useAuth';
 
 export const TopNavbar: React.FC = () => {
   const router = useRouter();
   const [isDark, setIsDark] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const { name, role, initial, loading } = useAuthProfile();
   const [myCases, setMyCases] = useState<{ id: string, status: string }[]>([]);
   const [visibleNotifications, setVisibleNotifications] = useState<{ id: string, status: string }[]>([]);
   const [broadcasts, setBroadcasts] = useState<any[]>([]);
@@ -75,24 +77,60 @@ export const TopNavbar: React.FC = () => {
         unsubCases = null;
       }
       try {
-        const savedCases = JSON.parse(localStorage.getItem('oonjai_my_cases') || '[]');
-        if (savedCases.length > 0) {
-          // chunk array if more than 10 (firestore 'in' limit)
-          const caseChunks = savedCases.slice(0, 10);
-          const casesQuery = query(collection(db, 'cases'), where(documentId(), 'in', caseChunks));
-          
-          unsubCases = onSnapshot(casesQuery, (snapshot) => {
-            const updatedCases: { id: string, status: string }[] = [];
-            snapshot.forEach(docSnap => {
-              updatedCases.push({ id: docSnap.id, status: docSnap.data().status });
-            });
-            const newDataString = JSON.stringify(updatedCases);
-            if (newDataString !== lastKnownDataRef.current) {
-              lastKnownDataRef.current = newDataString;
-              setVisibleNotifications(updatedCases);
+        let savedCases = JSON.parse(localStorage.getItem('oonjai_my_cases') || '[]');
+        if (!Array.isArray(savedCases)) savedCases = [];
+
+        const keys = ['oonjai_last_sos', 'oonjai_last_report'];
+        keys.forEach(key => {
+          const dataStr = localStorage.getItem(key);
+          if (dataStr) {
+            try {
+              const data = JSON.parse(dataStr);
+              if (data && data.caseId && !savedCases.includes(data.caseId)) {
+                savedCases.push(data.caseId);
+              }
+            } catch (e) {
+              console.error(e);
             }
-            setMyCases(updatedCases);
+          }
+        });
+
+        if (savedCases.length > 0) {
+          const unsubscribers: (() => void)[] = [];
+          const casesMap = new Map();
+
+          savedCases.forEach((id: string) => {
+            if (typeof id !== 'string') return;
+            const docRef = doc(db, 'cases', id);
+            const unsub = onSnapshot(docRef, (docSnap) => {
+              if (docSnap.exists()) {
+                const data = docSnap.data();
+                casesMap.set(id, { 
+                  id: docSnap.id, 
+                  status: data.status,
+                  timestamp: data.updatedAt || data.createdAt || 0
+                });
+              } else {
+                casesMap.delete(id);
+              }
+              
+              const updatedCases = Array.from(casesMap.values());
+              updatedCases.sort((a, b) => {
+                return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+              });
+              const newDataString = JSON.stringify(updatedCases);
+              if (newDataString !== lastKnownDataRef.current) {
+                lastKnownDataRef.current = newDataString;
+                setVisibleNotifications(updatedCases);
+              }
+              setMyCases(updatedCases);
+            });
+            unsubscribers.push(unsub);
           });
+
+          unsubCases = () => {
+            unsubscribers.forEach(u => u());
+          };
         } else {
           setMyCases([]);
         }
@@ -148,7 +186,7 @@ export const TopNavbar: React.FC = () => {
               className="text-[#ff6600] hover:scale-110 transition-transform relative p-2 min-w-[48px] min-h-[48px] flex items-center justify-center"
             >
               <Bell size={22} strokeWidth={2} />
-              {(visibleNotifications.length > 0 || (broadcasts.length > 0 && broadcasts[0].id !== 0)) && (
+              {(visibleNotifications.some(c => ['รอดำเนินการ', 'กำลังดำเนินการ', 'กำลังเข้าช่วยเหลือ', 'pending', 'active', 'in_progress', 'dispatched', 'รอการช่วยเหลือ', 'รับเรื่องแล้ว', 'กำลังช่วยเหลือ', 'wait', 'accepted'].includes(typeof c.status === 'string' ? c.status.toLowerCase() : String(c.status))) || (broadcasts.length > 0 && broadcasts[0].id !== 0)) && (
                 <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border border-[#0b1325]"></span>
               )}
             </button>
@@ -170,9 +208,11 @@ export const TopNavbar: React.FC = () => {
                       </button>
                     )}
                   </div>
-                  <div className="mt-3">
+                  <div className="mt-3 flex flex-col gap-2 p-1 max-h-[60vh] overflow-y-auto overscroll-contain custom-scrollbar">
                     {visibleNotifications.length > 0 ? visibleNotifications.map(caseItem => {
-                      const isCompleted = ["ปลอดภัยแล้ว", "ส่งเข้าศูนย์พักพิงสำเร็จ", "มอบถุงยังชีพเสร็จสิ้น", "นำส่งโรงพยาบาลแล้ว", "เสร็จสิ้น", "ยุติการช่วยเหลือ", "completed", "cancelled", "ยกเลิก"].includes(caseItem.status);
+                      const activeStatuses = ['รอดำเนินการ', 'กำลังดำเนินการ', 'กำลังเข้าช่วยเหลือ', 'pending', 'active', 'in_progress', 'dispatched', 'รอการช่วยเหลือ', 'รับเรื่องแล้ว', 'กำลังช่วยเหลือ', 'wait', 'accepted'];
+                      const s = typeof caseItem.status === 'string' ? caseItem.status.toLowerCase() : String(caseItem.status);
+                      const isCompleted = !activeStatuses.includes(s);
                       const details = isCompleted
                         ? { text: `✅ เคสของคุณ: ${caseItem.status}`, bg: "hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border-emerald-100 dark:border-emerald-900/30", color: "text-emerald-600 dark:text-emerald-400" }
                         : { text: `🚨 เคสของคุณ: ${caseItem.status}`, bg: "hover:bg-orange-50 dark:hover:bg-orange-900/20 border-orange-100 dark:border-orange-900/30", color: "text-orange-600 dark:text-orange-400" };
@@ -215,26 +255,20 @@ export const TopNavbar: React.FC = () => {
           <div className="relative" ref={profileRef}>
             <button 
               onClick={() => { setShowProfile(!showProfile); setShowNotifications(false); }}
-              className="w-12 h-12 bg-transparent rounded-full flex items-center justify-center border-2 border-white hover:border-[#ff6600] transition-colors overflow-hidden shrink-0"
+              className="w-10 h-10 sm:w-12 sm:h-12 bg-[#ff6600] rounded-full flex items-center justify-center border-2 border-white hover:border-[#ff6600] transition-colors overflow-hidden shrink-0 text-white font-bold shadow-lg"
             >
-              <User className="text-white w-5 h-5" />
+              {loading ? <span className="animate-pulse">...</span> : (initial !== '?' ? initial : <User className="text-white w-5 h-5" />)}
             </button>
             
             {showProfile && (
               <div className="absolute right-0 mt-3 w-64 bg-white dark:bg-[#0b1325] border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl overflow-hidden transition-all duration-200 animate-in fade-in slide-in-from-top-4">
                 <div className="flex flex-col p-2 gap-1">
                   <div className="px-3 py-3 border-b border-gray-100 dark:border-gray-800 mb-1">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">สถานะ</p>
-                    <p className="font-bold text-gray-900 dark:text-white truncate">ผู้ใช้งานทั่วไป</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">เข้าสู่ระบบในชื่อ</p>
+                    <p className="font-bold text-gray-900 dark:text-white truncate">{loading ? 'กำลังโหลด...' : name}</p>
+                    {(!loading && role) && <p className="text-xs font-medium text-[#ff6600] mt-0.5">{role}</p>}
                   </div>
 
-                  <button 
-                    onClick={() => { setShowProfile(false); router.push(`/profile`); }}
-                    className="flex items-center gap-3 px-3 py-2.5 min-h-[48px] text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors w-full text-left"
-                  >
-                    <Settings className="w-4 h-4 text-gray-400" />
-                    ตั้งค่าบัญชี
-                  </button>
 
                   <button 
                     onClick={() => { setShowProfile(false); router.push(`/history`); }}
@@ -251,6 +285,16 @@ export const TopNavbar: React.FC = () => {
                     <PhoneCall className="w-4 h-4 text-gray-400" />
                     เบอร์ติดต่อฉุกเฉิน
                   </button>
+                  
+                  {(!loading && name !== 'ไม่ได้เข้าสู่ระบบ') && (
+                    <button 
+                      onClick={() => { setShowProfile(false); router.push(`/login`); }}
+                      className="flex items-center gap-3 px-3 py-2.5 min-h-[48px] text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors w-full text-left mt-1 border-t border-gray-100 dark:border-gray-800"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      ออกจากระบบ
+                    </button>
+                  )}
                 </div>
               </div>
             )}

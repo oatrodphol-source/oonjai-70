@@ -270,10 +270,10 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
         })}
       </div>
 
-      <div className="flex flex-col gap-3 mt-6">
+      <div className="flex flex-col sm:flex-row flex-wrap gap-2 mt-6">
         <button 
           onClick={handleShare}
-          className="w-full flex items-center justify-center gap-2 bg-[#00B900] hover:bg-[#009900] text-white font-bold py-2.5 rounded-lg shadow-sm transition-colors"
+          className="flex-1 min-w-fit px-4 py-3 text-[13px] sm:text-sm font-semibold rounded-xl text-center leading-tight break-words flex items-center justify-center gap-2 bg-[#00B900] hover:bg-[#009900] text-white shadow-sm transition-colors"
         >
           <Share2 className="w-5 h-5" /> แชร์สถานะให้ครอบครัว
         </button>
@@ -281,13 +281,13 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
         {caseData.status === 'pending' && (
           <button 
             onClick={handleCancel}
-            className="w-full flex items-center justify-center gap-2 border-2 border-red-500 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 font-bold py-2.5 rounded-lg transition-colors"
+            className="flex-1 min-w-fit px-4 py-3 text-[13px] sm:text-sm font-semibold rounded-xl text-center leading-tight break-words flex items-center justify-center gap-2 border-2 border-red-500 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
           >
             <XCircle className="w-5 h-5" /> ยกเลิกการขอความช่วยเหลือ
           </button>
         )}
 
-        <Button variant="primary" className="w-full flex items-center justify-center gap-2 mt-2" onClick={() => router.push('/')}>
+        <Button variant="primary" className="flex-1 min-w-fit px-4 py-3 text-[13px] sm:text-sm font-semibold rounded-xl text-center leading-tight break-words flex items-center justify-center gap-2 mt-2 w-full sm:w-auto" onClick={() => router.push('/')}>
           <MapPin className="w-4 h-4" /> กลับสู่หน้าแผนที่หลัก
         </Button>
       </div>

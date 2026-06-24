@@ -59,7 +59,7 @@ export default function DraggableMap({ lat, lng, onLocationChange }: DraggableMa
         center={[lat, lng]} 
         zoom={16} 
         scrollWheelZoom={false} 
-        style={{ height: "100%", width: "100%" }}
+        className="w-full h-full z-0"
       >
         <TileLayer
           attribution='&copy; OpenStreetMap'

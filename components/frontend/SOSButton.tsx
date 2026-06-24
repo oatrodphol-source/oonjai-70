@@ -53,6 +53,18 @@ export const SOSButton = () => {
   };
 
   const handleSOSClick = () => {
+    const lastReportStr = localStorage.getItem('oonjai_last_report_data');
+    if (lastReportStr) {
+      try {
+        const lastReport = JSON.parse(lastReportStr);
+        if (Date.now() - lastReport.timestamp < 10 * 60 * 1000) {
+          alert('คุณได้แจ้งเหตุฉุกเฉินไปแล้วเมื่อไม่นานมานี้ ระบบจะพาไปดูสถานะเคสปัจจุบัน');
+          router.push('/history');
+          return;
+        }
+      } catch(e) {}
+    }
+
     setIsLoading(true);
     // 1. Check Geolocation support
     if (!navigator.geolocation) {
@@ -103,7 +115,11 @@ export const SOSButton = () => {
               if (data.phone) {
                 localStorage.setItem('oonjai_user_phone', data.phone);
               }
-              localStorage.setItem('oonjai_last_report_time', Date.now().toString());
+              localStorage.setItem('oonjai_last_report_data', JSON.stringify({
+                timestamp: Date.now(),
+                lat: latitude,
+                lng: longitude
+              }));
               
               try {
                 const newCaseId = caseId;

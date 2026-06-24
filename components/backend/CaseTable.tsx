@@ -7,6 +7,17 @@ import { CaseDetailModal } from './CaseDetailModal';
 import { FileSearch, CheckCircle2 } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, query, doc, updateDoc } from 'firebase/firestore';
+
+const getDistanceKm = (lat1: any, lon1: any, lat2: any, lon2: any) => {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * (Math.PI/180)) * Math.cos(lat2 * (Math.PI/180)) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+};
 export const CaseTable = ({ 
   statusFilter = 'all', 
   severityFilter = 'all', 
@@ -85,6 +96,12 @@ export const CaseTable = ({
       
       // Sort by newest first
       fetchedCases.sort((a, b) => b.timestamp - a.timestamp);
+      // Sort 'กำลังเข้าช่วยเหลือ' to the very top
+      fetchedCases.sort((a, b) => {
+        if (a.status === 'กำลังเข้าช่วยเหลือ' && b.status !== 'กำลังเข้าช่วยเหลือ') return -1;
+        if (b.status === 'กำลังเข้าช่วยเหลือ' && a.status !== 'กำลังเข้าช่วยเหลือ') return 1;
+        return 0;
+      });
       setCases(fetchedCases);
       setLoading(false);
     }, (error) => {
@@ -138,7 +155,15 @@ export const CaseTable = ({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredCases.map((row, i) => (
+          {filteredCases.map((row, i) => {
+            const nearbyCases = cases.filter(other => {
+              if (other.originalId === row.originalId || !row.latitude || !row.longitude || !other.latitude || !other.longitude) return false;
+              const isCompleted = ['เสร็จสิ้น', 'สำเร็จ', 'completed', 'ปลอดภัยแล้ว', 'ส่งเข้าศูนย์พักพิงสำเร็จ', 'มอบถุงยังชีพเสร็จสิ้น', 'นำส่งโรงพยาบาลแล้ว'].includes(other.status);
+              if (isCompleted) return false;
+              return getDistanceKm(row.latitude, row.longitude, other.latitude, other.longitude) <= 0.5;
+            });
+            
+            return (
             <Card key={i} className="bg-white dark:bg-[#151b2c] rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-4 space-y-3 hover:shadow-md transition-shadow">
               <div className="flex justify-between items-start">
                 <div>
@@ -191,6 +216,16 @@ export const CaseTable = ({
                 <span className="text-gray-400">•</span>
                 <span className="text-gray-500 font-medium">{row.time}</span>
               </div>
+              
+              {nearbyCases.length > 0 && (
+                <div className="mt-3 bg-amber-50 text-amber-800 p-2 rounded-lg border border-amber-200 text-sm flex items-start gap-2">
+                  <span className="text-lg">📍</span>
+                  <div>
+                    <span className="font-semibold">เคสใกล้เคียงรัศมี 500m ({nearbyCases.length} เคส)</span>
+                    <p className="text-xs opacity-80 mt-0.5">รวมรหัส: {nearbyCases.map(n => n.id || 'ไม่ระบุ').join(', ')}</p>
+                  </div>
+                </div>
+              )}
 
               <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-xl border border-gray-100 dark:border-gray-700 text-sm space-y-2">
                 <div className="flex justify-between items-center">
@@ -210,7 +245,8 @@ export const CaseTable = ({
                 )}
               </div>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
       

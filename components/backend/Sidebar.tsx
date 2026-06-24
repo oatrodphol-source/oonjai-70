@@ -15,23 +15,15 @@ import {
   User,
   Menu
 } from 'lucide-react';
+import { useAuthProfile } from '@/hooks/useAuth';
 
 export const Sidebar = ({ role = 'volunteer', userName = 'กำลังโหลด...' }: { role?: string, userName?: string }) => {
   const pathname = usePathname();
   const [clientRole, setClientRole] = useState(role);
   const [clientName, setClientName] = useState(userName);
   const [isOpen, setIsOpen] = useState(false);
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('oonjai_user');
-      if (stored) {
-        const user = JSON.parse(stored);
-        if (user.role) setClientRole(user.role);
-        if (user.name) setClientName(user.name);
-      }
-    } catch (e) {}
-  }, []);
+  
+  const { name: profileName, role: profileRole, initial: profileInitial, loading } = useAuthProfile();
 
   const menuItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'แดชบอร์ด', roles: ['admin', 'rescue', 'volunteer'] },
@@ -104,11 +96,24 @@ export const Sidebar = ({ role = 'volunteer', userName = 'กำลังโห�
         })}
       </div>
 
-      <div className="p-4 border-t border-gray-800">
-        <Link href="/login" className="flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-colors">
-          <LogOut className="w-5 h-5" />
-          <span className="font-medium">ออกจากระบบ</span>
-        </Link>
+      <div className="mt-auto border-t border-slate-700/50 p-4">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 flex-shrink-0 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold shadow-lg">
+            {loading ? '?' : profileInitial}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-white truncate">{loading ? 'กำลังโหลด...' : profileName}</p>
+            <p className="text-xs text-slate-400 truncate flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-green-500 inline-block animate-pulse"></span>
+              {loading ? '...' : profileRole}
+            </p>
+          </div>
+          <Link href="/login" title="ออกจากระบบ" className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </Link>
+        </div>
       </div>
     </div>
     </>

@@ -37,6 +37,15 @@ export default function ReportDashboardPage() {
   const activeCases = totalCases - completedCases;
   const successRate = totalCases > 0 ? ((completedCases / totalCases) * 100).toFixed(1) : "0.0";
 
+  const today = new Date().toISOString().split('T')[0];
+  const todayCases = cases.filter(c => {
+    const d = c.created_at || c.createdAt;
+    return d && d.startsWith(today);
+  });
+  const todayTotal = todayCases.length;
+  const todayCompleted = todayCases.filter(c => COMPLETED_STATUSES.includes(c.status)).length;
+  const todayActive = todayTotal - todayCompleted;
+
   const triageCounts = {
     5: cases.filter(c => Number(c.severity) === 5).length,
     4: cases.filter(c => Number(c.severity) === 4).length,
@@ -48,9 +57,9 @@ export default function ReportDashboardPage() {
   const getTriageColor = (level: number) => {
     switch(level) {
       case 5: return 'bg-red-500';
-      case 4: return 'bg-orange-600';
-      case 3: return 'bg-orange-500';
-      case 2: return 'bg-yellow-500';
+      case 4: return 'bg-orange-500';
+      case 3: return 'bg-yellow-500';
+      case 2: return 'bg-blue-500';
       case 1: default: return 'bg-green-500';
     }
   };
@@ -149,7 +158,29 @@ export default function ReportDashboardPage() {
       <DashboardHeader title="รายงานและส่งออก" />
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 space-y-8 pb-32 print:w-full print:max-w-none print:py-0 print:space-y-6">
         
+        {/* Daily Summary Section */}
+        <Card className="p-6 bg-indigo-50 dark:bg-indigo-900/10 border-indigo-100 dark:border-indigo-800/30 rounded-2xl shadow-sm print:shadow-none print:border-gray-300 mb-8">
+          <h2 className="text-xl font-bold text-indigo-900 dark:text-indigo-100 mb-4 flex items-center gap-2">
+            📅 สรุปยอดประจำวัน (วันนี้)
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-white dark:bg-[#151b2c] p-4 rounded-xl border border-indigo-100 dark:border-indigo-800/50 flex flex-col justify-center items-center">
+              <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">แจ้งเหตุวันนี้</span>
+              <span className="text-3xl font-black text-indigo-600 dark:text-indigo-400">{todayTotal}</span>
+            </div>
+            <div className="bg-white dark:bg-[#151b2c] p-4 rounded-xl border border-indigo-100 dark:border-indigo-800/50 flex flex-col justify-center items-center">
+              <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">รอดำเนินการวันนี้</span>
+              <span className="text-3xl font-black text-orange-500">{todayActive}</span>
+            </div>
+            <div className="bg-white dark:bg-[#151b2c] p-4 rounded-xl border border-indigo-100 dark:border-indigo-800/50 flex flex-col justify-center items-center">
+              <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">ช่วยเหลือสำเร็จวันนี้</span>
+              <span className="text-3xl font-black text-emerald-500">{todayCompleted}</span>
+            </div>
+          </div>
+        </Card>
+
         {/* KPI Section */}
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mt-8 mb-4">สถิติภาพรวมทั้งหมด</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="p-5 flex flex-col justify-center items-center text-center bg-white dark:bg-[#151b2c] border-gray-100 dark:border-gray-800 shadow-sm rounded-2xl print:shadow-none print:border-gray-300">
             <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-1">เคสทั้งหมด</h3>
