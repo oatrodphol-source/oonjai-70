@@ -51,10 +51,7 @@
 }
 
 /* Adjust Leaflet attribution on mobile so it clears bottom nav */
-.leaflet-bottom.leaflet-right { bottom: 80px; }
-@media (min-width: 768px) {
-  .leaflet-bottom.leaflet-right { bottom: 20px; }
-}
+.leaflet-bottom.leaflet-right { bottom: 0 !important; }
 
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }

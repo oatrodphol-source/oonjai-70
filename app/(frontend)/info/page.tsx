@@ -144,7 +144,7 @@ export default function InfoPage() {
   }
 
   return (
-    <div className="w-full max-w-full overflow-x-hidden px-4 pb-32 pt-6 sm:px-6 mx-auto space-y-6">
+    <div className="w-full max-w-full overflow-x-hidden px-4 pb-32 pt-24 sm:px-6 mx-auto space-y-6">
       
       {/* Header */}
       <div>

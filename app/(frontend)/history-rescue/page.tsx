@@ -90,7 +90,7 @@ export default function HistoryRescuePage() {
   if (loading) return <div className="p-8 text-center text-gray-500">กำลังโหลดประวัติการช่วยเหลือ...</div>;
 
   return (
-    <div className="w-full max-w-3xl mx-auto px-4 pb-[env(safe-area-inset-bottom)] pt-8">
+    <div className="w-full max-w-3xl mx-auto px-4 pb-[env(safe-area-inset-bottom)] pt-24">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">ประวัติการให้ความช่วยเหลือ</h1>
       
       {cases.length === 0 ? (

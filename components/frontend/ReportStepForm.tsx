@@ -424,14 +424,31 @@ export const ReportStepForm = () => {
 
               {/* Details */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <Input 
-                  label="จำนวนผู้ประสบภัย (คน) *" 
-                  type="number" 
-                  min={1} 
-                  value={formData.peopleCount}
-                  onChange={(e) => setFormData({...formData, peopleCount: parseInt(e.target.value) || 1})}
-                  className={inputClass}
-                />
+                <div className="space-y-1">
+                  <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">จำนวนผู้ประสบภัย (คน) *</label>
+                  <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-2 w-full mt-1">
+                    <button 
+                      type="button"
+                      onClick={() => setFormData({...formData, peopleCount: Math.max(1, formData.peopleCount - 1)})}
+                      className="w-12 h-10 flex items-center justify-center bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white rounded-lg text-xl font-bold hover:bg-slate-300 active:scale-95 transition-all"
+                    >
+                      -
+                    </button>
+                    
+                    <div className="text-center flex-1">
+                      <span className="text-xl font-bold text-slate-800 dark:text-white">{formData.peopleCount}</span>
+                      <span className="text-sm text-slate-500 ml-2">คน</span>
+                    </div>
+                    
+                    <button 
+                      type="button"
+                      onClick={() => setFormData({...formData, peopleCount: formData.peopleCount + 1})}
+                      className="w-12 h-10 flex items-center justify-center bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-500 rounded-lg text-xl font-bold hover:bg-orange-200 dark:hover:bg-orange-500/30 active:scale-95 transition-all"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
                 <Select 
                   label="ระดับน้ำปัจจุบัน *"
                   options={[
