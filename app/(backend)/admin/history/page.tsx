@@ -10,6 +10,7 @@ export default function HistoryPage() {
   const [cases, setCases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ completedCount: 0, avgDisplay: '-' });
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     const userStr = localStorage.getItem('oonjai_user');
@@ -59,7 +60,11 @@ export default function HistoryPage() {
             status: data.status,
             timeCreated: createdAt > 0 ? new Date(createdAt).toLocaleString('th-TH') : '-',
             timeCompleted: completedAt > 0 ? new Date(completedAt).toLocaleString('th-TH') : '-',
-            timestamp: completedAt
+            timestamp: completedAt,
+            latitude: data.latitude || '-',
+            longitude: data.longitude || '-',
+            description: data.details || data.description || '',
+            volunteer_id: data.assigned_volunteer_name || data.assigned_volunteer_id || ''
           });
         }
       });
@@ -110,7 +115,7 @@ export default function HistoryPage() {
   return (
     <>
       <DashboardHeader title="ประวัติการช่วยเหลือของฉัน" />
-      <div className="max-w-7xl mx-auto py-6 space-y-6">
+      <div className="max-w-7xl mx-auto py-6 pb-32 md:pb-10 space-y-6">
         
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -137,25 +142,43 @@ export default function HistoryPage() {
           ) : (
             <div className="space-y-4">
               {cases.map((c, i) => (
-                <div key={i} className="bg-white dark:bg-[#151b2c] rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-3 mb-1">
-                      <span className="font-bold text-gray-900 dark:text-white text-lg">{c.id}</span>
-                      {getStatusBadge(c.status)}
+                <div key={i} className="bg-white dark:bg-[#151b2c] rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm hover:shadow-md transition-all flex flex-col">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-3 mb-1">
+                        <span className="font-bold text-gray-900 dark:text-white text-lg">{c.id}</span>
+                        {getStatusBadge(c.status)}
+                      </div>
+                      <div className="text-sm font-semibold text-gray-700 dark:text-gray-300">{c.type}</div>
                     </div>
-                    <div className="text-sm font-semibold text-gray-700 dark:text-gray-300">{c.type}</div>
+                    
+                    <div className="flex flex-col items-start sm:items-end text-xs text-gray-500 gap-1 mt-2 sm:mt-0">
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>แจ้งเหตุ: {c.timeCreated}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>ปิดเคส: {c.timeCompleted}</span>
+                      </div>
+                    </div>
                   </div>
                   
-                  <div className="flex flex-col items-start sm:items-end text-xs text-gray-500 gap-1 mt-2 sm:mt-0">
-                    <div className="flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>แจ้งเหตุ: {c.timeCreated}</span>
+                  <button 
+                    onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}
+                    className="mt-4 text-sm text-blue-600 dark:text-blue-400 font-medium flex items-center gap-1 hover:underline self-start"
+                  >
+                    {expandedId === c.id ? 'ซ่อนรายละเอียด ▴' : 'ดูรายละเอียด ▾'}
+                  </button>
+                  
+                  {expandedId === c.id && (
+                    <div className="mt-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-sm border border-slate-100 dark:border-slate-700 space-y-2 animate-in slide-in-from-top-2">
+                      <p><span className="font-semibold text-slate-500">รหัสเคส:</span> {c.id}</p>
+                      <p><span className="font-semibold text-slate-500">พิกัด:</span> {c.latitude}, {c.longitude}</p>
+                      <p><span className="font-semibold text-slate-500">รายละเอียด:</span> {c.description || 'ไม่มีข้อมูลเพิ่มเติม'}</p>
+                      <p><span className="font-semibold text-slate-500">ผู้รับผิดชอบ:</span> {c.volunteer_id || 'ไม่ระบุ'}</p>
                     </div>
-                    <div className="flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>ปิดเคส: {c.timeCompleted}</span>
-                    </div>
-                  </div>
+                  )}
                 </div>
               ))}
             </div>

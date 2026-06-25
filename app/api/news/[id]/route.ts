@@ -39,7 +39,7 @@ export async function PUT(
     const resolvedParams = await params;
     const id = resolvedParams.id;
     const body = await req.json();
-    const { title, content, imageUrl, published } = body;
+    const { title, content, imageUrl, published, type } = body;
 
     if (!title || !content) {
       return NextResponse.json(
@@ -55,6 +55,7 @@ export async function PUT(
         content,
         imageUrl: imageUrl || null,
         published: published ? true : false,
+        type: type || 'news',
         updated_at: new Date().toISOString()
       });
 

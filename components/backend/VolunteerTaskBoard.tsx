@@ -307,7 +307,7 @@ export const VolunteerTaskBoard = ({
   ];
 
   return (
-    <div className="space-y-4 w-full">
+    <div className="flex flex-col gap-4 w-full">
       {displayItems.map((item, idx) => {
         const c = item.base;
         const groupItems = item.items;

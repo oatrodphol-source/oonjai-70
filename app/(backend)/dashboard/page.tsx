@@ -10,7 +10,7 @@ import { Card } from '@/components/ui/Card';
 import { getSeverityBadgeStyle } from '@/lib/utils';
 import { AlertCircle, CheckCircle2, Clock, Users, Bot, ArrowRight } from 'lucide-react';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, query } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
 
 export default function DashboardPage() {
   const [data, setData] = useState<any>(null);
@@ -18,6 +18,16 @@ export default function DashboardPage() {
   const [error, setError] = useState(false);
   const [role, setRole] = useState<string>('volunteer');
   const [aiInsight, setAiInsight] = useState<string>('กำลังวิเคราะห์ข้อมูล...');
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+
+  useEffect(() => {
+    const q = query(collection(db, 'activity_logs'), orderBy('timestamp', 'desc'), limit(15));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setAuditLogs(logs);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     const userStr = localStorage.getItem('oonjai_user');
@@ -165,7 +175,7 @@ export default function DashboardPage() {
     <>
       <DashboardHeader title="แดชบอร์ดภาพรวม" />
       
-      <div className="space-y-6 max-w-7xl mx-auto py-6">
+      <div className="space-y-6 max-w-7xl mx-auto py-6 pb-32 md:pb-10">
         {/* Volunteer AI Insight Card */}
         {!isAdmin && (
           <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border border-orange-100 dark:border-orange-900/50 rounded-2xl p-6 shadow-sm">
@@ -281,6 +291,27 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
+
+        <div className="mt-6 bg-white dark:bg-[#111c35] p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 w-full">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-bold text-slate-800 dark:text-white">📝 ประวัติการทำงานล่าสุด (Audit Log)</h3>
+            <span className="text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">Live</span>
+          </div>
+          
+          <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+            
+            {auditLogs.length > 0 ? auditLogs.map((log) => (
+              <div key={log.id} className="flex gap-3 items-start border-b border-slate-50 dark:border-slate-800/50 pb-3 last:border-0">
+                <div className="text-xs text-slate-400 mt-0.5 w-12 shrink-0">
+                  {log.timestamp ? new Date(log.timestamp).toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'}) : ''}
+                </div>
+                <div className="text-sm text-slate-700 dark:text-slate-300">
+                  <span className="font-semibold text-blue-600">{log.user}:</span> {log.action}
+                </div>
+              </div>
+            )) : <div className="text-sm text-slate-500">ไม่มีประวัติการทำงาน</div>}
+          </div>
+        </div>
       </div>
     </>
   );

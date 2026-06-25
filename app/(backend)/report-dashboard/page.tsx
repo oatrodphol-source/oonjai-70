@@ -4,11 +4,15 @@ import { DashboardHeader } from '@/components/backend/DashboardHeader';
 import { Card } from '@/components/ui/Card';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, getDocs, query, where } from 'firebase/firestore';
 
 export default function ReportDashboardPage() {
   const [cases, setCases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exportType, setExportType] = useState('cases');
+  const [isExporting, setIsExporting] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'cases'), (snapshot) => {
@@ -74,71 +78,69 @@ export default function ReportDashboardPage() {
     }
   };
 
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
+    if ((startDate && !endDate) || (!startDate && endDate)) {
+      alert('กรุณาเลือกวันที่ให้ครบทั้งสองช่อง (เริ่มต้น - สิ้นสุด) หรือไม่ต้องเลือกเลยเพื่อดึงข้อมูลทั้งหมด');
+      return;
+    }
+
+    setIsExporting(true);
     try {
-      const headers = [
-        "รหัสอ้างอิง", 
-        "วัน-เวลาที่แจ้งเหตุ", 
-        "ประเภทความช่วยเหลือ", 
-        "ระดับความรุนแรง", 
-        "สถานะ", 
-        "ละติจูด", 
-        "ลองจิจูด", 
-        "ชื่อผู้แจ้ง", 
-        "เบอร์ติดต่อ", 
-        "ผู้เข้าช่วยเหลือ", 
-        "หน่วยกู้ภัย"
-      ];
+      const targetCollection = 
+        exportType === 'users' ? 'volunteers' : 
+        exportType === 'logs' ? 'activity_logs' : 
+        exportType === 'safe' ? 'safe_reports' : 
+        'cases';
+      const dateField = (exportType === 'logs' || exportType === 'safe') ? 'timestamp' : 'created_at';
+
+      let q = query(collection(db, targetCollection));
+
+      if (startDate && endDate) {
+        const startIso = new Date(`${startDate}T00:00:00`).toISOString();
+        const endIso = new Date(`${endDate}T23:59:59`).toISOString();
+        q = query(collection(db, targetCollection), where(dateField, '>=', startIso), where(dateField, '<=', endIso));
+      }
+
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        alert('ไม่มีข้อมูลในช่วงเวลาที่เลือก');
+        setIsExporting(false);
+        return;
+      }
+
+      const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      const headers = Array.from(new Set(data.flatMap(Object.keys)));
       
       const csvContent = [
         headers.join(','),
-        ...cases.map(c => {
-          const caseId = c.case_number ? `CAS-${String(c.case_number).padStart(3, '0')}` : `CAS-${c.id.substring(0, 5)}`;
-          const timestamp = c.createdAt ? new Date(c.createdAt).toLocaleString('th-TH') : 
-                            (c.created_at ? new Date(c.created_at).toLocaleString('th-TH') : '');
-          
-          const rescueUnit = (c.volunteer_rescue_unit && c.volunteer_rescue_unit !== "0") ? c.volunteer_rescue_unit : 
-                             ((c.rescuer_unit && c.rescuer_unit !== "0") ? c.rescuer_unit : '-');
-          
-          const volunteerName = (c.assigned_volunteer_name && c.assigned_volunteer_name !== "0") ? c.assigned_volunteer_name : 
-                                ((c.rescuer_name && c.rescuer_name !== "0") ? c.rescuer_name : '-');
-          
-          const phone = (c.phone && c.phone !== "0") ? c.phone : 
-                        ((c.contactPhone && c.contactPhone !== "0") ? c.contactPhone : '-');
-          
-          const name = (c.reporter_name && c.reporter_name !== "0") ? c.reporter_name : 
-                       ((c.name && c.name !== "0") ? c.name : 
-                       ((c.contactName && c.contactName !== "0") ? c.contactName : 'ไม่ระบุ'));
-
-          const severityText = getTriageLabel(Number(c.severity) || 1);
-          
-          return [
-            caseId,
-            `"${timestamp.replace(/,/g, '')}"`,
-            `"${c.type || 'ไม่ระบุ'}"`,
-            `"${severityText}"`,
-            `"${c.status || 'รอการช่วยเหลือ'}"`,
-            c.latitude || '',
-            c.longitude || '',
-            `"${name}"`,
-            `"${phone}"`,
-            `"${volunteerName}"`,
-            `"${rescueUnit}"`
-          ].join(',');
-        })
+        ...data.map(row => headers.map(fieldName => {
+          let cellData = row[fieldName] === null || row[fieldName] === undefined ? '' : String(row[fieldName]);
+          cellData = cellData.replace(/"/g, '""');
+          return `"${cellData}"`;
+        }).join(','))
       ].join('\n');
 
-      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+      const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
+      
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
-      link.setAttribute('download', `OonJai_Master_Report_${new Date().getTime()}.csv`);
+      
+      const dateSuffix = startDate ? `_${startDate}_to_${endDate}` : '_AllTime';
+      link.setAttribute('download', `OonJai_${exportType}${dateSuffix}.csv`);
+      
+      link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    } catch (err) {
-      console.error('Export failed', err);
-      alert('เกิดข้อผิดพลาดในการดาวน์โหลดรายงาน');
+    } catch (error) {
+      console.error("Export error:", error);
+      alert('เกิดข้อผิดพลาดในการส่งออกข้อมูล');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -156,7 +158,7 @@ export default function ReportDashboardPage() {
   return (
     <>
       <DashboardHeader title="รายงานและส่งออก" />
-      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 space-y-8 pb-32 print:w-full print:max-w-none print:py-0 print:space-y-6">
+      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 space-y-8 pb-32 md:pb-10 print:w-full print:max-w-none print:py-0 print:space-y-6">
         
         {/* Daily Summary Section */}
         <Card className="p-6 bg-indigo-50 dark:bg-indigo-900/10 border-indigo-100 dark:border-indigo-800/30 rounded-2xl shadow-sm print:shadow-none print:border-gray-300 mb-8">
@@ -225,20 +227,74 @@ export default function ReportDashboardPage() {
           </div>
         </Card>
 
-        {/* Bottom Action */}
-        <div className="pt-4 flex flex-col sm:flex-row gap-3 w-full justify-center mt-8">
-          <button 
-            onClick={handleExportCSV}
-            className="w-full sm:w-auto px-6 py-3.5 bg-gray-900 hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-xl font-bold shadow-sm transition-transform active:scale-95 flex items-center justify-center gap-2 print:hidden"
-          >
-            📥 ดาวน์โหลดรายงานสรุปผล (CSV)
-          </button>
-          <button 
-            onClick={() => window.print()} 
-            className="w-full sm:w-auto px-6 py-3.5 bg-gray-800 hover:bg-gray-900 dark:bg-gray-800 dark:hover:bg-gray-700 text-white font-bold rounded-xl shadow-sm transition-transform active:scale-95 flex items-center justify-center gap-2 print:hidden"
-          > 
-            🖨️ พิมพ์รายงานสรุปผล (PDF) 
-          </button>
+        {/* Data Export Hub Section */}
+        <div className="mt-8 mb-24 md:mb-10 bg-white dark:bg-[#111c35] p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 w-full">
+          <div className="mb-6">
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+              <span>🖨️</span> เครื่องมือส่งออกข้อมูล (Data Export Hub)
+            </h3>
+            <p className="text-sm text-slate-500 mt-1">ดาวน์โหลดข้อมูลดิบเพื่อนำไปทำรายงานหรือวิเคราะห์ต่อ</p>
+          </div>
+          
+          <div className="flex flex-col md:flex-row gap-4 items-end mb-6">
+            <div className="w-full md:w-1/3">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">เลือกประเภทข้อมูล</label>
+              <select 
+                value={exportType}
+                onChange={(e) => setExportType(e.target.value)}
+                className="w-full border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <optgroup label="1. รายงานเชิงปฏิบัติการ (Operational)">
+                  <option value="cases">รายการเคสทั้งหมด (Cases)</option>
+                  <option value="safe">รายชื่อผู้ปลอดภัย (Safe Reports)</option>
+                </optgroup>
+                <optgroup label="2. รายงานเพื่อการตรวจสอบ (Audit & Compliance)">
+                  <option value="users">รายชื่อผู้ใช้งานและอาสาสมัคร (Users)</option>
+                  <option value="logs">ประวัติการทำงานระบบ (Activity Logs)</option>
+                </optgroup>
+              </select>
+            </div>
+            
+            <div className="w-full md:w-1/3">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">ตั้งแต่วันที่</label>
+              <input 
+                type="date" 
+                value={startDate} 
+                onChange={(e) => setStartDate(e.target.value)} 
+                className="w-full border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="w-full md:w-1/3">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">ถึงวันที่</label>
+              <input 
+                type="date" 
+                value={endDate} 
+                onChange={(e) => setEndDate(e.target.value)} 
+                className="w-full border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          
+          {/* Export Buttons */}
+          <div className="w-full flex flex-col sm:flex-row gap-3">
+            <button 
+              onClick={handleExportCSV}
+              disabled={isExporting}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-medium transition-colors disabled:bg-green-400"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              {isExporting ? 'กำลังโหลด...' : 'Export Excel (CSV)'}
+            </button>
+            
+            <button 
+              onClick={() => window.print()}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-xl font-medium transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+              Export PDF / พิมพ์
+            </button>
+          </div>
         </div>
 
       </div>

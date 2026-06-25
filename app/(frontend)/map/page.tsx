@@ -14,8 +14,10 @@ const MapView = dynamic(
 
 export default function MapPage() {
   return (
-    <main className="relative w-full h-[calc(100dvh-260px)] md:h-[calc(100dvh-180px)] mb-24 overflow-hidden">
-      <MapView />
+    <main className="relative flex flex-col h-[calc(100dvh-100px)] md:h-[calc(100vh-80px)] w-full">
+      <div className="absolute inset-0 z-0">
+        <MapView />
+      </div>
     </main>
   );
 }

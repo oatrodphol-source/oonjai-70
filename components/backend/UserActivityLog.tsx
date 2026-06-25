@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Activity } from 'lucide-react';
+import { db } from '@/lib/firebase';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 
 interface ActivityLog {
   id: number;
@@ -19,27 +21,22 @@ interface UserActivityLogProps {
 }
 
 export const UserActivityLog: React.FC<UserActivityLogProps> = ({ refreshTrigger }) => {
-  const [logs, setLogs] = useState<ActivityLog[]>([]);
+  const [activityLogs, setActivityLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchLogs();
-  }, [refreshTrigger]);
-
-  const fetchLogs = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/users/activity?limit=20&offset=0');
-      if (res.ok) {
-        const data = await res.json();
-        setLogs(data.logs || []);
-      }
-    } catch (error) {
-      console.error('Error fetching logs:', error);
-    } finally {
+    const q = query(collection(db, 'activity_logs'), orderBy('timestamp', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setActivityLogs(logs);
       setLoading(false);
-    }
-  };
+    }, (error) => {
+      console.error('Error fetching activity logs:', error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -63,8 +60,8 @@ export const UserActivityLog: React.FC<UserActivityLogProps> = ({ refreshTrigger
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg">
-          <table className="w-full text-sm">
+        <div className="w-full overflow-x-auto hide-scrollbar rounded-lg border border-slate-200 dark:border-slate-700">
+          <table className="w-full min-w-[600px] text-left text-sm whitespace-nowrap">
             <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
               <tr>
                 <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-white">
@@ -95,20 +92,20 @@ export const UserActivityLog: React.FC<UserActivityLogProps> = ({ refreshTrigger
                     กำลังโหลด...
                   </td>
                 </tr>
-              ) : logs.length === 0 ? (
+              ) : activityLogs.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
                     ไม่พบบันทึกกิจกรรม
                   </td>
                 </tr>
               ) : (
-                logs.map((log) => (
+                activityLogs.map((log) => (
                   <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs whitespace-nowrap">
-                      {new Date(log.timestamp).toLocaleString('th-TH')}
+                      {log.timestamp ? new Date(log.timestamp).toLocaleString('th-TH') : '-'}
                     </td>
                     <td className="px-4 py-3 text-gray-900 dark:text-gray-100 font-medium">
-                      {log.user_id}
+                      {log.user || log.user_id || '-'}
                     </td>
                     <td className="px-4 py-3 text-gray-900 dark:text-gray-100">
                       {log.action}
@@ -117,8 +114,8 @@ export const UserActivityLog: React.FC<UserActivityLogProps> = ({ refreshTrigger
                       {log.ip_address || '-'}
                     </td>
                     <td className="px-4 py-3">
-                      <Badge className={getStatusColor(log.status)}>
-                        {log.status === 'success' ? 'สำเร็จ' : 'ล้มเหลว'}
+                      <Badge className={getStatusColor(log.status || 'success')}>
+                        {(!log.status || log.status === 'success') ? 'สำเร็จ' : 'ล้มเหลว'}
                       </Badge>
                     </td>
                   </tr>

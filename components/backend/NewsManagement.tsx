@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Edit2, Trash2 } from 'lucide-react';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
 
 interface News {
   id: number;
@@ -14,6 +16,7 @@ interface News {
   imageUrl?: string;
   author_id?: number;
   published: boolean;
+  type?: string;
   created_at: string;
   updated_at: string;
 }
@@ -37,39 +40,32 @@ export const NewsManagement: React.FC<NewsManagementProps> = ({
   const [total, setTotal] = useState(0);
 
   useEffect(() => {
-    fetchNews();
-  }, [search, rowsPerPage, currentPage, refreshTrigger]);
-
-  const fetchNews = async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({
-        limit: rowsPerPage.toString(),
-        offset: (currentPage * rowsPerPage).toString(),
-      });
-
-      const res = await fetch(`/api/news?${params}`);
-      if (res.ok) {
-        const data = await res.json();
-        let filteredNews = data.news;
-
-        if (search) {
-          filteredNews = filteredNews.filter(
-            (item: News) =>
-              item.title.toLowerCase().includes(search.toLowerCase()) ||
-              item.content.toLowerCase().includes(search.toLowerCase())
-          );
-        }
-
-        setNews(filteredNews);
-        setTotal(data.total);
+    const q = query(collection(db, 'news'), orderBy('created_at', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const newsData = snapshot.docs.map(doc => ({
+        id: doc.id as any,
+        ...doc.data()
+      })) as News[];
+      
+      let filteredNews = newsData;
+      if (search) {
+        filteredNews = filteredNews.filter(
+          (item) =>
+            item.title?.toLowerCase().includes(search.toLowerCase()) ||
+            item.content?.toLowerCase().includes(search.toLowerCase())
+        );
       }
-    } catch (error) {
-      console.error('Error fetching news:', error);
-    } finally {
+      
+      setNews(filteredNews);
+      setTotal(newsData.length);
       setLoading(false);
-    }
-  };
+    }, (error) => {
+      console.error('Error fetching news real-time:', error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [search, refreshTrigger]);
 
   const truncateContent = (content: string, length: number = 100) => {
     return content.length > length ? content.substring(0, length) + '...' : content;
@@ -120,8 +116,8 @@ export const NewsManagement: React.FC<NewsManagementProps> = ({
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg">
-          <table className="w-full text-sm">
+        <div className="w-full overflow-x-auto hide-scrollbar rounded-lg border border-slate-200 dark:border-slate-700">
+          <table className="w-full min-w-[700px] text-left text-sm whitespace-nowrap">
             <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
               <tr>
                 <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-white">
@@ -129,6 +125,9 @@ export const NewsManagement: React.FC<NewsManagementProps> = ({
                 </th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-white">
                   หัวข้อข่าว
+                </th>
+                <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-white">
+                  ประเภท
                 </th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-white">
                   เนื้อหา
@@ -147,13 +146,13 @@ export const NewsManagement: React.FC<NewsManagementProps> = ({
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
                     กำลังโหลด...
                   </td>
                 </tr>
               ) : news.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
                     ไม่พบข่าวสาร
                   </td>
                 </tr>
@@ -165,6 +164,15 @@ export const NewsManagement: React.FC<NewsManagementProps> = ({
                     </td>
                     <td className="px-4 py-3 text-gray-900 dark:text-gray-100 font-medium max-w-xs truncate">
                       {item.title}
+                    </td>
+                    <td className="px-4 py-3">
+                      {item.type === 'announcement' ? (
+                        <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800">
+                          🚨 ประกาศส่วนกลาง
+                        </Badge>
+                      ) : (
+                        <span className="text-gray-600 dark:text-gray-400 text-sm">ข่าวสารทั่วไป</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400 max-w-md">
                       {truncateContent(item.content)}
@@ -192,7 +200,11 @@ export const NewsManagement: React.FC<NewsManagementProps> = ({
                         <Edit2 size={18} />
                       </Button>
                       <Button
-                        onClick={() => onDelete(item.id, item.title)}
+                        onClick={async () => { 
+                          if(window.confirm('ยืนยันการลบข่าวสาร/ประกาศนี้?')) { 
+                            await deleteDoc(doc(db, 'news', item.id.toString())); 
+                          } 
+                        }}
                         className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900 rounded"
                         title="ลบ"
                       >

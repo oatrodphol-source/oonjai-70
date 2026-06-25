@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { Phone, CheckCircle2, Clock, MapPin, Building2, ShieldPlus, Package } from 'lucide-react';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 
 export default function InfoPage() {
   const [stats, setStats] = useState<{
@@ -21,6 +21,7 @@ export default function InfoPage() {
   });
   
   const [evacuees, setEvacuees] = useState<any[]>([]);
+  const [safePersons, setSafePersons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('all');
@@ -51,6 +52,15 @@ export default function InfoPage() {
     }
     return true;
   });
+
+  useEffect(() => {
+    const q = query(collection(db, 'safe_reports'), orderBy('created_at', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const persons = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setSafePersons(persons);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'cases'), (snapshot) => {
@@ -256,6 +266,26 @@ export default function InfoPage() {
           )}
         </div>
       </div>
+
+      {/* Manual Safe Persons List */}
+      {safePersons.length > 0 && (
+        <div className="pt-2">
+          <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+            🛡️ รายชื่อผู้ปลอดภัย (ภายนอก)
+          </h3>
+          <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto">
+            {safePersons.map(person => (
+              <div key={person.id} className="p-4 bg-white dark:bg-[#151b2c] rounded-lg shadow-sm border border-green-100 dark:border-green-800/50 flex justify-between items-center">
+                <div>
+                  <p className="font-bold text-slate-800 dark:text-slate-200">{person.name || person.area}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">ช่วยเหลือโดย: {person.agency || 'รายงานตนเอง'}</p>
+                </div>
+                <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs px-3 py-1 rounded-full font-bold">ปลอดภัย</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Emergency Numbers Grid */}
       <div className="pt-4 border-t border-gray-200 dark:border-gray-800">

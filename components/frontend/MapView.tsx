@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, CircleMarker, ZoomControl } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, CircleMarker, ZoomControl, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import HeatmapLayer from './HeatmapLayer';
@@ -42,7 +42,75 @@ interface CasePoint {
   status?: string;
 }
 
-export default function MapView() {
+const MapSearchControl = () => {
+  const map = useMap();
+  const [query, setQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [searchPin, setSearchPin] = useState<[number, number] | null>(null);
+
+  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setQuery(val);
+    if (val.length > 2) {
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&countrycodes=th&limit=5`);
+        const data = await res.json();
+        setSuggestions(data);
+      } catch(err){}
+    } else {
+      setSuggestions([]);
+    }
+  };
+
+  const handleSelect = (item: any) => {
+    const lat = parseFloat(item.lat);
+    const lon = parseFloat(item.lon);
+    map.flyTo([lat, lon], 15);
+    setSearchPin([lat, lon]);
+    setQuery(item.display_name.split(',')[0]);
+    setSuggestions([]);
+  };
+
+  return (
+    <>
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] w-[90%] max-w-sm drop-shadow-md pointer-events-auto">
+        <div className="flex shadow-lg rounded-full overflow-hidden bg-white border border-slate-200">
+          <input 
+            type="text" 
+            placeholder="ค้นหาสถานที่..." 
+            value={query} 
+            onChange={handleInputChange} 
+            className="flex-1 px-4 py-3 outline-none text-sm text-slate-800" 
+          />
+        </div>
+        {suggestions.length > 0 && (
+          <ul className="absolute top-full left-0 w-full mt-2 bg-white rounded-xl shadow-xl overflow-hidden border border-slate-100 max-h-48 overflow-y-auto">
+            {suggestions.map((item, idx) => (
+              <li key={idx} onClick={() => handleSelect(item)} className="px-4 py-3 text-sm border-b cursor-pointer hover:bg-slate-50 text-slate-700 truncate">
+                {item.display_name}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      {searchPin && (
+        <Marker 
+          key={`search-${searchPin[0]}-${searchPin[1]}`}
+          position={searchPin}
+          icon={L.divIcon({ html: '<div class="bg-red-500 w-5 h-5 rounded-full border-2 border-white shadow-md animate-bounce"></div>', className: '', iconSize: [20, 20] })}
+        >
+          <Popup>ตำแหน่งจากผลการค้นหา</Popup>
+        </Marker>
+      )}
+    </>
+  );
+};
+
+interface MapViewProps {
+  onMarkerClick?: (caseData: any) => void;
+}
+
+export default function MapView({ onMarkerClick }: MapViewProps = {}) {
   const position: [number, number] = [13.7563, 100.5018]; // BKK Default
   const [cases, setCases] = useState<CasePoint[]>([]);
   const [showHeatmap, setShowHeatmap] = useState(false);
@@ -199,7 +267,7 @@ export default function MapView() {
     <div className="flex-1 w-full relative z-0 h-full min-h-[50vh] md:min-h-[400px]">
       
       {/* GPS Locate Button */}
-      <div className="absolute bottom-44 right-4 z-[9999] flex flex-col gap-3 pointer-events-none">
+      <div className="absolute bottom-6 right-4 z-[1000] flex flex-col gap-2 pointer-events-none">
         <div className="pointer-events-auto">
           <button 
             onClick={handleLocateMe}
@@ -211,7 +279,7 @@ export default function MapView() {
       </div>
 
       {/* Floating Action Buttons */}
-      <div className="absolute bottom-8 lg:bottom-10 right-4 z-[1000] flex flex-col gap-2 pointer-events-none">
+      <div className="absolute bottom-40 md:bottom-24 right-4 z-[1000] flex flex-col gap-2 pointer-events-none">
         <div className="pointer-events-auto">
           <button 
             onClick={() => setShowSafeModal(true)}
@@ -245,10 +313,11 @@ export default function MapView() {
         style={{ height: "100%", width: "100%", zIndex: 0 }}
         ref={setMapInstance}
       >
+        <MapSearchControl />
         <ZoomControl position="bottomleft" />
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         />
         
         {(() => {
@@ -288,7 +357,16 @@ export default function MapView() {
                 iconSize: [40, 40]
               });
               return (
-                <Marker key={`cluster-${idx}`} position={[c.latitude, c.longitude]} icon={countIcon}>
+                <Marker 
+                  key={`cluster-${idx}`} 
+                  position={[c.latitude, c.longitude]} 
+                  icon={countIcon}
+                  eventHandlers={{
+                    click: () => {
+                      if (onMarkerClick) onMarkerClick(c);
+                    }
+                  }}
+                >
                   <Popup>
                     <div className="font-sans">
                       <div className={`text-center ${clusterColor.replace('bg-', 'text-')} font-bold mb-2`}>🚨 มี {cluster.group.length} เคสในรัศมี 500 เมตร</div>
@@ -314,6 +392,11 @@ export default function MapView() {
                 key={c.id} 
                 position={[c.latitude, c.longitude]} 
                 icon={singleIcon}
+                eventHandlers={{
+                  click: () => {
+                    if (onMarkerClick) onMarkerClick(c);
+                  }
+                }}
               >
                 <Popup>
                   <div className="font-sans">
@@ -332,17 +415,17 @@ export default function MapView() {
         )}
 
         {myLocation && (
-          <CircleMarker 
-            center={myLocation} 
-            radius={8}
-            pathOptions={{ color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.8, weight: 2 }}
+          <Marker 
+            key={`loc-${myLocation[0]}-${myLocation[1]}`}
+            position={myLocation}
+            icon={L.divIcon({ html: '<div class="bg-blue-500 w-4 h-4 rounded-full border-2 border-white shadow-md animate-pulse"></div>', className: '', iconSize: [16, 16] })}
           >
             <Popup>
               <div className="font-sans font-bold text-[#3b82f6]">
                 ตำแหน่งของคุณ
               </div>
             </Popup>
-          </CircleMarker>
+          </Marker>
         )}
       </MapContainer>
 

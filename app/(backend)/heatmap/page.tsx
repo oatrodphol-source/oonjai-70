@@ -9,7 +9,7 @@ import { db } from '@/lib/firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 
 export default function HeatmapPage() {
-  const [type, setType] = useState('all');
+  const [severityFilter, setSeverityFilter] = useState('all');
   const [time, setTime] = useState('all');
   const [cases, setCases] = useState<any[]>([]);
   const [loadingCases, setLoadingCases] = useState(true);
@@ -42,10 +42,9 @@ export default function HeatmapPage() {
   }, []);
 
   const filteredCases = cases.filter(c => {
-    // Type filter
-    if (type !== 'all') {
-      const cType = c.type === 'sos' ? 'SOS ด่วน' : c.type;
-      if (cType !== type) return false;
+    // Severity filter
+    if (severityFilter !== 'all') {
+      if (String(c.severity) !== severityFilter) return false;
     }
     
     // Time filter
@@ -104,56 +103,66 @@ export default function HeatmapPage() {
   };
 
   return (
-    <>
-      <DashboardHeader title="แผนที่ความร้อน (Heatmap)" />
+    <main className="flex flex-col w-full h-[calc(100dvh-140px)] md:h-[calc(100dvh-80px)] overflow-hidden bg-slate-50 dark:bg-slate-900 pb-32 md:pb-10">
       
-      <div className="max-w-7xl mx-auto py-6 space-y-6">
-        
-        {/* Controls */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <div className="w-full sm:w-64">
-              <Select 
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-                options={[
-                  { label: 'ทุกประเภทการขอความช่วยเหลือ', value: 'all' },
-                  { label: 'SOS ด่วน (อพยพฉุกเฉิน)', value: 'SOS ด่วน' },
-                  { label: 'เตรียมอพยพ / เฝ้าระวังระดับน้ำ', value: 'เตรียมอพยพ/เฝ้าระวัง' },
-                  { label: 'ต้องการเสบียง (น้ำ/อาหาร/ยา)', value: 'ต้องการน้ำ/อาหาร/ยา' },
-                  { label: 'ผู้ป่วยฉุกเฉิน / ติดเตียง', value: 'ฉุกเฉิน/ป่วย' },
-                ]}
-              />
-            </div>
-            <div className="w-full sm:w-48">
-              <Select 
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                options={[
-                  { label: 'ทุกเวลา', value: 'all' },
-                  { label: '24 ชั่วโมงที่ผ่านมา', value: '24h' },
-                  { label: '7 วันที่ผ่านมา', value: '7d' },
-                  { label: 'เดือนนี้', value: 'month' },
-                ]}
-              />
-            </div>
-          </div>
-          
+      {/* Static Control Panel */}
+      <div className="bg-white dark:bg-[#111c35] p-3 shadow-sm z-[10] flex flex-col gap-3 shrink-0 w-full max-w-[100vw] overflow-hidden">
+        <div className="flex justify-between items-center px-1">
+          <h2 className="text-sm font-bold text-slate-800 dark:text-white">ตัวกรองข้อมูล</h2>
           <Button 
             variant="outline" 
-            className="flex items-center justify-center gap-2 w-full sm:w-auto"
+            size="sm"
+            className="flex items-center justify-center gap-2 bg-slate-50 dark:bg-slate-800"
             onClick={handleExport}
             disabled={exporting || loadingCases}
           >
-            {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            {exporting ? 'กำลังส่งออก...' : 'ส่งออกรายงานพื้นที่เสี่ยง'}
+            {exporting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+            <span className="hidden sm:inline text-xs">{exporting ? 'กำลังส่งออก...' : 'ส่งออกรายงาน'}</span>
           </Button>
         </div>
-
-        {/* Map Container */}
-        <HeatmapView filteredCases={filteredCases} loading={loadingCases} />
         
+        <div className="flex w-full overflow-x-auto snap-x gap-2 hide-scrollbar pb-1">
+          {[
+            { label: 'ทุกระดับความรุนแรง', value: 'all' },
+            { label: 'วิกฤต (5)', value: '5' },
+            { label: 'รุนแรง (4)', value: '4' },
+            { label: 'ปานกลาง (3)', value: '3' },
+            { label: 'เฝ้าระวัง (2)', value: '2' },
+            { label: 'ปลอดภัย (1)', value: '1' },
+          ].map((opt, i) => (
+            <button 
+              key={`severity-${i}`}
+              onClick={() => setSeverityFilter(opt.value)}
+              className={`snap-start shrink-0 px-4 py-2 rounded-full text-xs font-bold border transition-all ${severityFilter === opt.value ? 'bg-red-500 text-white border-red-500 shadow-md' : 'bg-slate-50 dark:bg-[#151b2c] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        
+        <div className="flex w-full overflow-x-auto snap-x gap-2 hide-scrollbar pb-1">
+          {[
+            { label: 'ทุกเวลา', value: 'all' },
+            { label: '24 ชั่วโมง', value: '24h' },
+            { label: '7 วัน', value: '7d' },
+            { label: 'เดือนนี้', value: 'month' },
+          ].map((opt, i) => (
+            <button 
+              key={`time-${i}`}
+              onClick={() => setTime(opt.value)}
+              className={`snap-start shrink-0 px-4 py-2 rounded-full text-xs font-bold border transition-all ${time === opt.value ? 'bg-blue-600 text-white border-blue-500 shadow-md' : 'bg-slate-50 dark:bg-[#151b2c] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
-    </>
+
+      {/* Map Container */}
+      <div className="flex-1 relative z-0 w-full min-h-0">
+        <HeatmapView filteredCases={filteredCases} loading={loadingCases} />
+      </div>
+      
+    </main>
   );
 }

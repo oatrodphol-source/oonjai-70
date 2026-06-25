@@ -7,11 +7,14 @@ import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
 import { Filter } from 'lucide-react';
 import { useAuthProfile } from '@/hooks/useAuth';
+import { db } from '@/lib/firebase';
+import { collection, addDoc } from 'firebase/firestore';
 
 export default function CasesPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [severityFilter, setSeverityFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSafeModal, setShowSafeModal] = useState(false);
   const [role, setRole] = useState('admin');
   const [isClient, setIsClient] = useState(false);
   const { name: userName, loading } = useAuthProfile();
@@ -37,82 +40,80 @@ export default function CasesPage() {
     <>
       <DashboardHeader title={role === 'admin' ? "จัดการเคสการช่วยเหลือ" : "กระดานงานอาสาสมัคร (Task Board)"} />
       
-      <div className="max-w-7xl mx-auto py-6 space-y-6 px-4">
-        {/* Welcome & Stats Banner */}
-        <div className="mb-6 bg-gradient-to-r from-orange-500 to-red-600 rounded-xl p-6 text-white shadow-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h2 className="text-2xl font-bold mb-1 flex items-center gap-2">
-              👋 สวัสดี, {loading ? 'กำลังโหลด...' : userName}
-            </h2>
-            <p className="text-orange-100 text-sm">
-              รหัสประจำตัว: VOL-001 | 🟢 พร้อมปฏิบัติงาน
-            </p>
-          </div>
-          <div className="flex gap-4 bg-black/20 p-3 rounded-lg w-full sm:w-auto">
-            <div className="text-center px-4 border-r border-white/20">
-              <p className="text-3xl font-bold">12</p>
-              <p className="text-xs text-orange-100 mt-1">เคสที่ช่วยสำเร็จ</p>
-            </div>
-            <div className="text-center px-4">
-              <p className="text-3xl font-bold text-yellow-300">2</p>
-              <p className="text-xs text-orange-100 mt-1">กำลังดำเนินการ</p>
-            </div>
-          </div>
-        </div>
+      <div className="min-h-[100dvh] bg-slate-50 dark:bg-[#0b1325] p-4 pb-36 md:pb-10 w-full max-w-[100vw] md:max-w-5xl mx-auto space-y-6 overflow-x-hidden overflow-y-auto">
 
         {/* Filters */}
-        <div className="bg-white dark:bg-[#151b2c] p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex flex-wrap items-end gap-4">
-          <div className="flex items-center gap-2 text-gray-500 font-medium mb-1 w-full md:w-auto">
-            <Filter className="w-5 h-5" />
-            <span>ตัวกรอง:</span>
+        <div className="bg-white dark:bg-[#111c35] p-4 rounded-xl shadow-sm mb-4 w-full max-w-[100vw] overflow-hidden sticky top-0 z-10 flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
+            <div className="flex items-center gap-2 text-gray-500 font-medium shrink-0">
+              <Filter className="w-5 h-5" />
+              <span>ตัวกรอง:</span>
+            </div>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+              <button onClick={() => setShowSafeModal(true)} className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 text-sm flex items-center justify-center gap-2 whitespace-nowrap">
+                + เพิ่มผู้ปลอดภัย (ทีมอื่นช่วย)
+              </button>
+              <div className="w-full sm:w-64">
+                 <Input 
+                   placeholder="ค้นหาด้วยรหัสเคส, ชื่อผู้แจ้ง..." 
+                   value={searchQuery}
+                   onChange={(e) => setSearchQuery(e.target.value)}
+                 />
+              </div>
+            </div>
           </div>
           
-          <div className="w-full md:w-48">
-            <Select 
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              options={[
+          <div className="flex flex-col gap-3 w-full overflow-hidden">
+            <div className="flex w-full overflow-x-auto snap-x gap-2 hide-scrollbar pb-1">
+              {[
                 { label: 'ทุกสถานะ', value: 'all' },
                 { label: 'รอการช่วยเหลือ', value: 'รอการช่วยเหลือ' },
                 { label: 'กำลังดำเนินการ', value: 'กำลังดำเนินการ' },
                 { label: 'เสร็จสิ้น', value: 'เสร็จสิ้น' },
-              ]}
-            />
-          </div>
-          
-          <div className="w-full md:w-48">
-            <Select 
-              value={severityFilter}
-              onChange={(e) => setSeverityFilter(e.target.value)}
-              options={[
+              ].map((opt, i) => (
+                <button 
+                  key={`status-${i}`}
+                  onClick={() => setStatusFilter(opt.value)}
+                  className={`snap-start shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border backdrop-blur-md transition-all ${statusFilter === opt.value ? 'bg-[#ff6600] text-white border-[#ff6600] shadow-md' : 'bg-gray-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex w-full overflow-x-auto snap-x gap-2 hide-scrollbar pb-1">
+              {[
                 { label: 'ทุกระดับความรุนแรง', value: 'all' },
-                { label: 'พื้นที่เสี่ยงวิกฤต (ระดับ 5)', value: '5' },
-                { label: 'พื้นที่เสี่ยงรุนแรง (ระดับ 4)', value: '4' },
-                { label: 'พื้นที่เสี่ยงปานกลาง (ระดับ 3)', value: '3' },
-                { label: 'พื้นที่เฝ้าระวัง (ระดับ 2)', value: '2' },
-                { label: 'พื้นที่ปลอดภัย/ทั่วไป (ระดับ 1)', value: '1' },
-              ]}
-            />
+                { label: 'วิกฤต (5)', value: '5' },
+                { label: 'รุนแรง (4)', value: '4' },
+                { label: 'ปานกลาง (3)', value: '3' },
+                { label: 'เฝ้าระวัง (2)', value: '2' },
+                { label: 'ปลอดภัย (1)', value: '1' },
+              ].map((opt, i) => (
+                <button 
+                  key={`severity-${i}`}
+                  onClick={() => setSeverityFilter(opt.value)}
+                  className={`snap-start shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border backdrop-blur-md transition-all ${severityFilter === opt.value ? 'bg-red-500 text-white border-red-500 shadow-md' : 'bg-gray-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
           
-          <div className="w-full md:w-64">
-             <Input 
-               placeholder="ค้นหาด้วยรหัสเคส, ชื่อผู้แจ้ง..." 
-               value={searchQuery}
-               onChange={(e) => setSearchQuery(e.target.value)}
-             />
-          </div>
           {(statusFilter !== 'all' || severityFilter !== 'all' || searchQuery !== '') && (
-            <button
-              onClick={() => {
-                setStatusFilter('all');
-                setSeverityFilter('all');
-                setSearchQuery('');
-              }}
-              className="h-10 px-4 text-sm font-bold text-red-500 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 rounded-xl transition-colors"
-            >
-              ล้างตัวกรอง
-            </button>
+            <div className="flex justify-end border-t border-gray-100 dark:border-gray-800 pt-3">
+              <button
+                onClick={() => {
+                  setStatusFilter('all');
+                  setSeverityFilter('all');
+                  setSearchQuery('');
+                }}
+                className="px-4 py-1.5 text-xs font-bold text-red-500 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 rounded-full transition-colors"
+              >
+                ล้างตัวกรองทั้งหมด
+              </button>
+            </div>
           )}
         </div>
 
@@ -131,6 +132,29 @@ export default function CasesPage() {
           />
         )}
       </div>
+
+      {showSafeModal && (
+        <div className="fixed inset-0 bg-black/50 z-[3000] flex items-center justify-center">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-bold mb-4 text-slate-900">เพิ่มรายชื่อผู้ปลอดภัย (ภายนอก)</h3>
+            <input type="text" id="safeName" placeholder="ชื่อ-นามสกุล ผู้ได้รับการช่วยเหลือ" className="w-full border border-slate-300 p-3 rounded-lg mb-4 text-slate-900" />
+            <input type="text" id="safeTeam" placeholder="หน่วยงานที่ช่วยเหลือ (เช่น กู้ภัย ก.)" className="w-full border border-slate-300 p-3 rounded-lg mb-4 text-slate-900" />
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowSafeModal(false)} className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg">ยกเลิก</button>
+              <button onClick={async () => {
+                const name = (document.getElementById('safeName') as HTMLInputElement).value;
+                const team = (document.getElementById('safeTeam') as HTMLInputElement).value;
+                if(name) {
+                  await addDoc(collection(db, 'safe_reports'), {
+                    name, agency: team || 'หน่วยงานภายนอก', created_at: new Date().toISOString(), status: 'safe', type: 'manual_entry'
+                  });
+                  setShowSafeModal(false);
+                }
+              }} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">บันทึกรายชื่อ</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

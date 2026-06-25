@@ -45,7 +45,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { title, content, imageUrl, authorId, published } = body;
+    const { title, content, imageUrl, authorId, published, type } = body;
 
     if (!title || !content) {
       return NextResponse.json(
@@ -61,6 +61,7 @@ export async function POST(req: Request) {
         imageUrl: imageUrl || null,
         authorId: authorId || null,
         published: published ? true : false,
+        type: type || 'news',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };

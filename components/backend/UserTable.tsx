@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Edit2, Trash2, Eye, EyeOff } from 'lucide-react';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 
 interface User {
   id: number;
@@ -36,31 +38,64 @@ export const UserTable: React.FC<UserTableProps> = ({ onEdit, onDelete, refreshT
   const [showPasswords, setShowPasswords] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
-    fetchUsers();
-  }, [search, role, rowsPerPage, currentPage, refreshTrigger]);
-
-  const fetchUsers = async () => {
     setLoading(true);
-    try {
-      const params = new URLSearchParams({
-        search,
-        role,
-        limit: rowsPerPage.toString(),
-        offset: (currentPage * rowsPerPage).toString(),
-      });
+    let adminsList: any[] = [];
+    let volunteersList: any[] = [];
 
-      const res = await fetch(`/api/users?${params}`);
-      if (res.ok) {
-        const data = await res.json();
-        setUsers(data.users);
-        setTotal(data.total);
+    const mergeAndSetUsers = () => {
+      let combined = [...adminsList, ...volunteersList];
+
+      if (search) {
+        const s = search.toLowerCase();
+        combined = combined.filter(
+          (u) =>
+            u.username?.toLowerCase().includes(s) ||
+            u.name?.toLowerCase().includes(s) ||
+            u.email?.toLowerCase().includes(s) ||
+            u.phone?.includes(search)
+        );
       }
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    } finally {
+
+      if (role) {
+        combined = combined.filter((u) => u.role === role);
+      }
+
+      // Format for the table
+      const formatted = combined.map((u, i) => ({
+        id: u.id,
+        userId: i + 1,
+        username: u.name || u.username || 'No Name',
+        email: u.email || '-',
+        phone: u.phone || '-',
+        role: u.role,
+        status: u.status || 'active',
+        created_at: u.created_at || new Date().toISOString(),
+        updated_at: u.updated_at || new Date().toISOString(),
+      }));
+
+      // Sort by created_at desc
+      formatted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      setTotal(formatted.length);
+      setUsers(formatted); // For now ignoring pagination limit to show all or we can slice
       setLoading(false);
-    }
-  };
+    };
+
+    const unsubAdmins = onSnapshot(collection(db, 'admins'), (snapshot) => {
+      adminsList = snapshot.docs.map((doc) => ({ id: doc.id, role: 'admin', ...doc.data() }));
+      mergeAndSetUsers();
+    });
+
+    const unsubVolunteers = onSnapshot(collection(db, 'volunteers'), (snapshot) => {
+      volunteersList = snapshot.docs.map((doc) => ({ id: doc.id, role: 'volunteer', ...doc.data() }));
+      mergeAndSetUsers();
+    });
+
+    return () => {
+      unsubAdmins();
+      unsubVolunteers();
+    };
+  }, [search, role, refreshTrigger]);
 
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -151,8 +186,8 @@ export const UserTable: React.FC<UserTableProps> = ({ onEdit, onDelete, refreshT
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg">
-          <table className="w-full text-sm">
+        <div className="w-full overflow-x-auto hide-scrollbar rounded-lg border border-slate-200 dark:border-slate-700">
+          <table className="w-full min-w-[800px] text-left text-sm whitespace-nowrap">
             <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
               <tr>
                 <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-white">
@@ -246,14 +281,11 @@ export const UserTable: React.FC<UserTableProps> = ({ onEdit, onDelete, refreshT
                         <Edit2 size={18} />
                       </Button>
                       <Button
-                        onClick={() => {
-                          if (
-                            confirm(
-                              `คุณแน่ใจหรือว่าต้องการลบ ${user.username}?`
-                            )
-                          ) {
-                            onDelete(user.userId);
-                          }
+                        onClick={async () => {
+                          const collectionName = user.role === 'admin' ? 'admins' : 'volunteers'; 
+                          if(window.confirm('ยืนยันการลบผู้ใช้งานนี้?')) { 
+                            await deleteDoc(doc(db, collectionName, user.id.toString())); 
+                          } 
                         }}
                         className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900 rounded"
                         title="ลบ"

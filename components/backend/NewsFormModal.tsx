@@ -5,6 +5,8 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { X, Save } from 'lucide-react';
+import { db } from '@/lib/firebase';
+import { collection, addDoc } from 'firebase/firestore';
 
 interface News {
   id: number;
@@ -12,6 +14,7 @@ interface News {
   content: string;
   imageUrl?: string;
   published: boolean;
+  type?: string;
   created_at: string;
   updated_at: string;
 }
@@ -34,6 +37,7 @@ export const NewsFormModal: React.FC<NewsFormModalProps> = ({
     content: '',
     imageUrl: '',
     published: true,
+    type: 'news',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -45,6 +49,7 @@ export const NewsFormModal: React.FC<NewsFormModalProps> = ({
         content: news.content,
         imageUrl: news.imageUrl || '',
         published: news.published,
+        type: news.type || 'news',
       });
     } else {
       setFormData({
@@ -52,6 +57,7 @@ export const NewsFormModal: React.FC<NewsFormModalProps> = ({
         content: '',
         imageUrl: '',
         published: true,
+        type: 'news',
       });
     }
     setError('');
@@ -110,6 +116,20 @@ export const NewsFormModal: React.FC<NewsFormModalProps> = ({
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || 'Failed to save news');
+      }
+
+      try {
+        const userStr = localStorage.getItem('oonjai_user');
+        const userObj = userStr ? JSON.parse(userStr) : { name: 'Admin', role: 'admin' };
+        const actionText = news ? `แก้ไขข่าวสาร/ประกาศ: ${formData.title}` : `เพิ่มข่าวสาร/ประกาศใหม่: ${formData.title}`;
+        
+        await addDoc(collection(db, 'activity_logs'), {
+          action: actionText,
+          user: `${userObj.name} (${userObj.role})`,
+          timestamp: new Date().toISOString()
+        });
+      } catch (logErr) {
+        console.error('Failed to write activity log', logErr);
       }
 
       onSave(formData as News);
@@ -206,6 +226,19 @@ export const NewsFormModal: React.FC<NewsFormModalProps> = ({
             >
               เผยแพร่ข่าว
             </label>
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">ประเภท</label>
+            <select 
+              name="type"
+              value={formData.type} 
+              onChange={handleChange}
+              className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white text-slate-800"
+            >
+              <option value="news">ข่าวสารทั่วไป</option>
+              <option value="announcement">🚨 ประกาศส่วนกลาง (แจ้งเตือนด่วน)</option>
+            </select>
           </div>
         </div>
 

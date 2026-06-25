@@ -19,6 +19,7 @@ export default function AiTriggerPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isAIEnabled, setIsAIEnabled] = useState(true);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -62,15 +63,30 @@ export default function AiTriggerPage() {
   return (
     <>
       <DashboardHeader title="ตั้งค่า AI Trigger & Triage" />
-      <div className="max-w-4xl mx-auto py-6 space-y-6">
-        <div className="bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800 p-4 rounded-2xl flex gap-4">
-          <div className="p-3 bg-orange-100 dark:bg-orange-800 rounded-full h-fit">
-            <BrainCircuit className="w-6 h-6 text-orange-600 dark:text-orange-300" />
+      <div className="max-w-4xl mx-auto py-6 pb-32 md:pb-10 space-y-6">
+        <div className="bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800 p-6 rounded-2xl">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
+            <div>
+              <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <span className="text-orange-500">🧠</span> Smart Triage Algorithm
+              </h3>
+              <p className="text-sm text-slate-500 mt-1">ระบบคำนวณความรุนแรงอัตโนมัติ</p>
+            </div>
+            
+            <label className="flex items-center cursor-pointer">
+              <div className="relative">
+                <input type="checkbox" className="sr-only" checked={isAIEnabled} onChange={() => setIsAIEnabled(!isAIEnabled)} />
+                <div className={`block w-14 h-8 rounded-full transition-colors ${isAIEnabled ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-700'}`}></div>
+                <div className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${isAIEnabled ? 'transform translate-x-6' : ''}`}></div>
+              </div>
+              <div className="ml-3 text-sm font-medium text-slate-700 dark:text-slate-300">
+                {isAIEnabled ? 'เปิดใช้งาน (Active)' : 'ปิดใช้งาน (Manual)'}
+              </div>
+            </label>
           </div>
-          <div>
-            <h4 className="font-bold text-gray-900 dark:text-white">Smart Triage Algorithm</h4>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-              ระบบให้คะแนนความเร่งด่วนอัตโนมัติ คำนวณจาก: 
+          <div className="mt-4 pt-4 border-t border-orange-200 dark:border-orange-800/50">
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              คำนวณจาก: 
               <code className="bg-white dark:bg-black/20 px-2 py-0.5 rounded mx-1 text-orange-600">
                 Score = (Water Level) + (People) + (Bedridden) + (Elderly) + (Severity)
               </code>

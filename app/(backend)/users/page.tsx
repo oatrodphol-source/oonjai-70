@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Plus, X } from 'lucide-react';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
 
 interface User {
   id: number;
@@ -27,7 +29,7 @@ interface User {
 export default function UsersPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [showAddUser, setShowAddUser] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [createFormData, setCreateFormData] = useState({
     name: '',
@@ -41,7 +43,6 @@ export default function UsersPage() {
 
   const handleEditUser = (user: User) => {
     setEditingUser(user);
-    setIsEditModalOpen(true);
   };
 
   const handleDeleteUser = async (userId: number) => {
@@ -103,11 +104,11 @@ export default function UsersPage() {
   return (
     <>
       <DashboardHeader title="จัดการผู้ใช้งาน (Admin)" />
-      <div className="max-w-7xl mx-auto py-6 space-y-6">
+      <div className="w-full max-w-[100vw] overflow-x-hidden pb-32 md:pb-10 mx-auto py-6 space-y-6">
         {/* Create User Button */}
         <div className="flex justify-end">
           <Button
-            onClick={() => setIsCreateModalOpen(true)}
+            onClick={() => setShowAddUser(true)}
             className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-lg flex items-center gap-2"
           >
             <Plus size={18} />
@@ -136,147 +137,78 @@ export default function UsersPage() {
         </Card>
       </div>
 
-      {/* Edit User Modal */}
-      <EditUserModal
-        isOpen={isEditModalOpen}
-        user={editingUser}
-        onClose={() => setIsEditModalOpen(false)}
-        onSave={handleSaveUser}
-      />
-
-      {/* Create User Modal */}
-      <Modal
-        isOpen={isCreateModalOpen}
-        onClose={() => {
-          setIsCreateModalOpen(false);
-          setCreateError('');
-        }}
-      >
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl">
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              สร้างผู้ใช้งานใหม่
-            </h2>
-            <button
-              onClick={() => {
-                setIsCreateModalOpen(false);
-                setCreateError('');
-              }}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            >
-              <X size={24} />
-            </button>
-          </div>
-
-          {/* Content */}
-          <div className="p-6 space-y-4">
-            {createError && (
-              <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-                {createError}
-              </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                ชื่อผู้ใช้งาน
-              </label>
-              <Input
-                type="text"
-                value={createFormData.name}
-                onChange={(e) =>
-                  setCreateFormData({ ...createFormData, name: e.target.value })
+      {showAddUser && (
+        <div className="fixed inset-0 bg-black/50 z-[3000] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl p-6 w-full max-w-lg">
+            <h3 className="text-lg font-bold mb-4 dark:text-white">สร้างผู้ใช้งานใหม่</h3>
+            <input type="text" id="addUserName" placeholder="ชื่อผู้ใช้งาน (Name)" className="w-full border p-3 rounded-lg mb-3 dark:bg-slate-800 dark:border-slate-700 dark:text-white" />
+            <input type="email" id="addUserEmail" placeholder="อีเมล (Email)" className="w-full border p-3 rounded-lg mb-3 dark:bg-slate-800 dark:border-slate-700 dark:text-white" />
+            <input type="password" id="addUserPassword" placeholder="รหัสผ่าน (Password)" className="w-full border p-3 rounded-lg mb-3 dark:bg-slate-800 dark:border-slate-700 dark:text-white" />
+            <input type="text" id="addUserPhone" placeholder="เบอร์โทรศัพท์ (Phone)" className="w-full border p-3 rounded-lg mb-3 dark:bg-slate-800 dark:border-slate-700 dark:text-white" />
+            
+            <select id="addUserRole" className="w-full border p-3 rounded-lg mb-4 dark:bg-slate-800 dark:border-slate-700 dark:text-white">
+              <option value="volunteer">ทีมช่วยเหลือ (Volunteer)</option>
+              <option value="admin">ผู้ดูแลระบบ (Admin)</option>
+            </select>
+            
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowAddUser(false)} className="px-4 py-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">ยกเลิก</button>
+              <button onClick={async () => {
+                const name = (document.getElementById('addUserName') as HTMLInputElement).value;
+                const email = (document.getElementById('addUserEmail') as HTMLInputElement).value;
+                const password = (document.getElementById('addUserPassword') as HTMLInputElement).value;
+                const phone = (document.getElementById('addUserPhone') as HTMLInputElement).value;
+                const role = (document.getElementById('addUserRole') as HTMLSelectElement).value;
+                
+                if (name && email && password) {
+                  const collectionName = role === 'admin' ? 'admins' : 'volunteers';
+                  await addDoc(collection(db, collectionName), {
+                    name,
+                    email,
+                    password,
+                    phone,
+                    role,
+                    status: 'active',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                  });
+                  setRefreshTrigger((prev) => prev + 1);
+                  setShowAddUser(false);
                 }
-                placeholder="ชื่อผู้ใช้งาน"
-              />
+              }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">สร้างผู้ใช้งาน</button>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                อีเมล
-              </label>
-              <Input
-                type="email"
-                value={createFormData.email}
-                onChange={(e) =>
-                  setCreateFormData({ ...createFormData, email: e.target.value })
-                }
-                placeholder="อีเมล"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                เบอร์โทรศัพท์
-              </label>
-              <Input
-                type="tel"
-                value={createFormData.phone}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, '').slice(0, 10);
-                  setCreateFormData({ ...createFormData, phone: val });
-                }}
-                maxLength={10}
-                autoComplete="off"
-                placeholder="เบอร์โทรศัพท์ (10 หลัก)"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                รหัสผ่าน
-              </label>
-              <Input
-                type="password"
-                value={createFormData.password}
-                onChange={(e) =>
-                  setCreateFormData({ ...createFormData, password: e.target.value })
-                }
-                autoComplete="new-password"
-                placeholder="รหัสผ่าน"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                สิทธิ์การใช้งาน
-              </label>
-              <select
-                value={createFormData.role}
-                onChange={(e) =>
-                  setCreateFormData({ ...createFormData, role: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-              >
-                <option value="victim">ผู้ใช้ทั่วไป (Victim)</option>
-                <option value="rescue">ทีมช่วยเหลือ (Rescue)</option>
-                <option value="admin">ผู้ดูแลระบบ (Admin)</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700">
-            <Button
-              onClick={() => {
-                setIsCreateModalOpen(false);
-                setCreateError('');
-              }}
-              className="px-6 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg"
-            >
-              ยกเลิก
-            </Button>
-            <Button
-              onClick={handleCreateUser}
-              disabled={createLoading}
-              className="px-6 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg flex items-center gap-2 disabled:opacity-50"
-            >
-              <Plus size={18} />
-              {createLoading ? 'กำลังสร้าง...' : 'สร้างผู้ใช้งาน'}
-            </Button>
           </div>
         </div>
-      </Modal>
+      )}
+
+      {editingUser && (
+        <div className="fixed inset-0 bg-black/50 z-[3000] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl p-6 w-full max-w-lg">
+            <h3 className="text-lg font-bold mb-4 dark:text-white">แก้ไขข้อมูลผู้ใช้งาน</h3>
+            <label className="block text-sm text-slate-500 mb-1">ชื่อ-นามสกุล</label>
+            <input type="text" value={(editingUser as any).name || editingUser.username || ''} onChange={(e) => setEditingUser({...editingUser, name: e.target.value} as any)} className="w-full border p-3 rounded-lg mb-4 dark:bg-slate-800 dark:border-slate-700 dark:text-white" />
+            <label className="block text-sm text-slate-500 mb-1">เบอร์โทรศัพท์</label>
+            <input type="text" value={editingUser.phone || ''} onChange={(e) => setEditingUser({...editingUser, phone: e.target.value} as any)} className="w-full border p-3 rounded-lg mb-4 dark:bg-slate-800 dark:border-slate-700 dark:text-white" />
+            
+            <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg mb-4 text-sm text-slate-500 flex items-center gap-2">
+              <span className="font-semibold text-slate-700 dark:text-slate-300">สิทธิ์ปัจจุบัน:</span> 
+              {editingUser.role === 'admin' ? 'ผู้ดูแลระบบ (Admin)' : 'อาสาสมัคร (Volunteer)'} 
+              <span className="text-xs ml-auto">(ไม่สามารถเปลี่ยนสิทธิ์ผ่านหน้านี้ได้)</span>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setEditingUser(null)} className="px-4 py-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">ยกเลิก</button>
+              <button onClick={async () => {
+                const collectionName = editingUser.role === 'admin' ? 'admins' : 'volunteers';
+                await updateDoc(doc(db, collectionName, editingUser.id.toString()), {
+                  name: (editingUser as any).name || editingUser.username, phone: editingUser.phone, updated_at: new Date().toISOString()
+                });
+                setEditingUser(null);
+              }} className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700">บันทึกการแก้ไข</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

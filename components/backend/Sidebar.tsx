@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuthProfile } from '@/hooks/useAuth';
 
-export const Sidebar = ({ role = 'volunteer', userName = 'กำลังโหลด...' }: { role?: string, userName?: string }) => {
+export const Sidebar = ({ role = 'volunteer', userName = 'กำลังตรวจสอบ...' }: { role?: string, userName?: string }) => {
   const pathname = usePathname();
   const [clientRole, setClientRole] = useState(role);
   const [clientName, setClientName] = useState(userName);
@@ -102,7 +102,7 @@ export const Sidebar = ({ role = 'volunteer', userName = 'กำลังโห�
             {loading ? '?' : profileInitial}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">{loading ? 'กำลังโหลด...' : profileName}</p>
+            <p className="text-sm font-medium text-white truncate">{loading ? 'กำลังตรวจสอบ...' : profileName}</p>
             <p className="text-xs text-slate-400 truncate flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-green-500 inline-block animate-pulse"></span>
               {loading ? '...' : profileRole}

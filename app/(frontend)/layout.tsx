@@ -12,15 +12,12 @@ export default function FrontendLayout({
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-[#0b1325]">
       <TopNavbar />
       
-      <div className="pt-16 sm:pt-20 w-full relative z-40">
-        <ActiveCaseBanner />
-      </div>
-      
-      <main className="min-h-[calc(100dvh-80px)] pb-20 md:pb-8 flex flex-col items-center justify-start bg-slate-50 dark:bg-[#0b1325] relative z-0 w-full max-w-full overflow-x-hidden">
+      <main className="min-h-[calc(100dvh-80px)] pb-28 md:pb-8 flex flex-col items-center justify-start bg-slate-50 dark:bg-[#0b1325] relative z-0 w-full max-w-full overflow-x-hidden">
         {/* Full-width spanning layout wrapper */}
         <div className="w-full max-w-full flex-1 relative z-10 flex flex-col overflow-x-hidden">
           {children}
         </div>
+        <ActiveCaseBanner />
       </main>
       
       <BottomNav />

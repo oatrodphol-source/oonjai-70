@@ -49,3 +49,14 @@
     @apply bg-white/90 dark:bg-[#151b2c]/90 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-xl rounded-2xl;
   }
 }
+
+/* Adjust Leaflet attribution on mobile so it clears bottom nav */
+.leaflet-bottom.leaflet-right { bottom: 80px; }
+@media (min-width: 768px) {
+  .leaflet-bottom.leaflet-right { bottom: 20px; }
+}
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

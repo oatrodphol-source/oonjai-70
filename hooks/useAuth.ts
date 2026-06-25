@@ -7,7 +7,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 export const useAuthProfile = () => {
-  const [profile, setProfile] = useState({ name: 'กำลังโหลด...', role: '', initial: '?', loading: true });
+  const [profile, setProfile] = useState({ name: 'กำลังตรวจสอบ...', role: '', initial: '?', loading: true });
 
   useEffect(() => {
     return onAuthStateChanged(auth, async (currentUser) => {
@@ -31,7 +31,14 @@ export const useAuthProfile = () => {
             }
           }
           if (!found) {
-            setProfile({ name: currentUser.displayName || 'ผู้ใช้งานระบบ', role: 'User', initial: (currentUser.displayName || 'ผ')[0], loading: false });
+            // Bulletproof fallback: Use Display Name or Email prefix if DB doc is missing
+            const fallbackName = currentUser.displayName || currentUser.email?.split('@')[0] || 'ผู้ใช้งาน';
+            setProfile({ 
+              name: fallbackName, 
+              role: 'User', 
+              initial: fallbackName.charAt(0).toUpperCase(), 
+              loading: false 
+            });
           }
         } catch (e) {
           console.error("Error fetching profile:", e);

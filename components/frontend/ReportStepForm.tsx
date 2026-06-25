@@ -61,20 +61,6 @@ export const ReportStepForm = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [createdCaseId, setCreatedCaseId] = useState('');
 
-  useEffect(() => {
-    const lastReport = localStorage.getItem('oonjai_last_report');
-    if (lastReport) {
-      try {
-        const parsed = JSON.parse(lastReport);
-        const now = Date.now();
-        if (now - parsed.timestamp < 10 * 60 * 1000 && parsed.caseId) {
-          router.replace(`/tracking/${parsed.caseId}`);
-        }
-      } catch (e) {
-        console.warn('Error parsing local storage:', e);
-      }
-    }
-  }, [router]);
 
   useEffect(() => {
     const checkCooldown = () => {

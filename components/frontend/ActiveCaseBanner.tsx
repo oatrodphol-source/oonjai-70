@@ -71,17 +71,14 @@ export const ActiveCaseBanner = () => {
   if (!isBannerVisible || !activeCaseId) return null;
 
   return (
-    <Link 
-      href={`/tracking/${activeCaseId}`}
-      className="w-full bg-red-600 text-white px-3 py-2 flex flex-row flex-wrap items-center justify-between gap-2 text-xs sm:text-sm z-50 shadow-md relative animate-in fade-in slide-in-from-top-4"
-    > 
-        <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-          <AlertCircle className="w-5 h-5 animate-pulse shrink-0" />
-          <span className="font-semibold text-left break-words whitespace-normal leading-tight">🚨 มีรายการขอความช่วยเหลือที่กำลังดำเนินการ</span>
-        </div>
-        <div className="flex items-center font-bold bg-white/20 hover:bg-white/30 transition-colors px-3 py-1.5 rounded-md shrink-0">
-          ดูสถานะ <ChevronRight className="w-3 h-3 ml-0.5" />
-        </div>
-    </Link>
+    <div className="absolute bottom-6 left-4 z-[1000] pointer-events-auto">
+      <Link href="/history" className="bg-red-600 text-white px-4 py-3 rounded-full shadow-lg flex items-center gap-2 hover:bg-red-700 transition-all border-2 border-white dark:border-slate-800 animate-in fade-in slide-in-from-bottom-4">
+        <span className="relative flex h-3 w-3">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+        </span>
+        <span className="text-sm font-bold">ประวัติช่วยเหลือ</span>
+      </Link>
+    </div>
   );
 };
