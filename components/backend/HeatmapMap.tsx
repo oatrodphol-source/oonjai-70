@@ -1,0 +1,305 @@
+'use client';
+import React, { useState, useEffect } from 'react';
+import { MapContainer, TileLayer, CircleMarker, Popup, useMap, Marker } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+import { getSeverityBadgeStyle } from '@/lib/utils';
+
+const getHexColor = (severity: any) => {
+  const level = String(severity || '');
+  if (level.includes('5')) return '#ef4444';
+  if (level.includes('4')) return '#f97316';
+  if (level.includes('3')) return '#eab308';
+  if (level.includes('2')) return '#3b82f6';
+  return '#22c55e'; // Default Level 1
+};
+
+interface HeatmapMapProps {
+  cases: any[];
+}
+
+import { Crosshair } from 'lucide-react';
+
+const LocateControl = () => {
+  const map = useMap();
+  const [myLocation, setMyLocation] = useState<[number, number] | null>(null);
+
+  const handleLocate = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          map.flyTo([position.coords.latitude, position.coords.longitude], 14);
+          setMyLocation([position.coords.latitude, position.coords.longitude]);
+        },
+        () => alert('ไม่สามารถดึงตำแหน่งได้')
+      );
+    } else {
+      alert('เบราว์เซอร์ของคุณไม่รองรับการระบุตำแหน่ง (GPS)');
+    }
+  };
+  return (
+    <>
+      <div className="absolute bottom-6 right-4 z-[1000] pointer-events-auto">
+        <button 
+          onClick={handleLocate}
+          className="bg-white p-3 rounded-full shadow-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all duration-200 active:scale-95"
+        >
+          <Crosshair className="w-6 h-6 text-gray-700" />
+        </button>
+      </div>
+      {myLocation && (
+        <Marker 
+          key={`loc-${myLocation[0]}-${myLocation[1]}`}
+          position={myLocation}
+          icon={L.divIcon({ html: '<div class="bg-blue-500 w-4 h-4 rounded-full border-2 border-white shadow-md animate-pulse"></div>', className: '', iconSize: [16, 16] })}
+        >
+          <Popup>ตำแหน่งของคุณ</Popup>
+        </Marker>
+      )}
+    </>
+  );
+};
+
+const MapSearchControl = () => {
+  const map = useMap();
+  const [query, setQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [searchPin, setSearchPin] = useState<[number, number] | null>(null);
+
+  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setQuery(val);
+    if (val.length > 2) {
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&countrycodes=th&limit=5`);
+        const data = await res.json();
+        setSuggestions(data);
+      } catch(err){}
+    } else {
+      setSuggestions([]);
+    }
+  };
+
+  const handleSelect = (item: any) => {
+    const lat = parseFloat(item.lat);
+    const lon = parseFloat(item.lon);
+    map.flyTo([lat, lon], 15);
+    setSearchPin([lat, lon]);
+    setQuery(item.display_name.split(',')[0]);
+    setSuggestions([]);
+  };
+
+  return (
+    <>
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] w-[90%] max-w-sm drop-shadow-md pointer-events-auto">
+        <div className="flex shadow-lg rounded-full overflow-hidden bg-white border border-slate-200">
+          <input 
+            type="text" 
+            placeholder="ค้นหาสถานที่..." 
+            value={query} 
+            onChange={handleInputChange} 
+            className="flex-1 px-4 py-3 outline-none text-sm text-slate-800" 
+          />
+        </div>
+        {suggestions.length > 0 && (
+          <ul className="absolute top-full left-0 w-full mt-2 bg-white rounded-xl shadow-xl overflow-hidden border border-slate-100 max-h-48 overflow-y-auto">
+            {suggestions.map((item, idx) => (
+              <li key={idx} onClick={() => handleSelect(item)} className="px-4 py-3 text-sm border-b cursor-pointer hover:bg-slate-50 text-slate-700 truncate">
+                {item.display_name}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      {searchPin && (
+        <Marker 
+          key={`search-${searchPin[0]}-${searchPin[1]}`}
+          position={searchPin}
+          icon={L.divIcon({ html: '<div class="bg-red-500 w-5 h-5 rounded-full border-2 border-white shadow-md animate-bounce"></div>', className: '', iconSize: [20, 20] })}
+        >
+          <Popup>ตำแหน่งจากผลการค้นหา</Popup>
+        </Marker>
+      )}
+    </>
+  );
+};
+
+const SmartInsightsControl = ({ cases }: { cases: any[] }) => {
+  const map = useMap();
+  const [isOpen, setIsOpen] = useState(true);
+
+  const hotzones = React.useMemo(() => {
+    const activeCases = cases.filter(c => c.status !== 'resolved' && c.status !== 'completed' && c.status !== 'cancelled');
+    const zones: Record<string, { lat: number, lng: number, count: number, severitySum: number }> = {};
+    activeCases.forEach(c => {
+      if (!c.latitude || !c.longitude) return;
+      const key = `${c.latitude.toFixed(2)},${c.longitude.toFixed(2)}`;
+      if (!zones[key]) {
+        zones[key] = { lat: c.latitude, lng: c.longitude, count: 0, severitySum: 0 };
+      }
+      zones[key].count += 1;
+      zones[key].severitySum += (c.severity || 1);
+    });
+    return Object.values(zones)
+      .sort((a, b) => (b.count * b.severitySum) - (a.count * a.severitySum))
+      .slice(0, 3);
+  }, [cases]);
+
+  if (hotzones.length === 0) return null;
+
+  return (
+    <div className="absolute top-20 md:top-4 right-4 z-[1000] w-64 pointer-events-auto">
+      <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-red-100 overflow-hidden transition-all duration-300">
+        <div 
+          className="bg-red-500 text-white p-3 flex justify-between items-center cursor-pointer hover:bg-red-600"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          <div className="flex items-center gap-2 font-bold text-sm">
+            <span>🔥</span> พื้นที่วิกฤตสูงสุด
+          </div>
+          <span className="text-xs opacity-80">{isOpen ? 'ย่อ' : 'ขยาย'}</span>
+        </div>
+        
+        {isOpen && (
+          <div className="p-2 space-y-2 max-h-60 overflow-y-auto">
+            {hotzones.map((zone, idx) => (
+              <div 
+                key={idx}
+                onClick={() => {
+                  map.flyTo([zone.lat, zone.lng], 15);
+                  setIsOpen(false);
+                }}
+                className="flex items-center justify-between p-2 rounded-lg bg-red-50 hover:bg-red-100 border border-red-100 cursor-pointer transition-colors"
+              >
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold text-red-700">จุดที่ {idx + 1}</span>
+                  <span className="text-xs text-red-500">รอช่วยเหลือ {zone.count} เคส</span>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-red-200 flex items-center justify-center text-red-600 text-xs">
+                  🎯
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+import { supabase } from '@/lib/supabase';
+import 'leaflet.heat';
+
+const HeatLayer = ({ points }: { points: any[] }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (points && points.length > 0) {
+      const heat = (L as any).heatLayer(points, { radius: 25, blur: 15, maxZoom: 17 }).addTo(map);
+      return () => {
+        map.removeLayer(heat);
+      };
+    }
+  }, [map, points]);
+  return null;
+};
+
+export default function HeatmapMap({ cases }: HeatmapMapProps) {
+  const position: [number, number] = [13.7563, 100.5018]; // BKK Default
+
+  const [realHeatPoints, setRealHeatPoints] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchPoints = async () => {
+      const { data } = await supabase.from('cases').select('*');
+      if (data) {
+        const points = data.filter((d: any) => d.latitude && d.longitude);
+        const formattedPoints = points.map((p: any) => [
+          parseFloat(p.latitude), 
+          parseFloat(p.longitude), 
+          p.severity ? parseInt(p.severity) * 0.2 : 0.5
+        ]);
+        setRealHeatPoints(formattedPoints);
+      }
+    };
+
+    fetchPoints();
+
+    const channel = supabase
+      .channel('heatmap-cases-channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cases' }, () => {
+        fetchPoints();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const getMarkerStyle = (severity: number) => {
+    const hex = getHexColor(severity);
+    switch (severity) {
+      case 5: return { color: hex, fillColor: hex, radius: 12, className: 'animate-pulse' };
+      case 4: return { color: hex, fillColor: hex, radius: 10 };
+      case 3: return { color: hex, fillColor: hex, radius: 8 };
+      case 2: return { color: hex, fillColor: hex, radius: 7 };
+      case 1: default: return { color: hex, fillColor: hex, radius: 6 };
+    }
+  };
+
+  return (
+    <div className="h-full w-full absolute inset-0 z-0">
+      <MapContainer 
+        center={position} 
+        zoom={12} 
+        scrollWheelZoom={true} 
+        style={{ height: "100%", width: "100%", zIndex: 0 }}
+      >
+        <HeatLayer points={realHeatPoints} />
+        <MapSearchControl />
+        <LocateControl />
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+        />
+        <SmartInsightsControl cases={cases} />
+        {cases.map((c) => (
+          <CircleMarker
+            key={c.id}
+            center={[c.latitude, c.longitude]}
+            {...getMarkerStyle(c.severity)}
+            fillOpacity={0.7}
+            weight={2}
+          >
+            <Popup className="rounded-xl custom-popup">
+              <div className="p-1 min-w-[200px]">
+                <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-2 mb-2">
+                  <span className="font-bold text-gray-900">{c.id}</span>
+                  <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${getSeverityBadgeStyle(c.severity || 1)}`}>
+                    {c.severity === 5 ? 'วิกฤต (5)' :
+                     c.severity === 4 ? 'รุนแรง (4)' :
+                     c.severity === 3 ? 'ปานกลาง (3)' :
+                     c.severity === 2 ? 'เฝ้าระวัง (2)' : 'ทั่วไป (1)'}
+                  </span>
+                </div>
+                <p className="font-bold text-sm text-gray-800 mb-1">{c.type === 'sos' ? 'SOS ฉุกเฉิน' : c.type}</p>
+                <p className="text-xs text-gray-600 line-clamp-2">{c.details || 'ไม่มีรายละเอียดเพิ่มเติม'}</p>
+                <div className="flex items-center justify-between mt-3">
+                  <p className="text-[10px] text-gray-400">
+                    {new Date(c.timestamp).toLocaleString('th-TH')}
+                  </p>
+                  <a 
+                    href={`/cases`}
+                    className="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors"
+                  >
+                    จัดการเคส ➔
+                  </a>
+                </div>
+              </div>
+            </Popup>
+          </CircleMarker>
+        ))}
+      </MapContainer>
+    </div>
+  );
+}
