@@ -144,20 +144,12 @@ export default function DashboardPage() {
             }
           });
 
-          let maxLoc = '';
-          let maxCount = 0;
-          Object.entries(locationCount).forEach(([loc, count]) => {
-            if (count > maxCount) {
-              maxCount = count;
-              maxLoc = loc;
-            }
-          });
-
-          if (maxCount > 0) {
-            setAiInsight(`🤖 AI Analysis: ขณะนี้พบเคสวิกฤต (ระดับ 5) หนาแน่นที่สุดในบริเวณ ${maxLoc} (${maxCount} เคส) โปรดจัดเตรียมเรือท้องแบนและอุปกรณ์ชำนาญการพิเศษมุ่งหน้าไปยังพื้นที่ดังกล่าวเป็นลำดับแรก`);
-          } else {
-            setAiInsight(`🤖 AI Analysis: ขณะนี้ยังไม่พบการกระจุกตัวของเคสวิกฤต (ระดับ 5) ในพื้นที่ใดเป็นพิเศษ สถานการณ์โดยรวมอยู่ในระดับที่ควบคุมได้`);
-          }
+          fetch('/api/ai/insight', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+              if (data?.insight) setAiInsight(data.insight);
+            })
+            .catch(e => console.error('AI insight fetch error:', e));
           
           const pieData = Object.keys(typeCount).map(key => ({
             name: key,
@@ -496,7 +488,8 @@ export default function DashboardPage() {
         {!isAdmin && (
           <div className="mt-8">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-              🔥 เคสเร่งด่วนสูงสุด (Top 3)
+              <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+              <span>เคสเร่งด่วนสูงสุด (Top 3)</span>
             </h2>
             <VolunteerTaskBoard severityFilter="5" limit={3} excludeResolved={true} />
             <div className="mt-6 flex justify-end">

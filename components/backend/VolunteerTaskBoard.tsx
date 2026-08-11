@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { MapPin, Navigation, Package, Home, Hospital, Phone, Clock, Info, AlertTriangle, AlertCircle, CheckCircle, Users } from 'lucide-react';
+import { MapPin, Navigation, Package, Home, Hospital, Phone, Clock, Info, AlertTriangle, AlertCircle, CheckCircle, Users, Pencil } from 'lucide-react';
 import { getSeverityBadgeStyle } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { CaseDetailModal } from './CaseDetailModal';
@@ -480,11 +480,12 @@ export const VolunteerTaskBoard = ({
           <div key={c.id || idx} className="bg-white dark:bg-[#151b2c] rounded-[24px] shadow-xl shadow-orange-500/5 border border-gray-100 dark:border-gray-800/60 p-5 md:p-6 mb-6 transition-all hover:shadow-2xl hover:shadow-orange-500/10">
             
             {isBulk && (
-              <div className="bg-red-100 text-red-800 p-3 mb-4 rounded-xl font-bold border border-red-200 text-lg flex flex-col sm:flex-row sm:items-center gap-2">
+              <div className="bg-red-50 text-red-800 p-3 mb-4 rounded-xl font-bold border border-red-200 text-sm flex flex-col sm:flex-row sm:items-center gap-2">
                 <div className="flex items-center gap-2">
-                  <span>🚨</span> มีผู้ประสบภัย {groupItems.length} เคสในจุดนี้
+                  <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+                  <span>มีผู้ประสบภัย {groupItems.length} เคสในจุดนี้</span>
                 </div>
-                <div className="text-sm font-normal sm:ml-auto opacity-90 bg-red-200 px-2 py-1 rounded-lg text-red-900 border border-red-300">
+                <div className="text-xs font-medium sm:ml-auto opacity-90 bg-red-100 px-2.5 py-1 rounded-lg text-red-900 border border-red-200">
                   รหัส: {groupItems.map(g => g.displayId || 'ไม่ระบุ').join(', ')}
                 </div>
               </div>
@@ -502,7 +503,7 @@ export const VolunteerTaskBoard = ({
                     className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1"
                     title="แก้ไขระดับความรุนแรง"
                   >
-                    ✏️
+                    <Pencil className="w-3.5 h-3.5" />
                   </button>
                 </div>
                 {editingSeverity === c.id && (

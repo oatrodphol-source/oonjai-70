@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { CaseDetailModal } from './CaseDetailModal';
-import { FileSearch, CheckCircle2 } from 'lucide-react';
+import { FileSearch, CheckCircle2, Pencil } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 const getDistanceKm = (lat1: any, lon1: any, lat2: any, lon2: any) => {
@@ -297,7 +297,7 @@ export const CaseTable = ({
                         className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1"
                         title="แก้ไขระดับความรุนแรง"
                       >
-                        ✏️
+                        <Pencil className="w-3.5 h-3.5" />
                       </button>
                       {editingSeverity === row.originalId && (
                         <div className="absolute top-full left-0 mt-1 z-50 bg-white dark:bg-[#151b2c] shadow-2xl border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden whitespace-nowrap min-w-[240px] animate-in zoom-in-95 duration-200">
