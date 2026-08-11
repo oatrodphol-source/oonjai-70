@@ -82,15 +82,47 @@ export const SOSButton = () => {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const handleSOSClick = () => {
-    // Check both possible keys for recent reports
+  const handleSOSClick = async () => {
+    // 1. Check LIFF active case in Supabase
+    let liffUserId = '';
+    let liffDisplayName = 'SOS User (Auto)';
+    try {
+      const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
+      if (liffId) {
+        const liff = (await import('@line/liff')).default;
+        if (liff.isLoggedIn()) {
+          const profile = await liff.getProfile();
+          if (profile?.userId) {
+            liffUserId = profile.userId;
+            liffDisplayName = profile.displayName || liffDisplayName;
+
+            const { data: activeCase } = await supabase
+              .from('cases')
+              .select('id')
+              .eq('reporter_name', profile.userId)
+              .in('status', ['pending', 'in_progress'])
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .single();
+
+            if (activeCase) {
+              alert(`คุณมีเคสแจ้งเหตุฉุกเฉินที่กำลังดำเนินการอยู่แล้ว (เคส #${activeCase.id}) ระบบนำทางไปหน้าติดตามสถานะ`);
+              router.push(`/tracking/${activeCase.id}`);
+              return;
+            }
+          }
+        }
+      }
+    } catch (e) {}
+
+    // 2. Check localStorage for recent SOS
     const lastReportStr = localStorage.getItem('oonjai_last_report');
     if (lastReportStr) {
       try {
         const lastReport = JSON.parse(lastReportStr);
-        if (Date.now() - lastReport.timestamp < 10 * 60 * 1000) {
+        if (Date.now() - lastReport.timestamp < 10 * 60 * 1000 && lastReport.caseId) {
           alert('คุณได้แจ้งเหตุฉุกเฉินไปแล้วเมื่อไม่นานมานี้ ระบบจะพาไปดูสถานะเคสปัจจุบัน');
-          router.push('/history');
+          router.push(`/tracking/${lastReport.caseId}`);
           return;
         }
       } catch(e) {}
@@ -109,7 +141,7 @@ export const SOSButton = () => {
     }
 
     setIsLoading(true);
-    // 1. Check Geolocation support
+    // 3. Check Geolocation support
     if (!navigator.geolocation) {
       setStatus('error');
       setErrorMessage('เบราว์เซอร์หรืออุปกรณ์ของคุณไม่รองรับการดึงพิกัด GPS');
@@ -124,7 +156,7 @@ export const SOSButton = () => {
 
     setStatus('locating');
 
-    // 2. Get Geolocation
+    // 4. Get Geolocation & POST to API
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
@@ -132,32 +164,32 @@ export const SOSButton = () => {
         setStatus('sending');
 
         try {
-          // 3. Send SOS data to Supabase
-          const newCase = {
-            name: 'SOS User (Auto)',
+          const sosPayload = {
+            name: liffDisplayName,
+            reporter_name: liffUserId || undefined,
             phone: '-',
             type: 'SOS ด่วน',
             severity: 5,
-            people_count: 1,
-            water_level: '-',
+            peopleCount: 1,
+            waterLevel: '-',
             bedridden: 0,
             elderly: 0,
             latitude: latitude,
             longitude: longitude,
-            details: "พิกัด: " + latitude + ", " + longitude,
-            status: 'pending',
-            created_at: new Date().toISOString()
+            details: "กดปุ่ม SOS ฉุกเฉิน ดึงพิกัด GPS: " + latitude + ", " + longitude
           };
 
-          const { data, error: sbError } = await supabase
-            .from('cases')
-            .insert(newCase)
-            .select()
-            .single();
+          const res = await fetch('/api/cases', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(sosPayload)
+          });
 
-          if (sbError) {
-            throw sbError;
+          if (!res.ok) {
+            throw new Error('Failed to send SOS');
           }
+
+          const data = await res.json();
 
           if (data) {
             setStatus('success');

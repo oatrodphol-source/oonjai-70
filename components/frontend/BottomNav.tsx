@@ -1,6 +1,6 @@
 'use client';
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import {
@@ -57,6 +57,50 @@ export const BottomNav: React.FC = () => {
     }
   }, []);
 
+  const router = useRouter();
+
+  const handleReportOrSosClick = async (e: React.MouseEvent, targetHref: string) => {
+    try {
+      const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
+      if (liffId) {
+        const liff = (await import('@line/liff')).default;
+        if (liff.isLoggedIn()) {
+          const profile = await liff.getProfile();
+          if (profile?.userId) {
+            const { data: activeCase } = await supabase
+              .from('cases')
+              .select('id')
+              .eq('reporter_name', profile.userId)
+              .in('status', ['pending', 'in_progress'])
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .single();
+
+            if (activeCase) {
+              e.preventDefault();
+              alert(`คุณมีเคสขอความช่วยเหลือที่กำลังดำเนินการอยู่แล้ว (เคส #${activeCase.id}) ระบบนำทางไปหน้าติดตามสถานะ`);
+              router.push(`/tracking/${activeCase.id}`);
+              return;
+            }
+          }
+        }
+      }
+    } catch (err) {}
+
+    const lastReportStr = localStorage.getItem('oonjai_last_report');
+    if (lastReportStr) {
+      try {
+        const lastReport = JSON.parse(lastReportStr);
+        if (Date.now() - lastReport.timestamp < 10 * 60 * 1000 && lastReport.caseId) {
+          e.preventDefault();
+          alert('คุณมีเคสขอความช่วยเหลือที่กำลังดำเนินการอยู่แล้ว ระบบนำทางไปหน้าติดตามสถานะ');
+          router.push(`/tracking/${lastReport.caseId}`);
+          return;
+        }
+      } catch (err) {}
+    }
+  };
+
   const navItems = [
     { href: "/map", icon: MapPinned, label: "แผนที่" },
     { href: "/feed", icon: Megaphone, label: "ฟีด" },
@@ -92,6 +136,7 @@ export const BottomNav: React.FC = () => {
         <div className="relative w-20 flex justify-center shrink-0">
           <Link
             href="/sos"
+            onClick={(e) => handleReportOrSosClick(e, '/sos')}
             className={`absolute -top-10 flex flex-col items-center justify-center w-[72px] h-[72px] rounded-full border-4 shadow-lg hover:scale-105 transition-transform ${
               pathname === '/sos'
                 ? "bg-[#ff6600] border-[#0b1325] text-[#0b1325]"
@@ -113,6 +158,11 @@ export const BottomNav: React.FC = () => {
             <Link 
               key={item.href} 
               href={item.href} 
+              onClick={(e) => {
+                if (item.href === '/report') {
+                  handleReportOrSosClick(e, '/report');
+                }
+              }}
               className={`flex flex-col items-center justify-center w-full flex-1 min-h-[48px] gap-1 transition-all ${
                 isActive ? "text-[#ff6600]" : "text-gray-400 hover:text-[#ff6600]/70"
               }`}
