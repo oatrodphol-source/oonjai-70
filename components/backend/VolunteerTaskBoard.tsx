@@ -257,6 +257,19 @@ export const VolunteerTaskBoard = ({
         }).eq('id', Number(id));
       });
       await Promise.all(updatePromises);
+      caseIds.forEach(id => {
+        fetch('/api/line/push', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            caseId: id,
+            status: 'in_progress',
+            volunteerName: currentUser.name,
+            volunteerPhone: currentUser.phone,
+            volunteerUnit: currentUser.rescueUnit
+          })
+        }).catch(err => console.error('Push notification error:', err));
+      });
       toast.success(`รับเคสสำเร็จ ${caseIds.length} เคส`);
     } catch (e) {
       console.error("Error accepting bulk cases:", e);
@@ -276,6 +289,19 @@ export const VolunteerTaskBoard = ({
         updated_at: now,
         resolved_at: now
       }).eq('id', Number(caseId));
+
+      fetch('/api/line/push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          caseId: caseId,
+          status: 'resolved',
+          volunteerName: currentUser?.name || 'อาสาสมัคร',
+          volunteerPhone: currentUser?.phone || 'ไม่ระบุเบอร์โทร',
+          volunteerUnit: currentUser?.rescueUnit || 'ศูนย์กู้ภัยฉุกเฉิน'
+        })
+      }).catch(err => console.error('Push notification error:', err));
+
       toast.success("อัปเดตสถานะสำเร็จ");
     } catch (e) {
       console.error("Error updating case status:", e);
