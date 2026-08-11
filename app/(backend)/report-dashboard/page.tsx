@@ -23,7 +23,8 @@ import {
   TrendingUp,
   FileBox,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  ShieldCheck
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -66,7 +67,11 @@ export default function ReportDashboardPage() {
         if (stored) {
           loggedUser = JSON.parse(stored);
           setCurrentUser(loggedUser);
-          setRole(loggedUser.role || 'volunteer');
+          const userRole = loggedUser.role || 'volunteer';
+          setRole(userRole);
+          if (userRole !== 'admin') {
+            setExportType('my_cases');
+          }
         }
 
         const { data: snapshot, error } = await supabase.from('cases').select('*');
@@ -242,10 +247,10 @@ export default function ReportDashboardPage() {
     try {
       const targetCollection = 
         exportType === 'users' ? 'volunteers' : 
-        exportType === 'logs' ? 'activity_logs' : 
+        (exportType === 'logs' || exportType === 'my_logs') ? 'activity_logs' : 
         exportType === 'safe' ? 'safe_reports' : 
         'cases';
-      const dateField = (exportType === 'logs' || exportType === 'safe') ? 'timestamp' : 'created_at';
+      const dateField = (exportType === 'logs' || exportType === 'my_logs' || exportType === 'safe') ? 'timestamp' : 'created_at';
 
       let req = supabase.from(targetCollection).select('*');
 
@@ -264,16 +269,24 @@ export default function ReportDashboardPage() {
       }
 
       let excelData: any[] = [];
-      if (exportType === 'cases') {
+      if (exportType === 'cases' || exportType === 'my_cases') {
         let exportableCases = rawData;
-        if (role !== 'admin' && volunteerScope === 'my_cases' && currentUser) {
-          const uId = currentUser.uid || currentUser.id || '';
-          const uName = currentUser.name || currentUser.username || currentUser.fullname || '';
-          exportableCases = rawData.filter(c => {
-            const cVolId = String(c.assigned_volunteer_id || c.volunteer_id || c.rescuer_id || '');
-            const cVolName = String(c.assigned_volunteer_name || c.rescuer_name || c.volunteer_name || '');
-            return (uId && cVolId === String(uId)) || (uName && cVolName.toLowerCase().includes(uName.toLowerCase()));
-          });
+        if (role !== 'admin' || exportType === 'my_cases') {
+          if (currentUser) {
+            const uId = currentUser.uid || currentUser.id || '';
+            const uName = currentUser.name || currentUser.username || currentUser.fullname || '';
+            exportableCases = rawData.filter(c => {
+              const cVolId = String(c.assigned_volunteer_id || c.volunteer_id || c.rescuer_id || '');
+              const cVolName = String(c.assigned_volunteer_name || c.rescuer_name || c.volunteer_name || '');
+              return (uId && cVolId === String(uId)) || (uName && cVolName.toLowerCase().includes(uName.toLowerCase()));
+            });
+          }
+        }
+
+        if (exportableCases.length === 0) {
+          alert('ไม่พบรายการเคสที่ได้รับมอบหมายในช่วงเวลาที่เลือก');
+          setIsExportingExcel(false);
+          return;
         }
 
         excelData = exportableCases.map(c => ({
@@ -291,6 +304,30 @@ export default function ReportDashboardPage() {
           'ละติจูด': c.latitude || '',
           'ลองจิจูด': c.longitude || '',
           'ผู้เข้าช่วยเหลือ': c.assigned_volunteer_name || c.rescuer_name || '-'
+        }));
+      } else if (exportType === 'my_logs' || exportType === 'logs') {
+        let exportableLogs = rawData;
+        if (role !== 'admin' || exportType === 'my_logs') {
+          const uName = currentUser?.name || currentUser?.username || '';
+          if (uName) {
+            exportableLogs = rawData.filter(l => {
+              const logUser = String(l.user_name || l.volunteer_name || l.user_id || l.action_by || '');
+              return logUser.toLowerCase().includes(uName.toLowerCase());
+            });
+          }
+        }
+
+        if (exportableLogs.length === 0) {
+          alert('ไม่พบประวัติการทำงานของคุณในช่วงเวลาที่เลือก');
+          setIsExportingExcel(false);
+          return;
+        }
+
+        excelData = exportableLogs.map(l => ({
+          'เวลาบันทึก': l.timestamp ? new Date(l.timestamp).toLocaleString('th-TH') : '-',
+          'ผู้ปฏิบัติงาน': l.user_name || l.volunteer_name || '-',
+          'กิจกรรม/การดำเนินการ': l.action || l.details || '-',
+          'รหัสเคสอ้างอิง': l.case_id || '-'
         }));
       } else {
         excelData = rawData;
@@ -459,6 +496,88 @@ export default function ReportDashboardPage() {
                     <X className="w-4 h-4" />
                   </button>
                 )}
+            </div>
+          </div>
+
+          {/* Export Hub (Placed Right Below Date Range Filter) */}
+          <div className="bg-slate-900 dark:bg-[#111c35] p-5 rounded-2xl shadow-lg border border-slate-800 w-full print:hidden min-w-0">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4 border-b border-slate-700 pb-3 w-full min-w-0">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2 break-words">
+                  <Printer className="w-4 h-4 text-orange-400 shrink-0" />
+                  <span>ส่งออกรายงาน (Export Hub)</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  ช่วงเวลาส่งออก: <span className="text-orange-300 font-bold">{startDate && endDate ? `${startDate} ถึง ${endDate}` : 'สะสมทั้งหมด (All Time)'}</span>
+                </p>
+              </div>
+
+              {/* Role badge */}
+              <div className="text-xs px-3 py-1 rounded-full font-bold bg-slate-800 border border-slate-700 text-slate-300 flex items-center gap-1.5 shrink-0">
+                {role === 'admin' ? (
+                  <>
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>สิทธิ์แอดมิน (ข้อมูลทั้งระบบ)</span>
+                  </>
+                ) : (
+                  <>
+                    <UserCheck className="w-3.5 h-3.5 text-orange-400" />
+                    <span>สิทธิ์อาสาสมัคร ({currentUser?.name || 'เคสของฉัน'})</span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-4 w-full min-w-0">
+              <div className="space-y-1.5 w-full min-w-0">
+                <label className="block text-xs font-bold text-slate-400">ชุดข้อมูลที่จะส่งออก (Dataset)</label>
+                <select 
+                  value={exportType}
+                  onChange={(e) => setExportType(e.target.value)}
+                  className="w-full border border-slate-700 rounded-xl px-4 py-2.5 bg-slate-800 text-white outline-none focus:ring-2 focus:ring-orange-500 text-xs font-bold min-w-0"
+                >
+                  {role === 'admin' ? (
+                    <>
+                      <option value="cases">เคสฉุกเฉินทั้งหมด (All Cases)</option>
+                      <option value="users">ข้อมูลอาสาสมัครทั้งหมด (Volunteers)</option>
+                      <option value="logs">ประวัติการทำงานระบบ (System Logs)</option>
+                      <option value="safe">รายชื่อผู้ปลอดภัยทั้งหมด (Safe Reports)</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="my_cases">เคสฉุกเฉินเฉพาะของฉัน (My Assigned Cases)</option>
+                      <option value="my_logs">ประวัติการทำงานเฉพาะของฉัน (My Personal Rescue Logs)</option>
+                    </>
+                  )}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full min-w-0">
+                <button
+                  onClick={handleExportExcel}
+                  disabled={isExportingExcel}
+                  className="flex items-center justify-center gap-2 p-3 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 rounded-xl transition-colors disabled:opacity-50 min-w-0 w-full font-bold text-xs"
+                >
+                  {isExportingExcel ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <FileSpreadsheet className="w-4 h-4 text-emerald-400 shrink-0" />}
+                  <span>ส่งออก Excel (.xlsx)</span>
+                </button>
+                
+                <button
+                  onClick={handleExportPDF}
+                  disabled={isExportingPDF}
+                  className="flex items-center justify-center gap-2 p-3 bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 text-rose-300 rounded-xl transition-colors disabled:opacity-50 min-w-0 w-full font-bold text-xs"
+                >
+                  {isExportingPDF ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <FileText className="w-4 h-4 text-rose-400 shrink-0" />}
+                  <span>บันทึกเป็น PDF</span>
+                </button>
+
+                <button
+                  onClick={() => setIsEmailModalOpen(true)}
+                  className="flex items-center justify-center gap-2 p-3 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 rounded-xl transition-colors min-w-0 w-full font-bold text-xs"
+                >
+                  <Mail className="w-4 h-4 text-blue-400 shrink-0" />
+                  <span>ส่งรายงานทางอีเมล</span>
+                </button>
               </div>
             </div>
           </div>
@@ -644,57 +763,6 @@ export default function ReportDashboardPage() {
           </Card>
         </div>
 
-        {/* Export Hub */}
-        <div className="bg-slate-900 dark:bg-[#111c35] p-5 rounded-2xl shadow-lg border border-slate-800 w-full print:hidden min-w-0">
-          <div className="mb-5 border-b border-slate-700 pb-4 w-full min-w-0">
-            <h3 className="text-base font-bold text-white flex items-center gap-2 break-words">
-              <Printer className="w-4 h-4 text-orange-400 shrink-0" />
-              <span>ส่งออกรายงาน (Export)</span>
-            </h3>
-          </div>
-
-          {role === 'admin' && (
-            <div className="mb-5 space-y-2 w-full min-w-0">
-              <label className="block text-xs font-bold text-slate-400">ชุดข้อมูล (Dataset)</label>
-              <select 
-                value={exportType}
-                onChange={(e) => setExportType(e.target.value)}
-                className="w-full border border-slate-700 rounded-xl px-4 py-3 bg-slate-800 text-white outline-none focus:ring-2 focus:ring-orange-500 text-xs font-bold min-w-0"
-              >
-                <option value="cases">เคสฉุกเฉิน (Cases)</option>
-                <option value="users">อาสาสมัคร (Volunteers)</option>
-                <option value="logs">ประวัติการทำงาน (Logs)</option>
-              </select>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full min-w-0">
-            <button
-              onClick={handleExportExcel}
-              disabled={isExportingExcel}
-              className="flex flex-col items-center justify-center p-4 bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition-colors disabled:opacity-50 min-w-0 w-full"
-            >
-              {isExportingExcel ? <Loader2 className="w-5 h-5 animate-spin mb-2 shrink-0" /> : <FileSpreadsheet className="w-5 h-5 text-emerald-400 mb-2 shrink-0" />}
-              <span className="text-xs font-bold break-words">ส่งออก Excel</span>
-            </button>
-            
-            <button
-              onClick={handleExportPDF}
-              disabled={isExportingPDF}
-              className="flex flex-col items-center justify-center p-4 bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition-colors disabled:opacity-50 min-w-0 w-full"
-            >
-              {isExportingPDF ? <Loader2 className="w-5 h-5 animate-spin mb-2 shrink-0" /> : <FileText className="w-5 h-5 text-rose-400 mb-2 shrink-0" />}
-              <span className="text-xs font-bold break-words">บันทึกเป็น PDF</span>
-            </button>
-
-            <button
-              onClick={() => setIsEmailModalOpen(true)}
-              className="flex flex-col items-center justify-center p-4 bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition-colors min-w-0 w-full"
-            >
-              <Mail className="w-5 h-5 text-blue-400 mb-2 shrink-0" />
-              <span className="text-xs font-bold break-words">ส่งทางอีเมล</span>
-            </button>
-          </div>
         </div>
       </div>
 
