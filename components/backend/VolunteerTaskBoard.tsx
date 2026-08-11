@@ -356,7 +356,8 @@ export const VolunteerTaskBoard = ({
       ((statusFilter === 'กำลังช่วยเหลือ' || statusFilter === 'in_progress') && isInProgress) ||
       (statusFilter === 'completed' && isCompleted);
 
-    const matchSeverity = severityFilter === 'all' || (c.severity && c.severity.toString() === severityFilter);
+    const cSeverity = c.severity !== undefined && c.severity !== null ? String(c.severity) : '1';
+    const matchSeverity = severityFilter === 'all' || cSeverity === severityFilter;
     
     let matchDestination = true;
     let matchCaseId = true;
@@ -367,22 +368,22 @@ export const VolunteerTaskBoard = ({
         matchDestination = c.destination === destinationFilter;
       }
       if (searchCaseId) {
-        matchCaseId = c.id && c.id.toLowerCase().includes(searchCaseId.toLowerCase());
+        matchCaseId = Boolean(c.id && String(c.id).toLowerCase().includes(String(searchCaseId).toLowerCase()));
       }
       if (searchVolunteerName) {
-        const vName = c.volunteer_name || c.assigned_volunteer_name || '';
-        matchVolunteer = vName.toLowerCase().includes(searchVolunteerName.toLowerCase());
+        const vName = String(c.volunteer_name || c.assigned_volunteer_name || '');
+        matchVolunteer = vName.toLowerCase().includes(String(searchVolunteerName).toLowerCase());
       }
     }
-    const searchLower = searchQuery.toLowerCase();
-    const matchSearch = searchQuery === '' || 
-      (c.displayId && c.displayId.toLowerCase().includes(searchLower)) || 
-      (c.phone && c.phone.includes(searchQuery)) ||
-      (c.details && c.details.toLowerCase().includes(searchLower)) ||
-      (c.type && c.type.toLowerCase().includes(searchLower)) ||
-      (c.location && c.location.toLowerCase().includes(searchLower)) ||
-      (c.address && c.address.toLowerCase().includes(searchLower)) ||
-      (c.subdistrict && c.subdistrict.toLowerCase().includes(searchLower));
+    const searchLower = String(searchQuery || '').toLowerCase();
+    const matchSearch = !searchLower || 
+      (c.displayId && String(c.displayId).toLowerCase().includes(searchLower)) || 
+      (c.phone && String(c.phone).includes(searchQuery)) ||
+      (c.details && String(c.details).toLowerCase().includes(searchLower)) ||
+      (c.type && String(c.type).toLowerCase().includes(searchLower)) ||
+      (c.location && String(c.location).toLowerCase().includes(searchLower)) ||
+      (c.address && String(c.address).toLowerCase().includes(searchLower)) ||
+      (c.subdistrict && String(c.subdistrict).toLowerCase().includes(searchLower));
       
     return matchStatus && matchSeverity && matchDestination && matchSearch && matchCaseId && matchVolunteer;
   });

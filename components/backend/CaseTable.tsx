@@ -182,7 +182,9 @@ export const CaseTable = ({
     } else {
       matchStatus = status === statusFilter;
     }
-    const matchSeverity = severityFilter === 'all' || c.severity.toString() === severityFilter;
+
+    const cSeverity = c.severity !== undefined && c.severity !== null ? String(c.severity) : '1';
+    const matchSeverity = severityFilter === 'all' || cSeverity === severityFilter;
     
     let matchDestination = true;
     let matchCaseId = true;
@@ -193,22 +195,22 @@ export const CaseTable = ({
         matchDestination = c.destination === destinationFilter;
       }
       if (searchCaseId) {
-        matchCaseId = c.id && c.id.toLowerCase().includes(searchCaseId.toLowerCase());
+        matchCaseId = Boolean(c.id && String(c.id).toLowerCase().includes(String(searchCaseId).toLowerCase()));
       }
       if (searchVolunteerName) {
-        const vName = c.volunteer_name || c.assigned_volunteer_name || '';
-        matchVolunteer = vName.toLowerCase().includes(searchVolunteerName.toLowerCase());
+        const vName = String(c.volunteer_name || c.assigned_volunteer_name || '');
+        matchVolunteer = vName.toLowerCase().includes(String(searchVolunteerName).toLowerCase());
       }
     }
 
-    const searchLower = searchQuery.toLowerCase();
-    const matchSearch = searchQuery === '' ||
-      (c.id && c.id.toLowerCase().includes(searchLower)) ||
-      (c.name && c.name.toLowerCase().includes(searchLower)) ||
-      (c.phone && c.phone.includes(searchQuery)) ||
-      (c.type && c.type.toLowerCase().includes(searchLower)) ||
-      (c.location && c.location.toLowerCase().includes(searchLower)) ||
-      (c.address && c.address.toLowerCase().includes(searchLower));
+    const searchLower = String(searchQuery || '').toLowerCase();
+    const matchSearch = !searchLower ||
+      (c.id && String(c.id).toLowerCase().includes(searchLower)) ||
+      (c.name && String(c.name).toLowerCase().includes(searchLower)) ||
+      (c.phone && String(c.phone).includes(searchQuery)) ||
+      (c.type && String(c.type).toLowerCase().includes(searchLower)) ||
+      (c.location && String(c.location).toLowerCase().includes(searchLower)) ||
+      (c.address && String(c.address).toLowerCase().includes(searchLower));
 
     return matchStatus && matchSeverity && matchDestination && matchSearch && matchCaseId && matchVolunteer;
   });
