@@ -320,9 +320,22 @@ export default function ReportDashboardPage() {
           return;
         }
 
-        if (exportType === 'cases' || exportType === 'my_cases') {
+        if (exportType === 'cases' || exportType === 'my_cases' || exportType.endsWith('_cases')) {
           let exportableCases = rawData;
-          if (role !== 'admin' || exportType === 'my_cases') {
+
+          if (exportType === 'shelter_cases') {
+            exportableCases = rawData.filter(c => isShelterDestination(c.destination));
+          } else if (exportType === 'hospital_cases') {
+            exportableCases = rawData.filter(c => isHospitalDestination(c.destination));
+          } else if (exportType === 'supplies_cases') {
+            exportableCases = rawData.filter(c => isSuppliesDestination(c.destination));
+          } else if (exportType === 'line_cases') {
+            exportableCases = rawData.filter(c => c.line_uid || c.reporter_line_uid || String(c.reporter_name || c.name || '').includes('LINE') || String(c.details || '').includes('LINE'));
+          } else if (exportType === 'vulnerable_cases') {
+            exportableCases = rawData.filter(c => Number(c.bedridden) === 1 || Number(c.elderly) === 1 || String(c.details || '').includes('ติดเตียง') || String(c.details || '').includes('สูงอายุ') || String(c.details || '').includes('เด็ก'));
+          } else if (exportType === 'critical_cases') {
+            exportableCases = rawData.filter(c => Number(c.severity) === 5);
+          } else if (role !== 'admin' || exportType === 'my_cases') {
             exportableCases = rawData.filter(c => {
               const cVolId = String(c.assigned_volunteer_id || c.volunteer_id || c.rescuer_id || '');
               const cVolName = String(c.assigned_volunteer_name || c.rescuer_name || c.volunteer_name || '');
@@ -331,7 +344,7 @@ export default function ReportDashboardPage() {
           }
 
           if (exportableCases.length === 0) {
-            alert('ไม่พบรายการเคสที่ได้รับมอบหมายในช่วงเวลาที่เลือก');
+            alert('ไม่พบรายการเคสที่ตรงกับชุดข้อมูลที่เลือกในช่วงเวลานี้');
             setIsExportingExcel(false);
             return;
           }
@@ -341,6 +354,7 @@ export default function ReportDashboardPage() {
             'วันที่แจ้งเหตุ': c.created_at ? new Date(c.created_at).toLocaleString('th-TH') : '-',
             'ชื่อผู้แจ้งเหตุ': c.name || c.reporter_name || 'ผู้แจ้งเหตุ',
             'เบอร์โทรศัพท์': c.phone || c.contact_phone || c.tel || '-',
+            'จุดหมายนำส่ง/การช่วยเหลือ': c.destination || c.type || '-',
             'ประเภทความช่วยเหลือ': c.type === 'sos' ? 'SOS ฉุกเฉิน' : (c.type || 'ไม่ระบุ'),
             'ระดับความรุนแรง': getSeverityText(Number(c.severity) || 1),
             'สถานะการช่วยเหลือ': COMPLETED_STATUSES.includes((c.status || '').toLowerCase()) ? 'ช่วยเหลือสำเร็จ' : c.status === 'in_progress' ? 'กำลังช่วยเหลือ' : 'รอดำเนินการ',
@@ -562,10 +576,16 @@ export default function ReportDashboardPage() {
                 >
                   {role === 'admin' ? (
                     <>
-                      <option value="cases">เคสฉุกเฉินทั้งหมด (All Cases)</option>
-                      <option value="users">ข้อมูลอาสาสมัครทั้งหมด (Volunteers)</option>
-                      <option value="logs">ประวัติการทำงานระบบ (System Logs)</option>
-                      <option value="safe">รายชื่อผู้ปลอดภัยทั้งหมด (Safe Reports)</option>
+                      <option value="cases">📋 เคสฉุกเฉินทั้งหมด (All Cases)</option>
+                      <option value="shelter_cases">🏠 รายงานเคสนำส่งศูนย์พักพิง (Shelter Cases)</option>
+                      <option value="hospital_cases">🏥 รายงานเคสนำส่งโรงพยาบาล/หน่วยแพทย์ (Hospital & Medical Cases)</option>
+                      <option value="supplies_cases">📦 รายงานเคสแจกถุงยังชีพ/เสบียง (Supplies Rations)</option>
+                      <option value="line_cases">💬 รายงานผู้แจ้งเหตุผ่าน LINE (LINE SOS Cases)</option>
+                      <option value="vulnerable_cases">♿ รายงานเคสกลุ่มเปราะบาง/ติดเตียง (Vulnerable & Bedridden)</option>
+                      <option value="critical_cases">🚨 รายงานเคสวิกฤตด่วนสูงสุด ระดับ 5 (Critical Level 5 Cases)</option>
+                      <option value="safe">✅ รายชื่อผู้ปลอดภัยทั้งหมด (Safe Reports)</option>
+                      <option value="users">👷 ข้อมูลอาสาสมัครทั้งหมด (Volunteers)</option>
+                      <option value="logs">📜 ประวัติการทำงานระบบ (System Audit Logs)</option>
                     </>
                   ) : (
                     <>
