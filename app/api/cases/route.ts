@@ -77,6 +77,8 @@ export async function POST(req: Request) {
     let providedSeverity: number | undefined = undefined;
     let imageFile: File | null = null;
 
+    let reporterName = '';
+
     if (contentType.includes('application/json')) {
       const body = await req.json();
       name = body.name || '-';
@@ -90,6 +92,7 @@ export async function POST(req: Request) {
       latitude = Number(body.latitude || 0);
       longitude = Number(body.longitude || 0);
       if (body.severity) providedSeverity = Number(body.severity);
+      if (body.reporter_name) reporterName = body.reporter_name;
     } else {
       const formData = await req.formData();
       name = formData.get('name') as string || '-';
@@ -105,6 +108,7 @@ export async function POST(req: Request) {
       const rawSeverity = formData.get('severity') as string;
       if (rawSeverity) providedSeverity = parseInt(rawSeverity, 10);
       imageFile = formData.get('image') as File | null;
+      if (formData.get('reporter_name')) reporterName = formData.get('reporter_name') as string;
     }
 
     // Calculate initial severity based on criteria
@@ -212,6 +216,44 @@ export async function POST(req: Request) {
       }
       const aiSummary = `[AI Analysis: ${aiData.situation_summary || 'N/A'} | Action: ${aiData.recommended_action || 'N/A'}]`;
       finalDetails = finalDetails ? `${finalDetails}\n${aiSummary}` : aiSummary;
+    }
+
+    // Check if user has an existing active pending/in_progress case (Anti-Spam Deduplication)
+    let activeQuery = null;
+    if (reporterName && reporterName.startsWith('U')) {
+      activeQuery = supabase.from('cases').select('*').eq('reporter_name', reporterName).in('status', ['pending', 'in_progress']).order('created_at', { ascending: false }).limit(1);
+    } else if (phone && phone !== '-' && phone.length >= 9) {
+      activeQuery = supabase.from('cases').select('*').eq('phone', phone).in('status', ['pending', 'in_progress']).order('created_at', { ascending: false }).limit(1);
+    }
+
+    if (activeQuery) {
+      const { data: existingActive } = await activeQuery.single();
+      if (existingActive) {
+        // UPDATE existing case with new details instead of inserting duplicate row!
+        const { data: dbUpdated } = await supabase
+          .from('cases')
+          .update({
+            name: (name !== '-' && name !== 'ผู้ใช้ LINE') ? name : existingActive.name,
+            phone: (phone !== '-') ? phone : existingActive.phone,
+            type: type || existingActive.type,
+            people_count: peopleCount || existingActive.people_count,
+            water_level: waterLevel !== '-' ? waterLevel : existingActive.water_level,
+            bedridden: bedriddenVal || existingActive.bedridden,
+            elderly: elderlyVal || existingActive.elderly,
+            severity: Math.max(existingActive.severity || 1, finalSeverity),
+            latitude: latitude || existingActive.latitude,
+            longitude: longitude || existingActive.longitude,
+            details: `${existingActive.details || ''}\n[อัปเดตเพิ่มเติม: ${finalDetails}]`.trim(),
+            image_url: uploadedImageUrl || existingActive.image_url,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingActive.id)
+          .select()
+          .single();
+
+        const cNum = dbUpdated?.case_number ? String(dbUpdated.case_number).padStart(3, '0') : String(existingActive.id).padStart(3, '0');
+        return NextResponse.json({ success: true, id: existingActive.id, case_number: cNum, phone: existingActive.phone, isExisting: true });
+      }
     }
 
     // Prepare final insert object

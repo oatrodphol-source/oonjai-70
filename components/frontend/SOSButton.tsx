@@ -13,7 +13,7 @@ export const SOSButton = () => {
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
 
   useEffect(() => {
-    // Check if user has an active SOS from the last 10 minutes to auto-redirect
+    // 1. Check if user has an active SOS from the last 10 minutes to auto-redirect
     const lastSOS = localStorage.getItem('oonjai_last_sos');
     if (lastSOS) {
       try {
@@ -26,6 +26,34 @@ export const SOSButton = () => {
         console.warn('Error parsing local storage:', e);
       }
     }
+
+    // 2. Check if user has an active LINE case via LIFF
+    const checkLiffActiveCase = async () => {
+      try {
+        const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
+        if (!liffId) return;
+        const liff = (await import('@line/liff')).default;
+        await liff.init({ liffId });
+        if (liff.isLoggedIn()) {
+          const profile = await liff.getProfile();
+          if (profile?.userId) {
+            const { data: activeCase } = await supabase
+              .from('cases')
+              .select('id')
+              .eq('reporter_name', profile.userId)
+              .in('status', ['pending', 'in_progress'])
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .single();
+
+            if (activeCase) {
+              router.replace(`/tracking/${activeCase.id}`);
+            }
+          }
+        }
+      } catch (e) {}
+    };
+    checkLiffActiveCase();
   }, [router]);
 
   useEffect(() => {

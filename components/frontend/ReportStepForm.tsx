@@ -370,6 +370,9 @@ export const ReportStepForm = () => {
       if (formData.image_file) {
         submitData.append('image', formData.image_file);
       }
+      if (liffProfile?.userId) {
+        submitData.append('reporter_name', liffProfile.userId);
+      }
 
       const response = await fetch('/api/cases', {
         method: 'POST',

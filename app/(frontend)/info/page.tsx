@@ -168,15 +168,17 @@ export default function InfoPage() {
         if (dest.includes('ศูนย์พักพิง')) shelterCount++;
         if (dest.includes('โรงพยาบาล') || dest.includes('แพทย์')) hospitalCount++;
         
-        let displayName = data.reporter_name || data.name || "ผู้ประสบภัย";
+        let displayName = (data.name && !data.name.startsWith("U")) ? data.name : ((data.reporter_name && !data.reporter_name.startsWith("U")) ? data.reporter_name : "ผู้ใช้ LINE");
         const referenceId = data.case_number ? `CAS-${String(data.case_number).padStart(3, '0')}` : `CAS-${docId.substring(0, 5)}`;
         
-        if (displayName.includes("SOS User") || displayName === "ผู้ประสบภัย" || (!data.reporter_name && !data.name)) {
+        if (displayName.includes("SOS User") || displayName === "ผู้ประสบภัย" || displayName === "ผู้ใช้ LINE") {
             const phone = data.phone || "";
-            if (phone.length >= 4) {
+            if (phone.length >= 4 && phone !== '-') {
                 displayName = `ผู้ประสบภัย (เบอร์: 0XX-XXX-${phone.slice(-4)})`;
+            } else if (data.name && !data.name.startsWith("U")) {
+                displayName = data.name;
             } else {
-                displayName = `ผู้ประสบภัย (รหัส: ${referenceId})`;
+                displayName = `ผู้ใช้ LINE (${referenceId})`;
             }
         }
 
