@@ -281,20 +281,10 @@ function buildScreeningSummaryFlexMessage(caseData: any) {
           {
             type: 'button',
             style: 'secondary',
-            color: '#059669',
-            action: {
-              type: 'uri',
-              label: 'ติดตามสถานะการช่วยเหลือ',
-              uri: `${BASE_URL}/tracking/${caseId}`,
-            },
-          },
-          {
-            type: 'button',
-            style: 'secondary',
             color: '#FF6600',
             action: {
               type: 'uri',
-              label: 'OonJai',
+              label: 'OonJai (เปิดเว็บไซต์หลัก)',
               uri: `${BASE_URL}/`,
             },
           },

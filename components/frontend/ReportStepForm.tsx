@@ -85,6 +85,20 @@ export const ReportStepForm = () => {
                 name: prev.name ? prev.name : profile.displayName
               }));
             }
+            if (profile?.userId) {
+              const { data: activeCase } = await supabase
+                .from('cases')
+                .select('id')
+                .eq('reporter_name', profile.userId)
+                .in('status', ['pending', 'in_progress'])
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single();
+
+              if (activeCase) {
+                router.push(`/tracking/${activeCase.id}`);
+              }
+            }
           }
         }
       } catch (err) {
@@ -92,7 +106,7 @@ export const ReportStepForm = () => {
       }
     };
     initLiff();
-  }, []);
+  }, [router]);
 
   const handleCloseLiff = async () => {
     try {
