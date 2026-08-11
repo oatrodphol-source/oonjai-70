@@ -402,7 +402,7 @@ async function sendLineReply(
   }
 }
 
-// Helper: Get Active Pending Case OR Create New Case (with real LINE Display Name!)
+// Helper: Get Active Pending Case OR Create New Case
 async function getOrCreateActiveCase(reporterUserId: string, initialData: Record<string, any> = {}, accessToken: string = '') {
   // Find most recent pending case for this LINE user
   const { data: existingCase } = await supabase
@@ -515,7 +515,7 @@ export async function POST(req: Request) {
             const textLower = text.toLowerCase();
             console.log(`4. [Text] User text: "${text}"`);
 
-            // TEST BACKUP COMMAND: "รีเซ็ต" / "reset" / "ทดสอบใหม่"
+            // 1. TEST BACKUP COMMAND: "รีเซ็ต" / "reset" / "ทดสอบใหม่"
             if (['รีเซ็ต', 'reset', 'ทดสอบใหม่', 'เริ่มใหม่', 'ยกเลิกเคส'].includes(textLower)) {
               await supabase
                 .from('cases')
@@ -531,31 +531,7 @@ export async function POST(req: Request) {
               continue;
             }
 
-            // 1. Emergency Trigger Keywords -> Main Emergency Flex Card
-            const isEmergencyTrigger = EMERGENCY_TRIGGER_KEYWORDS.some(
-              keyword => textLower.includes(keyword.toLowerCase())
-            );
-
-            if (isEmergencyTrigger) {
-              await sendLineReply(
-                event.replyToken,
-                [buildEmergencyFlexMessage()],
-                accessToken
-              );
-              continue;
-            }
-
-            // 2. Start Screening Trigger ("ระบุสถานการณ์") -> Step 1 Quick Reply
-            if (textLower === 'ระบุสถานการณ์' || textLower === 'คัดกรอง' || textLower.includes('คัดกรองเหตุ')) {
-              await sendLineReply(
-                event.replyToken,
-                [buildSituationQuickReply()],
-                accessToken
-              );
-              continue;
-            }
-
-            // 3. Step 1 Answer: Incident Type ("คัดกรอง:ประเภท:...")
+            // 2. STEP 1 ANSWER: Incident Type ("คัดกรอง:ประเภท:...") -> MUST CHECK BEFORE KEYWORDS!
             if (text.startsWith('คัดกรอง:ประเภท:')) {
               const selectedType = text.replace('คัดกรอง:ประเภท:', '').trim();
               const activeCase = await getOrCreateActiveCase(reporterUserId, { type: selectedType }, accessToken);
@@ -584,7 +560,7 @@ export async function POST(req: Request) {
               continue;
             }
 
-            // 4. Step 2 Answer: People Count ("คัดกรอง:จำนวน:...")
+            // 3. STEP 2 ANSWER: People Count ("คัดกรอง:จำนวน:...")
             if (text.startsWith('คัดกรอง:จำนวน:')) {
               const countVal = parseInt(text.replace('คัดกรอง:จำนวน:', '').trim(), 10) || 1;
               const activeCase = await getOrCreateActiveCase(reporterUserId, { people_count: countVal }, accessToken);
@@ -612,7 +588,7 @@ export async function POST(req: Request) {
               continue;
             }
 
-            // 5. Step 3 Answer: Water Level ("คัดกรอง:ระดับน้ำ:...")
+            // 4. STEP 3 ANSWER: Water Level ("คัดกรอง:ระดับน้ำ:...")
             if (text.startsWith('คัดกรอง:ระดับน้ำ:')) {
               const waterLevelVal = text.replace('คัดกรอง:ระดับน้ำ:', '').trim();
               const activeCase = await getOrCreateActiveCase(reporterUserId, { water_level: waterLevelVal }, accessToken);
@@ -640,7 +616,7 @@ export async function POST(req: Request) {
               continue;
             }
 
-            // 6. Step 4 Answer: Vulnerable Group / AI Triage ("คัดกรอง:กลุ่มเปราะบาง:...")
+            // 5. STEP 4 ANSWER: Vulnerable Group / AI Triage ("คัดกรอง:กลุ่มเปราะบาง:...")
             if (text.startsWith('คัดกรอง:กลุ่มเปราะบาง:')) {
               const vulnerableVal = text.replace('คัดกรอง:กลุ่มเปราะบาง:', '').trim();
               let bedridden = 0;
@@ -684,7 +660,31 @@ export async function POST(req: Request) {
               continue;
             }
 
-            // 7. Phone Number Input ("0812345678")
+            // 6. START SCREENING TRIGGER ("ระบุสถานการณ์") -> Step 1 Quick Reply
+            if (textLower === 'ระบุสถานการณ์' || textLower === 'คัดกรอง' || textLower.includes('คัดกรองเหตุ')) {
+              await sendLineReply(
+                event.replyToken,
+                [buildSituationQuickReply()],
+                accessToken
+              );
+              continue;
+            }
+
+            // 7. EMERGENCY TRIGGER KEYWORDS -> Main Emergency Flex Card
+            const isEmergencyTrigger = EMERGENCY_TRIGGER_KEYWORDS.some(
+              keyword => textLower.includes(keyword.toLowerCase())
+            );
+
+            if (isEmergencyTrigger) {
+              await sendLineReply(
+                event.replyToken,
+                [buildEmergencyFlexMessage()],
+                accessToken
+              );
+              continue;
+            }
+
+            // 8. Phone Number Input ("0812345678")
             if (/^0\d{9}$/.test(text)) {
               const activeCase = await getOrCreateActiveCase(reporterUserId, { phone: text }, accessToken);
               if (activeCase) {
@@ -698,7 +698,7 @@ export async function POST(req: Request) {
               continue;
             }
 
-            // 8. Regular text input: Gemini AI Extraction -> Update Active Case
+            // 9. Regular text input: Gemini AI Extraction -> Update Active Case
             if (text.length > 3) {
               const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
               let activeCase = await getOrCreateActiveCase(reporterUserId, { details: text }, accessToken);
