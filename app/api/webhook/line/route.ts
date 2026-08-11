@@ -55,7 +55,7 @@ function buildEmergencyFlexMessage() {
             color: '#2563EB',
             action: {
               type: 'uri',
-              label: '📍 แชร์พิกัดตำแหน่ง (GPS)',
+              label: '📍 แจ้งเหตุฉุกเฉิน (SOS)',
               uri: 'line://nv/location',
             },
           },
@@ -64,14 +64,14 @@ function buildEmergencyFlexMessage() {
             style: 'secondary',
             action: {
               type: 'uri',
-              label: '📝 กรอกฟอร์มคัดกรอง / ขอเสบียง',
+              label: '📝 แจ้งความช่วยเหลือ',
               uri: REPORT_URL,
             },
           },
           {
             type: 'button',
             style: 'secondary',
-            color: '#FF6600',
+            color: '#f68133ff',
             action: {
               type: 'uri',
               label: '🌐 OonJai',
