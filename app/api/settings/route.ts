@@ -10,27 +10,30 @@ export async function GET() {
     if (error) {
       throw error;
     }
-    
+
     const settings: Record<string, string> = {};
     if (rows && rows.length > 0) {
       for (const row of rows) {
         settings[row.setting_key] = row.setting_value;
       }
     }
-    
-    // Provide defaults if table is empty
-    if (Object.keys(settings).length === 0) {
-      return NextResponse.json({
-        line_channel_access_token: '',
-        line_channel_secret: '',
-        line_auto_reply_template: 'รับแจ้งเหตุแล้ว กำลังประสานงานกู้ภัย...',
-        maintenance_mode: 'false',
-        emergency_contact: '1669',
-        heatmap_history_days: '7'
-      }, { status: 200 });
-    }
 
-    return NextResponse.json(settings, { status: 200 });
+    const defaultSettings: Record<string, string> = {
+      system_title: 'ศูนย์บรรเทาสาธารณภัย อุ่นใจ (OonJai)',
+      agency_name: 'ศูนย์กู้ภัยฉุกเฉินส่วนกลาง',
+      maintenance_mode: 'false',
+      show_announcement: 'false',
+      announcement_banner: 'ประกาศ: ทีมกู้ภัยกำลังเร่งเข้าช่วยเหลือในพื้นที่เสี่ยง โปรดติดตามข้อมูลอย่างใกล้ชิด',
+      emergency_contact: '1669',
+      volunteer_contact: '02-123-4567',
+      default_lat: '18.7883',
+      default_lng: '98.9853',
+      heatmap_history_days: '7',
+      proximity_radius_meters: '500',
+      max_cases_per_volunteer: '3'
+    };
+
+    return NextResponse.json({ ...defaultSettings, ...settings }, { status: 200 });
   } catch (error) {
     console.error('Fetch system settings error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -40,7 +43,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    
+
     // Validate body
     if (!body || typeof body !== 'object') {
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
@@ -59,7 +62,7 @@ export async function POST(req: Request) {
       const { error } = await supabase
         .from('system_settings')
         .upsert(updates, { onConflict: 'setting_key' });
-        
+
       if (error) {
         throw error;
       }
