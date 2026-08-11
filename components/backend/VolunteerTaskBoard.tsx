@@ -594,7 +594,7 @@ export const VolunteerTaskBoard = ({
               
               {nearbyCases.length > 0 && (
                 <div className="mt-3 bg-amber-50 text-amber-800 p-2 rounded-lg border border-amber-200 text-sm flex items-start gap-2">
-                  <span className="text-lg">📍</span>
+                  <MapPin className="w-5 h-5 shrink-0 text-amber-600 mt-0.5" />
                   <div>
                     <span className="font-semibold">เคสใกล้เคียงรัศมี 500m ({nearbyCases.length} เคส)</span>
                     <p className="text-xs opacity-80 mt-0.5">รวมรหัส: {nearbyCases.map(n => n.displayId || 'ไม่ระบุ').join(', ')}</p>
@@ -619,7 +619,7 @@ export const VolunteerTaskBoard = ({
 
               {isResolvedStatus && (
                 <div className="w-full py-4 text-center text-lg font-bold text-green-600 bg-green-50 border border-green-200 rounded-xl">
-                  ✅ {c.destination || 'ช่วยเหลือสำเร็จแล้ว'}
+                  {c.destination || 'ช่วยเหลือสำเร็จแล้ว'}
                 </div>
               )}
 
@@ -642,7 +642,7 @@ export const VolunteerTaskBoard = ({
                   
                   <details className="group border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800/30 overflow-hidden">
                     <summary className="cursor-pointer p-4 font-bold text-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors list-none flex justify-center items-center gap-2">
-                      <span>📝 บันทึกผลการช่วยเหลือ / ปิดเคส</span>
+                      <span>บันทึกผลการช่วยเหลือ / ปิดเคส</span>
                       <span className="group-open:rotate-180 transition-transform">▼</span>
                     </summary>
                     <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-4 bg-white dark:bg-[#151b2c]">

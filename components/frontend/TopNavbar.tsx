@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Bell, Sun, Moon, User, History, PhoneCall } from 'lucide-react';
+import { Bell, Sun, Moon, User, History, PhoneCall, Inbox, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
@@ -49,12 +49,12 @@ export const TopNavbar: React.FC = () => {
             title: doc.title,
             content: doc.content,
             created_at: doc.created_at,
-            message: `🚨 ${doc.title}`,
+            message: doc.title,
             time: new Date(doc.created_at).toLocaleString('th-TH')
           }));
-          setBroadcasts(newsItems.length > 0 ? newsItems : [{ id: 0, message: "📢 ยังไม่มีประกาศในขณะนี้", time: "" }]);
+          setBroadcasts(newsItems.length > 0 ? newsItems : [{ id: 0, message: "ยังไม่มีประกาศในขณะนี้", time: "" }]);
         } else {
-          setBroadcasts([{ id: 0, message: "📢 ยังไม่มีประกาศในขณะนี้", time: "" }]);
+          setBroadcasts([{ id: 0, message: "ยังไม่มีประกาศในขณะนี้", time: "" }]);
         }
       } catch (e) {
         console.error(e);
@@ -79,21 +79,21 @@ export const TopNavbar: React.FC = () => {
                 title: payload.new.title,
                 content: payload.new.content,
                 created_at: payload.new.created_at,
-                message: `🚨 ${payload.new.title}`,
+                message: payload.new.title,
                 time: new Date(payload.new.created_at).toLocaleString('th-TH')
               });
             } else if (payload.eventType === 'UPDATE') {
               if (payload.new.published && isAnnouncement) {
                 const existing = updated.find(b => b.id === payload.new.id);
                 if (existing) {
-                  updated = updated.map(b => b.id === payload.new.id ? { ...b, title: payload.new.title, content: payload.new.content, message: `🚨 ${payload.new.title}` } : b);
+                  updated = updated.map(b => b.id === payload.new.id ? { ...b, title: payload.new.title, content: payload.new.content, message: payload.new.title } : b);
                 } else {
                   updated.push({
                     id: payload.new.id,
                     title: payload.new.title,
                     content: payload.new.content,
                     created_at: payload.new.created_at,
-                    message: `🚨 ${payload.new.title}`,
+                    message: payload.new.title,
                     time: new Date(payload.new.created_at).toLocaleString('th-TH')
                   });
                 }
@@ -107,7 +107,7 @@ export const TopNavbar: React.FC = () => {
             updated.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
 
             if (updated.length > 3) updated = updated.slice(0, 3);
-            if (updated.length === 0) return [{ id: 0, message: "📢 ยังไม่มีประกาศในขณะนี้", time: "" }];
+            if (updated.length === 0) return [{ id: 0, message: "ยังไม่มีประกาศในขณะนี้", time: "" }];
             return updated;
           });
         }
@@ -315,11 +315,11 @@ export const TopNavbar: React.FC = () => {
                           onClick={() => { setSelectedAnnouncement(b); setShowNotifications(false); }}
                           className="w-full text-left p-4 border-b border-gray-100 dark:border-gray-800 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors flex items-start gap-3"
                         >
-                          <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
-                            <span className="text-xl">🚨</span>
+                          <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0 text-red-500">
+                            <AlertCircle className="w-5 h-5" />
                           </div>
                           <div className="flex-1 overflow-hidden">
-                            <div className="font-bold text-sm text-gray-900 dark:text-white mb-1 line-clamp-1">{b.title || b.message.replace('🚨 ', '')}</div>
+                            <div className="font-bold text-sm text-gray-900 dark:text-white mb-1 line-clamp-1">{b.title || b.message}</div>
                             {b.time && <div className="text-xs text-gray-500 mt-1">{b.time}</div>}
                           </div>
                         </button>
@@ -358,8 +358,8 @@ export const TopNavbar: React.FC = () => {
                       const thaiStatus = statusMap[s] || caseItem.status;
                       const isCompleted = !activeStatuses.includes(s);
                       const details = isCompleted
-                        ? { text: `✅ เคสของคุณ: ${thaiStatus}`, bg: "hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border-emerald-100 dark:border-emerald-900/30", color: "text-emerald-600 dark:text-emerald-400" }
-                        : { text: `🚨 เคสของคุณ: ${thaiStatus}`, bg: "hover:bg-orange-50 dark:hover:bg-orange-900/20 border-orange-100 dark:border-orange-900/30", color: "text-orange-600 dark:text-orange-400" };
+                        ? { text: `เคสของคุณ: ${thaiStatus}`, bg: "hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border-emerald-100 dark:border-emerald-900/30", color: "text-emerald-600 dark:text-emerald-400" }
+                        : { text: `เคสของคุณ: ${thaiStatus}`, bg: "hover:bg-orange-50 dark:hover:bg-orange-900/20 border-orange-100 dark:border-orange-900/30", color: "text-orange-600 dark:text-orange-400" };
                       return (
                         <button
                           key={caseItem.id}
@@ -373,8 +373,9 @@ export const TopNavbar: React.FC = () => {
                         </button>
                       );
                     }) : (
-                      <div className="py-2 text-center">
-                        <p className="text-sm text-gray-500 dark:text-gray-400">📭 ไม่มีแจ้งเตือนเคสของคุณในขณะนี้</p>
+                      <div className="py-2 text-center flex flex-col items-center justify-center text-gray-400 my-2">
+                        <Inbox className="w-8 h-8 text-gray-400 mb-1" />
+                        <p className="text-sm text-gray-500 dark:text-gray-400">ไม่มีแจ้งเตือนเคสของคุณในขณะนี้</p>
                       </div>
                     )}
                   </div>
@@ -428,7 +429,9 @@ export const TopNavbar: React.FC = () => {
           <div className="bg-white dark:bg-[#0b1325] rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-800 flex flex-col max-h-[90vh]">
             <div className="p-5 flex justify-between items-start border-b border-gray-100 dark:border-gray-800 bg-red-50 dark:bg-red-900/10">
               <div className="flex items-center gap-3">
-                <span className="text-2xl">🚨</span>
+                <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0 text-red-500">
+                  <AlertCircle className="w-5 h-5" />
+                </div>
                 <div>
                   <h3 className="font-bold text-lg text-gray-900 dark:text-white leading-tight">
                     {selectedAnnouncement.title || 'ประกาศด่วน!'}

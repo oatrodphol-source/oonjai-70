@@ -236,7 +236,7 @@ export const NewsFormModal: React.FC<NewsFormModalProps> = ({
               className="w-full border border-slate-300 rounded-lg px-4 py-2 bg-white text-slate-800"
             >
               <option value="news">ข่าวสารทั่วไป</option>
-              <option value="announcement">🚨 ประกาศส่วนกลาง (แจ้งเตือนด่วน)</option>
+              <option value="announcement">ประกาศส่วนกลาง (แจ้งเตือนด่วน)</option>
             </select>
           </div>
         </div>

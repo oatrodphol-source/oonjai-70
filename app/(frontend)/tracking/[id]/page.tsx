@@ -219,9 +219,7 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
   }
 
   return (
-    // เปลี่ยนมาใช้ pb-16 แทนเพื่อไม่ให้ล้นเกิน และไปใช้กล่องล่องหนดันข้างในแทน
     <div className="p-4 sm:p-6 w-full max-w-lg mx-auto pb-16 relative min-h-screen">
-      {/* Header */}
       <div className="flex items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-2">
           <button onClick={() => router.push('/history')} className="p-2 -ml-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
@@ -251,7 +249,6 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
       )}
 
       <Card className="p-5 border-2 border-gray-100 dark:border-gray-800 bg-white dark:bg-[#0b1325] shadow-sm mb-6 relative overflow-hidden text-center">
-        {/* Subtle background glow */}
         <div className="absolute -top-10 -right-10 w-32 h-32 bg-orange-500/10 rounded-full blur-2xl"></div>
         
         <div className="mb-4 pb-4 border-b border-gray-100 dark:border-gray-800 relative z-10">
@@ -282,12 +279,11 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
         </div>
       </Card>
 
-      {/* Rescuer Information Card */}
       {caseData.status !== 'pending' && (caseData.volunteer_name || caseData.assigned_volunteer_name || caseData.rescuer_name) && (
         <div className="bg-white dark:bg-[#151b2c] rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-5 mb-6">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center text-2xl shrink-0">
-              🚑
+              <Truck className="w-6 h-6" />
             </div>
             <div className="flex flex-col">
               <span className="text-lg font-bold text-gray-900 dark:text-white leading-tight">

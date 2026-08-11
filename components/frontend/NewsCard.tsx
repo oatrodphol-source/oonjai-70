@@ -80,7 +80,7 @@ export const NewsCard: React.FC<NewsCardProps> = ({
             <div className="flex items-center gap-2">
               <h4 className="font-bold text-gray-900 dark:text-white text-sm">ศูนย์ช่วยเหลืออุ่นใจ</h4>
               {type === 'announcement' && (
-                <span className="bg-red-100 text-red-600 text-[10px] px-2 py-0.5 rounded font-bold border border-red-200">🚨 ประกาศด่วน</span>
+                <span className="bg-red-100 text-red-600 text-[10px] px-2 py-0.5 rounded font-bold border border-red-200">ประกาศด่วน</span>
               )}
             </div>
             <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mt-0.5">

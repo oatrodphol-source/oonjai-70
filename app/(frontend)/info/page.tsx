@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
-import { Phone, CheckCircle2, Clock, MapPin, Building2, ShieldPlus, Package } from 'lucide-react';
+import { Phone, CheckCircle2, Clock, MapPin, Building2, ShieldPlus, Package, Search, ShieldCheck } from 'lucide-react';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { supabase } from '@/lib/supabase';
 import { isPendingCase, isCompletedCase, isShelterDestination, isHospitalDestination, isSuppliesDestination } from '@/lib/caseUtils';
@@ -245,14 +245,14 @@ export default function InfoPage() {
 
         {/* Shelter */}
         <div className="w-full min-w-0 h-full bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 p-3 sm:p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-sm overflow-hidden min-h-[100px] sm:min-h-[120px]">
-          <span className="text-3xl mb-1 hidden sm:block">🏠</span>
+          <Building2 className="w-8 h-8 text-blue-500 mb-2 hidden sm:block" />
           <h3 className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-500">{stats.shelterCount}</h3>
           <p className="whitespace-normal break-words text-center text-xs sm:text-sm w-full leading-tight font-semibold text-blue-800 dark:text-blue-400 mt-1">ศูนย์พักพิง</p>
         </div>
 
         {/* Hospital */}
         <div className="w-full min-w-0 h-full bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/50 p-3 sm:p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-sm overflow-hidden min-h-[100px] sm:min-h-[120px]">
-          <span className="text-3xl mb-1 hidden sm:block">🏥</span>
+          <ShieldPlus className="w-8 h-8 text-red-500 mb-2 hidden sm:block" />
           <h3 className="text-2xl sm:text-3xl font-bold text-red-600 dark:text-red-500">{stats.hospitalCount}</h3>
           <p className="whitespace-normal break-words text-center text-xs sm:text-sm w-full leading-tight font-semibold text-red-800 dark:text-red-400 mt-1">โรงพยาบาล/หน่วยแพทย์</p>
         </div>
@@ -261,14 +261,15 @@ export default function InfoPage() {
       {/* Safe Persons Board */}
       <div className="pt-2">
         <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-          🛡️ ข้อมูลรายชื่อผู้ปลอดภัย
+          <ShieldCheck className="w-5 h-5 text-emerald-500" />
+          ข้อมูลรายชื่อผู้ปลอดภัย
         </h3>
         
         {/* Search & Filters */}
         <div className="flex flex-col gap-4 mb-6 bg-white dark:bg-[#151b2c] p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1 relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+              <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
               <input 
                 type="text" 
                 placeholder="ค้นหาชื่อ หรือ รหัสอ้างอิง..."
@@ -300,7 +301,7 @@ export default function InfoPage() {
                   : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800'
               }`}
             >
-              📋 ทั้งหมด
+              ทั้งหมด
             </button>
             <button
               onClick={() => setDestinationFilter('hospital')}
@@ -310,7 +311,7 @@ export default function InfoPage() {
                   : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800'
               }`}
             >
-              🏥 โรงพยาบาล
+              โรงพยาบาล
             </button>
             <button
               onClick={() => setDestinationFilter('shelter')}
@@ -320,7 +321,7 @@ export default function InfoPage() {
                   : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800'
               }`}
             >
-              🏡 ศูนย์พักพิง
+              ศูนย์พักพิง
             </button>
             <button
               onClick={() => setDestinationFilter('supplies')}
@@ -330,7 +331,7 @@ export default function InfoPage() {
                   : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800'
               }`}
             >
-              📦 รับถุงยังชีพ
+              รับถุงยังชีพ
             </button>
           </div>
         </div>

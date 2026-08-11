@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { CaseDetailModal } from './CaseDetailModal';
-import { FileSearch, CheckCircle2, Pencil } from 'lucide-react';
+import { FileSearch, CheckCircle2, Pencil, Clock, Users, Phone, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { isPendingCase, isInProgressCase, isCompletedCase, isCancelledCase, isShelterDestination, isHospitalDestination, isSuppliesDestination } from '@/lib/caseUtils';
 
@@ -265,9 +265,9 @@ export const CaseTable = ({
                   <div className="flex-1 min-w-0 flex flex-col gap-1.5">
                      <div className="font-semibold text-gray-900 dark:text-white truncate text-sm">{row.type}</div>
                      <div className="text-xs text-gray-500 flex flex-wrap items-center gap-3">
-                       <span className="flex items-center gap-1"><span className="text-gray-400">🕒</span> {row.time}</span>
-                       <span className="flex items-center gap-1"><span className="text-gray-400">👤</span> {row.people_count || 1} คน</span>
-                       {nearbyCases.length > 0 && <span className="text-amber-600 font-bold animate-pulse flex items-center gap-1">⚠️ ใกล้เคียง {nearbyCases.length} เคส</span>}
+                       <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-gray-400" /> {row.time}</span>
+                       <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5 text-gray-400" /> {row.people_count || 1} คน</span>
+                       {nearbyCases.length > 0 && <span className="text-amber-600 font-bold animate-pulse flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> ใกล้เคียง {nearbyCases.length} เคส</span>}
                      </div>
                   </div>
                   <div className="flex-shrink-0 flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-3 mt-2 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-0 border-gray-100 dark:border-gray-800">
@@ -277,7 +277,7 @@ export const CaseTable = ({
                     <div className="flex items-center gap-2">
                       {row.phone && (
                         <a href={`tel:${row.phone}`} title="โทรหาผู้แจ้ง" className="w-8 h-8 flex items-center justify-center rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-colors">
-                          📞
+                          <Phone className="w-4 h-4" />
                         </a>
                       )}
                       <Button variant="ghost" size="sm" className="h-8 px-3 text-orange-500 bg-orange-50 hover:bg-orange-100 rounded-lg text-xs font-bold" onClick={() => setSelectedCase(row)}>
