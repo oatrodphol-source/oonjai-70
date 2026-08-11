@@ -245,92 +245,115 @@ export default function ReportDashboardPage() {
   const handleExportExcel = async () => {
     setIsExportingExcel(true);
     try {
-      const targetCollection = 
-        exportType === 'users' ? 'volunteers' : 
-        (exportType === 'logs' || exportType === 'my_logs') ? 'activity_logs' : 
-        exportType === 'safe' ? 'safe_reports' : 
-        'cases';
-      const dateField = (exportType === 'logs' || exportType === 'my_logs' || exportType === 'safe') ? 'timestamp' : 'created_at';
-
-      let req = supabase.from(targetCollection).select('*');
-
-      if (startDate && endDate) {
-        const startIso = new Date(`${startDate}T00:00:00`).toISOString();
-        const endIso = new Date(`${endDate}T23:59:59`).toISOString();
-        req = req.gte(dateField, startIso).lte(dateField, endIso);
-      }
-
-      const { data: rawData, error } = await req;
-      
-      if (error || !rawData || rawData.length === 0) {
-        alert('ไม่มีข้อมูลในช่วงเวลาที่เลือก');
-        setIsExportingExcel(false);
-        return;
-      }
-
       let excelData: any[] = [];
-      if (exportType === 'cases' || exportType === 'my_cases') {
-        let exportableCases = rawData;
-        if (role !== 'admin' || exportType === 'my_cases') {
-          if (currentUser) {
-            const uId = currentUser.uid || currentUser.id || '';
-            const uName = currentUser.name || currentUser.username || currentUser.fullname || '';
+      const uId = currentUser?.id || currentUser?.uid || '';
+      const uName = currentUser?.name || currentUser?.username || currentUser?.fullname || '';
+
+      // --- CASE 1: Volunteer My Logs (Combine Cases + Activity Logs) ---
+      if (exportType === 'my_logs') {
+        let casesReq = supabase.from('cases').select('*');
+        let logsReq = supabase.from('activity_logs').select('*');
+
+        if (startDate && endDate) {
+          const startIso = new Date(`${startDate}T00:00:00`).toISOString();
+          const endIso = new Date(`${endDate}T23:59:59`).toISOString();
+          casesReq = casesReq.gte('created_at', startIso).lte('created_at', endIso);
+          logsReq = logsReq.gte('timestamp', startIso).lte('timestamp', endIso);
+        }
+
+        const [{ data: rawCases }, { data: rawLogs }] = await Promise.all([casesReq, logsReq]);
+
+        let volunteerCases = (rawCases || []).filter(c => {
+          const cVolId = String(c.assigned_volunteer_id || c.volunteer_id || c.rescuer_id || '');
+          const cVolName = String(c.assigned_volunteer_name || c.rescuer_name || c.volunteer_name || '');
+          return (uId && cVolId === String(uId)) || (uName && cVolName.toLowerCase().includes(uName.toLowerCase()));
+        }).map(c => ({
+          'เวลาบันทึก/ปฏิบัติงาน': c.resolved_at ? new Date(c.resolved_at).toLocaleString('th-TH') : (c.updated_at ? new Date(c.updated_at).toLocaleString('th-TH') : new Date(c.created_at).toLocaleString('th-TH')),
+          'ผู้ปฏิบัติงาน': c.assigned_volunteer_name || c.volunteer_name || uName,
+          'กิจกรรม/การดำเนินการ': `ปฏิบัติภารกิจกู้ภัย เคส #${c.case_number || c.id} (${c.type || 'ฉุกเฉิน'}) - สถานะ: ${COMPLETED_STATUSES.includes((c.status || '').toLowerCase()) ? 'ช่วยเหลือสำเร็จ' : c.status === 'in_progress' ? 'กำลังช่วยเหลือ' : c.status}`,
+          'รหัสเคสอ้างอิง': c.case_number ? `CAS-${String(c.case_number).padStart(3, '0')}` : `CAS-${String(c.id).substring(0, 5)}`,
+          'รายละเอียดเพิ่มเติม': `ผู้แจ้ง: ${c.name || c.reporter_name || '-'} (${c.phone || '-'}) | ระดับน้ำ: ${c.water_level || '-'}`
+        }));
+
+        let volunteerLogs = (rawLogs || []).filter(l => {
+          const logUser = String(l.user || l.user_name || l.volunteer_name || l.user_id || l.action_by || '');
+          return (uId && String(l.user_id) === String(uId)) || (uName && logUser.toLowerCase().includes(uName.toLowerCase()));
+        }).map(l => ({
+          'เวลาบันทึก/ปฏิบัติงาน': l.timestamp ? new Date(l.timestamp).toLocaleString('th-TH') : '-',
+          'ผู้ปฏิบัติงาน': l.user || l.user_name || uName,
+          'กิจกรรม/การดำเนินการ': l.action || l.details || 'การใช้งานระบบ',
+          'รหัสเคสอ้างอิง': l.case_id ? `CAS-${l.case_id}` : '-',
+          'รายละเอียดเพิ่มเติม': l.ip_address ? `IP: ${l.ip_address}` : '-'
+        }));
+
+        const combinedLogs = [...volunteerCases, ...volunteerLogs];
+        if (combinedLogs.length === 0) {
+          alert('ไม่พบประวัติการทำงานของคุณในช่วงเวลาที่เลือก');
+          setIsExportingExcel(false);
+          return;
+        }
+        excelData = combinedLogs;
+
+      // --- CASE 2: Other Datasets (cases, my_cases, users, logs, safe) ---
+      } else {
+        const targetCollection = 
+          exportType === 'users' ? 'volunteers' : 
+          exportType === 'logs' ? 'activity_logs' : 
+          exportType === 'safe' ? 'safe_reports' : 
+          'cases';
+        const dateField = (exportType === 'logs' || exportType === 'safe') ? 'timestamp' : 'created_at';
+
+        let req = supabase.from(targetCollection).select('*');
+
+        if (startDate && endDate) {
+          const startIso = new Date(`${startDate}T00:00:00`).toISOString();
+          const endIso = new Date(`${endDate}T23:59:59`).toISOString();
+          req = req.gte(dateField, startIso).lte(dateField, endIso);
+        }
+
+        const { data: rawData, error } = await req;
+        
+        if (error || !rawData || rawData.length === 0) {
+          alert('ไม่มีข้อมูลในช่วงเวลาที่เลือก');
+          setIsExportingExcel(false);
+          return;
+        }
+
+        if (exportType === 'cases' || exportType === 'my_cases') {
+          let exportableCases = rawData;
+          if (role !== 'admin' || exportType === 'my_cases') {
             exportableCases = rawData.filter(c => {
               const cVolId = String(c.assigned_volunteer_id || c.volunteer_id || c.rescuer_id || '');
               const cVolName = String(c.assigned_volunteer_name || c.rescuer_name || c.volunteer_name || '');
               return (uId && cVolId === String(uId)) || (uName && cVolName.toLowerCase().includes(uName.toLowerCase()));
             });
           }
-        }
 
-        if (exportableCases.length === 0) {
-          alert('ไม่พบรายการเคสที่ได้รับมอบหมายในช่วงเวลาที่เลือก');
-          setIsExportingExcel(false);
-          return;
-        }
-
-        excelData = exportableCases.map(c => ({
-          'รหัสเคส': c.case_number ? `CAS-${String(c.case_number).padStart(3, '0')}` : `CAS-${String(c.id).substring(0, 5)}`,
-          'วันที่แจ้งเหตุ': c.created_at ? new Date(c.created_at).toLocaleString('th-TH') : '-',
-          'ชื่อผู้แจ้งเหตุ': c.name || c.reporter_name || 'ผู้แจ้งเหตุ',
-          'เบอร์โทรศัพท์': c.phone || c.contact_phone || c.tel || '-',
-          'ประเภทความช่วยเหลือ': c.type === 'sos' ? 'SOS ฉุกเฉิน' : (c.type || 'ไม่ระบุ'),
-          'ระดับความรุนแรง': getSeverityText(Number(c.severity) || 1),
-          'สถานะการช่วยเหลือ': COMPLETED_STATUSES.includes((c.status || '').toLowerCase()) ? 'ช่วยเหลือสำเร็จ' : c.status === 'in_progress' ? 'กำลังช่วยเหลือ' : 'รอดำเนินการ',
-          'จำนวนผู้ประสบภัย (คน)': Number(c.peopleCount) || 1,
-          'กลุ่มเปราะบาง': (c.bedridden ? 'ผู้ป่วยติดเตียง ' : '') + (c.elderly ? 'ผู้สูงอายุ/เด็ก' : (!c.bedridden ? 'ไม่มี' : '')),
-          'ระดับน้ำ': c.water_level || c.waterLevel || '-',
-          'รายละเอียดเหตุการณ์': c.details || '',
-          'ละติจูด': c.latitude || '',
-          'ลองจิจูด': c.longitude || '',
-          'ผู้เข้าช่วยเหลือ': c.assigned_volunteer_name || c.rescuer_name || '-'
-        }));
-      } else if (exportType === 'my_logs' || exportType === 'logs') {
-        let exportableLogs = rawData;
-        if (role !== 'admin' || exportType === 'my_logs') {
-          const uName = currentUser?.name || currentUser?.username || '';
-          if (uName) {
-            exportableLogs = rawData.filter(l => {
-              const logUser = String(l.user_name || l.volunteer_name || l.user_id || l.action_by || '');
-              return logUser.toLowerCase().includes(uName.toLowerCase());
-            });
+          if (exportableCases.length === 0) {
+            alert('ไม่พบรายการเคสที่ได้รับมอบหมายในช่วงเวลาที่เลือก');
+            setIsExportingExcel(false);
+            return;
           }
-        }
 
-        if (exportableLogs.length === 0) {
-          alert('ไม่พบประวัติการทำงานของคุณในช่วงเวลาที่เลือก');
-          setIsExportingExcel(false);
-          return;
+          excelData = exportableCases.map(c => ({
+            'รหัสเคส': c.case_number ? `CAS-${String(c.case_number).padStart(3, '0')}` : `CAS-${String(c.id).substring(0, 5)}`,
+            'วันที่แจ้งเหตุ': c.created_at ? new Date(c.created_at).toLocaleString('th-TH') : '-',
+            'ชื่อผู้แจ้งเหตุ': c.name || c.reporter_name || 'ผู้แจ้งเหตุ',
+            'เบอร์โทรศัพท์': c.phone || c.contact_phone || c.tel || '-',
+            'ประเภทความช่วยเหลือ': c.type === 'sos' ? 'SOS ฉุกเฉิน' : (c.type || 'ไม่ระบุ'),
+            'ระดับความรุนแรง': getSeverityText(Number(c.severity) || 1),
+            'สถานะการช่วยเหลือ': COMPLETED_STATUSES.includes((c.status || '').toLowerCase()) ? 'ช่วยเหลือสำเร็จ' : c.status === 'in_progress' ? 'กำลังช่วยเหลือ' : 'รอดำเนินการ',
+            'จำนวนผู้ประสบภัย (คน)': Number(c.peopleCount) || 1,
+            'กลุ่มเปราะบาง': (c.bedridden ? 'ผู้ป่วยติดเตียง ' : '') + (c.elderly ? 'ผู้สูงอายุ/เด็ก' : (!c.bedridden ? 'ไม่มี' : '')),
+            'ระดับน้ำ': c.water_level || c.waterLevel || '-',
+            'รายละเอียดเหตุการณ์': c.details || '',
+            'ละติจูด': c.latitude || '',
+            'ลองจิจูด': c.longitude || '',
+            'ผู้เข้าช่วยเหลือ': c.assigned_volunteer_name || c.rescuer_name || '-'
+          }));
+        } else {
+          excelData = rawData;
         }
-
-        excelData = exportableLogs.map(l => ({
-          'เวลาบันทึก': l.timestamp ? new Date(l.timestamp).toLocaleString('th-TH') : '-',
-          'ผู้ปฏิบัติงาน': l.user_name || l.volunteer_name || '-',
-          'กิจกรรม/การดำเนินการ': l.action || l.details || '-',
-          'รหัสเคสอ้างอิง': l.case_id || '-'
-        }));
-      } else {
-        excelData = rawData;
       }
 
       const worksheet = XLSX.utils.json_to_sheet(excelData);
