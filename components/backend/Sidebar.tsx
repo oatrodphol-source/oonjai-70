@@ -83,7 +83,6 @@ export const Sidebar = ({ role = 'volunteer', userName = 'กำลังตร�
     { href: '/profile', icon: User, label: 'ตั้งค่าบัญชี', roles: ['admin', 'rescue', 'volunteer'] },
     { href: '/ai-trigger', icon: Settings, label: 'AI Trigger', roles: ['admin'] },
     { href: '/admin/line-settings', icon: MessageCircle, label: 'จัดการ LINE SOS', roles: ['admin'] },
-    { href: '/admin/system-settings', icon: Sliders, label: 'ตั้งค่าระบบ', roles: ['admin'] },
   ];
 
   const currentRole = currentUser?.role || role;
