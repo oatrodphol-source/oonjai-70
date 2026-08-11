@@ -1,9 +1,13 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap, Marker } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { getSeverityBadgeStyle } from '@/lib/utils';
+import { Navigation, MapPin, Flame, X } from 'lucide-react';
+import GoogleMapControls from '@/components/shared/GoogleMapControls';
+import { supabase } from '@/lib/supabase';
+import 'leaflet.heat';
 
 const getHexColor = (severity: any) => {
   const level = String(severity || '');
@@ -18,115 +22,11 @@ interface HeatmapMapProps {
   cases: any[];
 }
 
-import { Crosshair } from 'lucide-react';
-
-const LocateControl = () => {
-  const map = useMap();
-  const [myLocation, setMyLocation] = useState<[number, number] | null>(null);
-
-  const handleLocate = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          map.flyTo([position.coords.latitude, position.coords.longitude], 14);
-          setMyLocation([position.coords.latitude, position.coords.longitude]);
-        },
-        () => alert('ไม่สามารถดึงตำแหน่งได้')
-      );
-    } else {
-      alert('เบราว์เซอร์ของคุณไม่รองรับการระบุตำแหน่ง (GPS)');
-    }
-  };
-  return (
-    <>
-      <div className="absolute bottom-6 right-4 z-[1000] pointer-events-auto">
-        <button 
-          onClick={handleLocate}
-          className="bg-white p-3 rounded-full shadow-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all duration-200 active:scale-95"
-        >
-          <Crosshair className="w-6 h-6 text-gray-700" />
-        </button>
-      </div>
-      {myLocation && (
-        <Marker 
-          key={`loc-${myLocation[0]}-${myLocation[1]}`}
-          position={myLocation}
-          icon={L.divIcon({ html: '<div class="bg-blue-500 w-4 h-4 rounded-full border-2 border-white shadow-md animate-pulse"></div>', className: '', iconSize: [16, 16] })}
-        >
-          <Popup>ตำแหน่งของคุณ</Popup>
-        </Marker>
-      )}
-    </>
-  );
-};
-
-const MapSearchControl = () => {
-  const map = useMap();
-  const [query, setQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [searchPin, setSearchPin] = useState<[number, number] | null>(null);
-
-  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setQuery(val);
-    if (val.length > 2) {
-      try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&countrycodes=th&limit=5`);
-        const data = await res.json();
-        setSuggestions(data);
-      } catch(err){}
-    } else {
-      setSuggestions([]);
-    }
-  };
-
-  const handleSelect = (item: any) => {
-    const lat = parseFloat(item.lat);
-    const lon = parseFloat(item.lon);
-    map.flyTo([lat, lon], 15);
-    setSearchPin([lat, lon]);
-    setQuery(item.display_name.split(',')[0]);
-    setSuggestions([]);
-  };
-
-  return (
-    <>
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] w-[90%] max-w-sm drop-shadow-md pointer-events-auto">
-        <div className="flex shadow-lg rounded-full overflow-hidden bg-white border border-slate-200">
-          <input 
-            type="text" 
-            placeholder="ค้นหาสถานที่..." 
-            value={query} 
-            onChange={handleInputChange} 
-            className="flex-1 px-4 py-3 outline-none text-sm text-slate-800" 
-          />
-        </div>
-        {suggestions.length > 0 && (
-          <ul className="absolute top-full left-0 w-full mt-2 bg-white rounded-xl shadow-xl overflow-hidden border border-slate-100 max-h-48 overflow-y-auto">
-            {suggestions.map((item, idx) => (
-              <li key={idx} onClick={() => handleSelect(item)} className="px-4 py-3 text-sm border-b cursor-pointer hover:bg-slate-50 text-slate-700 truncate">
-                {item.display_name}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-      {searchPin && (
-        <Marker 
-          key={`search-${searchPin[0]}-${searchPin[1]}`}
-          position={searchPin}
-          icon={L.divIcon({ html: '<div class="bg-red-500 w-5 h-5 rounded-full border-2 border-white shadow-md animate-bounce"></div>', className: '', iconSize: [20, 20] })}
-        >
-          <Popup>ตำแหน่งจากผลการค้นหา</Popup>
-        </Marker>
-      )}
-    </>
-  );
-};
+import ReactDOM from 'react-dom';
 
 const SmartInsightsControl = ({ cases }: { cases: any[] }) => {
   const map = useMap();
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   const hotzones = React.useMemo(() => {
     const activeCases = cases.filter(c => c.status !== 'resolved' && c.status !== 'completed' && c.status !== 'cancelled');
@@ -148,47 +48,64 @@ const SmartInsightsControl = ({ cases }: { cases: any[] }) => {
   if (hotzones.length === 0) return null;
 
   return (
-    <div className="absolute top-20 md:top-4 right-4 z-[1000] w-64 pointer-events-auto">
-      <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-red-100 overflow-hidden transition-all duration-300">
-        <div 
-          className="bg-red-500 text-white p-3 flex justify-between items-center cursor-pointer hover:bg-red-600"
-          onClick={() => setIsOpen(!isOpen)}
-        >
-          <div className="flex items-center gap-2 font-bold text-sm">
-            <span>🔥</span> พื้นที่วิกฤตสูงสุด
-          </div>
-          <span className="text-xs opacity-80">{isOpen ? 'ย่อ' : 'ขยาย'}</span>
-        </div>
-        
-        {isOpen && (
-          <div className="p-2 space-y-2 max-h-60 overflow-y-auto">
-            {hotzones.map((zone, idx) => (
-              <div 
-                key={idx}
-                onClick={() => {
-                  map.flyTo([zone.lat, zone.lng], 15);
-                  setIsOpen(false);
-                }}
-                className="flex items-center justify-between p-2 rounded-lg bg-red-50 hover:bg-red-100 border border-red-100 cursor-pointer transition-colors"
+    <>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-1.5 px-3 py-2.5 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-2xl shadow-lg border border-red-500 text-xs font-bold hover:opacity-95 transition-all active:scale-95 group"
+        title="ดูพื้นที่วิกฤตสูงสุด"
+      >
+        <Flame className="w-4 h-4 text-amber-300 animate-pulse shrink-0" />
+        <span className="font-bold whitespace-nowrap">จุดวิกฤต ({hotzones.length})</span>
+      </button>
+
+      {/* Hotspots Bottom Sheet Modal Portal */}
+      {isOpen && typeof document !== 'undefined' && ReactDOM.createPortal(
+        <div className="fixed inset-0 z-[10005] flex items-end justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 pointer-events-auto">
+          <div className="fixed inset-0" onClick={() => setIsOpen(false)} />
+          <div className="bg-white dark:bg-[#111c35] w-full max-w-md rounded-t-3xl p-5 shadow-2xl border-t border-red-200 dark:border-red-900/50 z-[10006] animate-in slide-in-from-bottom duration-300 max-h-[75vh] overflow-y-auto relative">
+            <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-3" />
+            
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3 mb-3">
+              <h3 className="text-sm font-bold text-red-600 dark:text-red-400 flex items-center gap-1.5">
+                <span>🔥</span> พื้นที่วิกฤตที่มีผู้รอช่วยเหลือสูงสุด ({hotzones.length} จุด)
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="p-1.5 rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
-                <div className="flex flex-col">
-                  <span className="text-sm font-bold text-red-700">จุดที่ {idx + 1}</span>
-                  <span className="text-xs text-red-500">รอช่วยเหลือ {zone.count} เคส</span>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2.5 max-h-60 overflow-y-auto">
+              {hotzones.map((zone, idx) => (
+                <div 
+                  key={idx}
+                  onClick={() => {
+                    map.flyTo([zone.lat, zone.lng], 15);
+                    setIsOpen(false);
+                  }}
+                  className="flex items-center justify-between p-3 rounded-2xl bg-red-50/90 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/50 border border-red-200 dark:border-red-900/40 cursor-pointer transition-colors"
+                >
+                  <div className="flex flex-col min-w-0 pr-2">
+                    <span className="text-xs font-bold text-red-700 dark:text-red-300">จุดวิกฤตที่ {idx + 1}</span>
+                    <span className="text-xs text-red-600 dark:text-red-400 font-medium">รอช่วยเหลือ {zone.count} เคส</span>
+                  </div>
+                  <span className="px-3 py-1.5 text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-md shrink-0 flex items-center gap-1">
+                    📍 นำทาง
+                  </span>
                 </div>
-                <div className="w-8 h-8 rounded-full bg-red-200 flex items-center justify-center text-red-600 text-xs">
-                  🎯
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        )}
-      </div>
-    </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 };
-
-import { supabase } from '@/lib/supabase';
-import 'leaflet.heat';
 
 const HeatLayer = ({ points }: { points: any[] }) => {
   const map = useMap();
@@ -248,53 +165,108 @@ export default function HeatmapMap({ cases }: HeatmapMapProps) {
   };
 
   return (
-    <div className="h-full w-full absolute inset-0 z-0">
+    <div className="h-full w-full relative z-0">
       <MapContainer 
         center={position} 
         zoom={12} 
+        zoomControl={false}
         scrollWheelZoom={true} 
         style={{ height: "100%", width: "100%", zIndex: 0 }}
       >
-        <HeatLayer points={realHeatPoints} />
-        <MapSearchControl />
-        <LocateControl />
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+        <GoogleMapControls 
+          searchTopClass="top-3 sm:top-4" 
+          controlsBottomClass="bottom-20 sm:bottom-24"
+          leftControls={<SmartInsightsControl cases={cases} />}
         />
-        <SmartInsightsControl cases={cases} />
+        <HeatLayer points={realHeatPoints} />
         {cases.map((c) => (
           <CircleMarker
             key={c.id}
             center={[c.latitude, c.longitude]}
             {...getMarkerStyle(c.severity)}
-            fillOpacity={0.7}
+            fillOpacity={0.8}
             weight={2}
           >
-            <Popup className="rounded-xl custom-popup">
-              <div className="p-1 min-w-[200px]">
-                <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-2 mb-2">
-                  <span className="font-bold text-gray-900">{c.id}</span>
-                  <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${getSeverityBadgeStyle(c.severity || 1)}`}>
-                    {c.severity === 5 ? 'วิกฤต (5)' :
-                     c.severity === 4 ? 'รุนแรง (4)' :
-                     c.severity === 3 ? 'ปานกลาง (3)' :
-                     c.severity === 2 ? 'เฝ้าระวัง (2)' : 'ทั่วไป (1)'}
+            <Popup className="rounded-2xl custom-popup">
+              <div className="p-3 min-w-[260px] sm:min-w-[280px] text-slate-100">
+                {/* Header */}
+                <div className="flex items-center justify-between gap-2 border-b border-slate-700 pb-2.5 mb-2.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-black text-sm text-amber-400">{c.id}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-md font-extrabold ${c.isActive ? 'bg-orange-500/20 text-orange-400 border border-orange-500/40' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'}`}>
+                      {c.isActive ? '🔴 รอกู้ภัย' : '✅ เสร็จสิ้น'}
+                    </span>
+                  </div>
+
+                  <span className={`px-2.5 py-0.5 text-[10px] font-black rounded-full border shadow-sm ${
+                    c.severity === 5 ? 'bg-red-600 text-white border-red-500' :
+                    c.severity === 4 ? 'bg-orange-600 text-white border-orange-500' :
+                    c.severity === 3 ? 'bg-yellow-500 text-slate-950 border-yellow-400 font-black' :
+                    c.severity === 2 ? 'bg-blue-600 text-white border-blue-400' : 'bg-emerald-600 text-white border-emerald-400'
+                  }`}>
+                    {c.severity === 5 ? '🔴 วิกฤต (5)' :
+                     c.severity === 4 ? '🟠 รุนแรง (4)' :
+                     c.severity === 3 ? '🟡 ปานกลาง (3)' :
+                     c.severity === 2 ? '🔵 เฝ้าระวัง (2)' : '🟢 ปลอดภัย (1)'}
                   </span>
                 </div>
-                <p className="font-bold text-sm text-gray-800 mb-1">{c.type === 'sos' ? 'SOS ฉุกเฉิน' : c.type}</p>
-                <p className="text-xs text-gray-600 line-clamp-2">{c.details || 'ไม่มีรายละเอียดเพิ่มเติม'}</p>
-                <div className="flex items-center justify-between mt-3">
-                  <p className="text-[10px] text-gray-400">
-                    {new Date(c.timestamp).toLocaleString('th-TH')}
-                  </p>
-                  <a 
-                    href={`/cases`}
-                    className="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors"
-                  >
-                    จัดการเคส ➔
-                  </a>
+                
+                {/* Body Details */}
+                <div className="space-y-1.5 text-xs mb-3">
+                  <div className="flex items-center justify-between text-slate-200">
+                    <span className="font-bold text-slate-400">👤 ผู้แจ้ง:</span>
+                    <span className="font-bold">{c.name || 'ผู้แจ้งเหตุ'}</span>
+                  </div>
+
+                  {c.phone && c.phone !== '-' && (
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-slate-400">📞 โทรติดต่อ:</span>
+                      <a href={`tel:${c.phone}`} className="font-black text-emerald-400 underline hover:text-emerald-300">
+                        {c.phone}
+                      </a>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-400">👥 จำนวนผู้ประสบภัย:</span>
+                    <span className="font-bold text-white bg-slate-800 border border-slate-700 px-2 py-0.5 rounded-md">
+                      {c.peopleCount || 1} คน
+                    </span>
+                  </div>
+
+                  {(c.bedridden || c.elderly) && (
+                    <div className="flex items-center gap-1 mt-1">
+                      <span className="font-bold text-purple-300 bg-purple-950/80 border border-purple-800 px-2.5 py-1 rounded-xl text-[11px] w-full text-center shadow-inner">
+                        ⚠️ {c.bedridden ? 'ผู้ป่วยติดเตียง' : ''} {c.elderly ? 'ผู้สูงอายุ/เด็ก' : ''}
+                      </span>
+                    </div>
+                  )}
+
+                  {c.water_level && (
+                    <div className="flex items-center justify-between text-slate-300">
+                      <span className="font-bold text-slate-400">🌊 ระดับน้ำ:</span>
+                      <span className="font-bold text-blue-300">{c.water_level}</span>
+                    </div>
+                  )}
+
+                  <div className="mt-2 bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 text-slate-200">
+                    <span className="font-bold text-slate-400 block text-[10px] mb-0.5">📝 รายละเอียดเพิ่มเติม:</span>
+                    <p className="text-[11px] leading-relaxed line-clamp-3 font-medium">
+                      {c.details || 'ไม่มีรายละเอียดเพิ่มเติม'}
+                    </p>
+                  </div>
                 </div>
+
+                {/* Google Maps Direct Rescuer Navigation Button */}
+                <a 
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${c.latitude},${c.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-black text-white bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 rounded-xl shadow-lg transition-all active:scale-95 border border-emerald-500"
+                >
+                  <Navigation className="w-4 h-4 shrink-0 text-white" />
+                  <span>📍 นำทางทีมกู้ภัย (Google Maps)</span>
+                </a>
               </div>
             </Popup>
           </CircleMarker>

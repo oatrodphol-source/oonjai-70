@@ -62,6 +62,8 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
     }
   };
 
+  const caseIdQuery = isNaN(Number(id)) ? id : Number(id);
+
   const handleCancel = async () => {
     if (window.confirm("คุณแน่ใจหรือไม่ว่าต้องการยกเลิกการขอความช่วยเหลือ?")) {
       try {
@@ -71,7 +73,7 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
             status: 'cancelled',
             updated_at: new Date().toISOString()
           })
-          .eq('id', Number(id));
+          .eq('id', caseIdQuery);
         
         if (!sbError) {
           localStorage.removeItem('oonjai_last_report');
@@ -105,7 +107,7 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
                 feedback: feedbackText,
                 updated_at: new Date().toISOString()
             })
-            .eq('id', Number(id));
+            .eq('id', caseIdQuery);
             
         if (error) {
             console.error('Error saving rating:', error);
@@ -123,7 +125,7 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
   useEffect(() => {
     const fetchCase = async () => {
       try {
-        const { data, error } = await supabase.from('cases').select('*').eq('id', Number(id)).single();
+        const { data, error } = await supabase.from('cases').select('*').eq('id', caseIdQuery).single();
         if (error || !data) {
           localStorage.removeItem('oonjai_last_sos');
           localStorage.removeItem('oonjai_last_report');
@@ -149,14 +151,14 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
       .on('postgres_changes', { event: '*', schema: 'public', table: 'cases', filter: `id=eq.${id}` }, async (payload) => {
         console.log('🔄 ข้อมูลเคสมีการเปลี่ยนแปลง:', payload.eventType);
         
-        const { data, error } = await supabase.from('cases').select('*').eq('id', Number(id)).single();
+        const { data, error } = await supabase.from('cases').select('*').eq('id', caseIdQuery).single();
         if (data && !error) {
           setCaseData({ ...data, id: String(data.id) } as CaseData);
         }
       }).subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [id]);
+  }, [id, caseIdQuery]);
 
   if (isLoading) {
     return (

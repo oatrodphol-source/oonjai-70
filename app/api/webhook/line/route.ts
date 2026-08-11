@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { GoogleGenAI } from '@google/genai';
 
+// Helper for website base URL
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://oonjai-70-6yo4.vercel.app');
+
 // Trigger keywords that show the Emergency Flex Card (no DB insert)
 const EMERGENCY_TRIGGER_KEYWORDS = ['แจ้งเหตุ', 'sos', 'สวัสดี', 'ช่วยด้วย', 'ขอความช่วยเหลือ', 'ฉุกเฉิน'];
 
@@ -66,12 +69,12 @@ function buildEmergencyFlexMessage() {
           },
           {
             type: 'button',
-            style: 'link',
-            color: '#DC2626',
+            style: 'secondary',
+            color: '#FF6600',
             action: {
               type: 'uri',
-              label: '📞 โทรสายด่วนกู้ภัย 1669',
-              uri: 'tel:1669',
+              label: '🌐 OonJai',
+              uri: `${BASE_URL}/`,
             },
           },
         ],
@@ -112,19 +115,19 @@ function buildCaseRegisteredFlexMessage(caseId?: string, titleText: string = '�
       action: {
         type: 'uri',
         label: '📌 ติดตามสถานะการช่วยเหลือ',
-        uri: `https://oonjai-70-6yo4.vercel.app/track/${caseId}`,
+        uri: `${BASE_URL}/tracking/${caseId}`,
       },
     });
   }
 
   footerContents.push({
     type: 'button',
-    style: 'link',
-    color: '#DC2626',
+    style: 'secondary',
+    color: '#FF6600',
     action: {
       type: 'uri',
-      label: '📞 โทรสายด่วนกู้ภัย 1669',
-      uri: 'tel:1669',
+      label: '🌐 OonJai',
+      uri: `${BASE_URL}/`,
     },
   });
 
@@ -235,17 +238,17 @@ function buildLocationSuccessFlexMessage(caseId: string) {
             action: {
               type: 'uri',
               label: '📌 ติดตามสถานะการช่วยเหลือ',
-              uri: `https://oonjai-70-6yo4.vercel.app/track/${caseId}`,
+              uri: `${BASE_URL}/tracking/${caseId}`,
             },
           },
           {
             type: 'button',
-            style: 'link',
-            color: '#DC2626',
+            style: 'secondary',
+            color: '#FF6600',
             action: {
               type: 'uri',
-              label: '📞 โทรสายด่วนกู้ภัย 1669',
-              uri: 'tel:1669',
+              label: '🌐 OonJai',
+              uri: `${BASE_URL}/`,
             },
           },
         ],

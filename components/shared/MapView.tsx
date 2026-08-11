@@ -1,10 +1,12 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, ZoomControl } from 'react-leaflet';
+import { MapContainer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import GoogleMapControls from '@/components/shared/GoogleMapControls';
 import { Layers, MapPin, Navigation } from 'lucide-react';
 import { RiskLegend } from '@/components/shared/RiskLegend';
+
 // Helper function to calculate distance between two coordinates in km
 const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
   const R = 6371; // Earth's radius in km
@@ -64,8 +66,7 @@ function HeatmapLayer({ points }: { points: [number, number, number][] }) {
 
         if (validPoints.length === 0) return;
 
-        // @ts-ignore - L.heatLayer is added by the plugin
-        const heat = L.heatLayer(validPoints, {
+        const heat = (L as any).heatLayer(validPoints, {
             radius: 40,
             blur: 30,
             maxZoom: 17,
@@ -83,7 +84,7 @@ function HeatmapLayer({ points }: { points: [number, number, number][] }) {
 function CurrentLocationMarker() {
   const [position, setPosition] = useState<L.LatLng | null>(null);
   const map = useMapEvents({
-    locationfound(e) {
+    locationfound(e: any) {
       setPosition(e.latlng);
       map.flyTo(e.latlng, 15);
     },
@@ -238,13 +239,7 @@ export default function MapView({ cases: propCases }: { cases?: CasePoint[] } = 
         zoomControl={false}
         style={{ width: '100%', height: '100%', zIndex: 0 }}
       >
-        <ZoomControl position="bottomleft" />
-        <LocateControl />
-        <CurrentLocationMarker />
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+        <GoogleMapControls searchTopClass="top-16 sm:top-20" controlsBottomClass="bottom-24 sm:bottom-28" />
         
         {(() => {
           if (viewMode !== 'markers') return null;

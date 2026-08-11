@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import React from 'react';
 import { DashboardHeader } from '@/components/backend/DashboardHeader';
 import { Card } from '@/components/ui/Card';

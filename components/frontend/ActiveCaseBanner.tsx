@@ -107,7 +107,7 @@ export const ActiveCaseBanner = () => {
   if (!isBannerVisible || !activeCaseId) return null;
 
   return (
-    <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[1000] pointer-events-auto">
+    <div className="absolute top-28 sm:top-32 left-1/2 -translate-x-1/2 z-[1000] pointer-events-auto">
       <Link href="/history" className="bg-red-600 text-white px-6 py-2 rounded-full shadow-xl flex items-center gap-3 hover:bg-red-700 transition-all border-2 border-white/20 backdrop-blur-md animate-in fade-in slide-in-from-top-4">
         <span className="relative flex h-3 w-3">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>

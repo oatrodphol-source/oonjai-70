@@ -490,11 +490,11 @@ export const ReportStepForm = () => {
                   <Button 
                     type="button" 
                     variant={formData.locationReady ? "primary" : "outline"} 
-                    className={`w-full flex justify-center items-center gap-2 py-6 text-base font-bold transition-all ${formData.locationReady ? 'bg-emerald-600 hover:bg-emerald-700 border-emerald-600 text-white shadow-lg shadow-emerald-500/20' : 'hover:border-[#ff6600] hover:text-[#ff6600] border-2 border-slate-300 dark:border-slate-700'}`}
+                    className={`w-full flex justify-center items-center gap-2 py-3.5 px-4 text-xs sm:text-sm font-bold transition-all rounded-xl leading-tight ${formData.locationReady ? 'bg-emerald-600 hover:bg-emerald-700 border-emerald-600 text-white shadow-lg shadow-emerald-500/20' : 'hover:border-[#ff6600] hover:text-[#ff6600] border-2 border-slate-300 dark:border-slate-700'}`}
                     onClick={getLocation}
                   >
-                    <MapPin className={`w-5 h-5 ${formData.locationReady ? 'text-white' : 'text-[#ff6600]'}`} />
-                    {formData.locationReady ? 'ปักหมุดตำแหน่งปัจจุบัน (Get Location Success)' : 'ปักหมุดตำแหน่งปัจจุบัน (Get Location)'}
+                    <MapPin className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 ${formData.locationReady ? 'text-white' : 'text-[#ff6600]'}`} />
+                    <span className="truncate">{formData.locationReady ? 'ปักหมุดตำแหน่งปัจจุบันเรียบร้อย' : 'ปักหมุดตำแหน่งปัจจุบัน (GPS)'}</span>
                   </Button>
                 </div>
                 
@@ -707,7 +707,7 @@ export const ReportStepForm = () => {
                           onClick={() => document.getElementById('camera-input')?.click()}
                           className="w-full py-3 px-4 bg-[#ff6600] hover:bg-orange-600 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-md shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
                         >
-                          <Camera className="w-4 h-4" /> 📸 ถ่ายรูปสด
+                          <Camera className="w-4 h-4" />  ถ่ายรูปสด
                         </button>
                         
                         <button
@@ -715,7 +715,7 @@ export const ReportStepForm = () => {
                           onClick={() => document.getElementById('gallery-input')?.click()}
                           className="w-full py-3 px-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all cursor-pointer"
                         >
-                          <Upload className="w-4 h-4 text-blue-500" /> 🖼️ อัปโหลดรูปภาพ
+                          <Upload className="w-4 h-4 text-blue-500" /> อัปโหลดรูปภาพ
                         </button>
                       </div>
                     </div>
@@ -733,12 +733,12 @@ export const ReportStepForm = () => {
                 />
               </div>
 
-              <div className="flex flex-wrap gap-2 pt-6 mt-6 border-t border-gray-100 dark:border-gray-800">
-                <Button type="button" variant="ghost" className="flex-1 min-w-fit px-4 py-3 text-[13px] sm:text-sm font-semibold rounded-xl text-center leading-tight break-words" onClick={() => router.back()}>ยกเลิก</Button>
+              <div className="flex gap-3 pt-6 mt-6 border-t border-gray-100 dark:border-gray-800">
+                <Button type="button" variant="ghost" className="flex-1 px-4 py-3.5 text-xs sm:text-sm font-bold rounded-xl text-center leading-tight" onClick={() => router.back()}>ยกเลิก</Button>
                 <Button 
                   type="button" 
                   variant="primary" 
-                  className={`flex-1 min-w-fit px-4 py-3 text-[13px] sm:text-sm font-semibold rounded-xl text-center leading-tight break-words ${cooldownRemaining > 0 && !isProxyReport ? 'opacity-50 cursor-not-allowed bg-gray-400 border-gray-400 shadow-none text-white' : 'shadow-lg shadow-orange-500/30'}`} 
+                  className={`flex-1 px-4 py-3.5 text-xs sm:text-sm font-bold rounded-xl text-center leading-tight ${cooldownRemaining > 0 && !isProxyReport ? 'opacity-50 cursor-not-allowed bg-gray-400 border-gray-400 shadow-none text-white' : 'shadow-lg shadow-orange-500/30'}`} 
                   onClick={handleNext}
                   disabled={cooldownRemaining > 0 && !isProxyReport}
                 >

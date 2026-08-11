@@ -63,55 +63,56 @@ export const TopNavbar: React.FC = () => {
 
     fetchNews();
     const newsChannelName = `custom-navbar-news-${Date.now()}`;
-    const newsChannel = supabase.channel(newsChannelName);
-    newsChannel.on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'news' },
-      (payload: any) => {
-        setBroadcasts(prev => {
-          let updated = [...prev].filter(b => b.id !== 0);
-          const isAnnouncement = payload.new?.type === 'announcement';
+    const newsChannel = supabase
+      .channel(newsChannelName)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'news' },
+        (payload: any) => {
+          setBroadcasts(prev => {
+            let updated = [...prev].filter(b => b.id !== 0);
+            const isAnnouncement = payload.new?.type === 'announcement';
 
-          if (payload.eventType === 'INSERT' && payload.new.published && isAnnouncement) {
-            updated.push({
-              id: payload.new.id,
-              title: payload.new.title,
-              content: payload.new.content,
-              created_at: payload.new.created_at,
-              message: `🚨 ${payload.new.title}`,
-              time: new Date(payload.new.created_at).toLocaleString('th-TH')
-            });
-          } else if (payload.eventType === 'UPDATE') {
-            if (payload.new.published && isAnnouncement) {
-              const existing = updated.find(b => b.id === payload.new.id);
-              if (existing) {
-                updated = updated.map(b => b.id === payload.new.id ? { ...b, title: payload.new.title, content: payload.new.content, message: `🚨 ${payload.new.title}` } : b);
+            if (payload.eventType === 'INSERT' && payload.new.published && isAnnouncement) {
+              updated.push({
+                id: payload.new.id,
+                title: payload.new.title,
+                content: payload.new.content,
+                created_at: payload.new.created_at,
+                message: `🚨 ${payload.new.title}`,
+                time: new Date(payload.new.created_at).toLocaleString('th-TH')
+              });
+            } else if (payload.eventType === 'UPDATE') {
+              if (payload.new.published && isAnnouncement) {
+                const existing = updated.find(b => b.id === payload.new.id);
+                if (existing) {
+                  updated = updated.map(b => b.id === payload.new.id ? { ...b, title: payload.new.title, content: payload.new.content, message: `🚨 ${payload.new.title}` } : b);
+                } else {
+                  updated.push({
+                    id: payload.new.id,
+                    title: payload.new.title,
+                    content: payload.new.content,
+                    created_at: payload.new.created_at,
+                    message: `🚨 ${payload.new.title}`,
+                    time: new Date(payload.new.created_at).toLocaleString('th-TH')
+                  });
+                }
               } else {
-                updated.push({
-                  id: payload.new.id,
-                  title: payload.new.title,
-                  content: payload.new.content,
-                  created_at: payload.new.created_at,
-                  message: `🚨 ${payload.new.title}`,
-                  time: new Date(payload.new.created_at).toLocaleString('th-TH')
-                });
+                updated = updated.filter(b => b.id !== payload.new.id);
               }
-            } else {
-              updated = updated.filter(b => b.id !== payload.new.id);
+            } else if (payload.eventType === 'DELETE') {
+              updated = updated.filter(b => b.id !== payload.old.id);
             }
-          } else if (payload.eventType === 'DELETE') {
-            updated = updated.filter(b => b.id !== payload.old.id);
-          }
 
-          updated.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+            updated.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
 
-          if (updated.length > 3) updated = updated.slice(0, 3);
-          if (updated.length === 0) return [{ id: 0, message: "📢 ยังไม่มีประกาศในขณะนี้", time: "" }];
-          return updated;
-        });
-      }
-    );
-    newsChannel.subscribe();
+            if (updated.length > 3) updated = updated.slice(0, 3);
+            if (updated.length === 0) return [{ id: 0, message: "📢 ยังไม่มีประกาศในขณะนี้", time: "" }];
+            return updated;
+          });
+        }
+      )
+      .subscribe();
 
     // Click outside handler
     const handleClickOutside = (event: MouseEvent) => {
@@ -199,43 +200,44 @@ export const TopNavbar: React.FC = () => {
           updateCasesUI(data);
 
           const casesChannelName = `public:cases-navbar-${Date.now()}`;
-          casesChannel = supabase.channel(casesChannelName);
-          casesChannel.on(
-            'postgres_changes',
-            { event: 'UPDATE', schema: 'public', table: 'cases' },
-            (payload: any) => {
-              const updatedCaseId = String(payload.new.id);
-              if (savedCases.map(String).includes(updatedCaseId)) {
-                setMyCases(prev => {
-                  const exists = prev.find(c => c.id === updatedCaseId);
-                  let next = [...prev];
-                  if (exists) {
-                    next = next.map(c => c.id === updatedCaseId ? {
-                      id: updatedCaseId,
-                      status: payload.new.status,
-                      timestamp: payload.new.updated_at || payload.new.created_at || 0
-                    } : c);
-                  } else {
-                    next.push({
-                      id: updatedCaseId,
-                      status: payload.new.status,
-                      timestamp: payload.new.updated_at || payload.new.created_at || 0
-                    });
-                  }
-                  next.sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime());
+          casesChannel = supabase
+            .channel(casesChannelName)
+            .on(
+              'postgres_changes',
+              { event: 'UPDATE', schema: 'public', table: 'cases' },
+              (payload: any) => {
+                const updatedCaseId = String(payload.new.id);
+                if (savedCases.map(String).includes(updatedCaseId)) {
+                  setMyCases(prev => {
+                    const exists = prev.find(c => c.id === updatedCaseId);
+                    let next = [...prev];
+                    if (exists) {
+                      next = next.map(c => c.id === updatedCaseId ? {
+                        id: updatedCaseId,
+                        status: payload.new.status,
+                        timestamp: payload.new.updated_at || payload.new.created_at || 0
+                      } : c);
+                    } else {
+                      next.push({
+                        id: updatedCaseId,
+                        status: payload.new.status,
+                        timestamp: payload.new.updated_at || payload.new.created_at || 0
+                      });
+                    }
+                    next.sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime());
 
-                  const newDataString = JSON.stringify(next);
-                  if (newDataString !== lastKnownDataRef.current) {
-                    lastKnownDataRef.current = newDataString;
-                    setVisibleNotifications(next);
-                  }
+                    const newDataString = JSON.stringify(next);
+                    if (newDataString !== lastKnownDataRef.current) {
+                      lastKnownDataRef.current = newDataString;
+                      setVisibleNotifications(next);
+                    }
 
-                  return next;
-                });
+                    return next;
+                  });
+                }
               }
-            }
-          );
-          casesChannel.subscribe();
+            )
+            .subscribe();
 
         } else {
           setMyCases([]);

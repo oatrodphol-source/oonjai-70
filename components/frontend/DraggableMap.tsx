@@ -1,8 +1,9 @@
 'use client';
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import GoogleMapControls from '@/components/shared/GoogleMapControls';
 
 interface DraggableMapProps {
   lat: number;
@@ -19,62 +20,6 @@ const customIcon = typeof window !== 'undefined' ? new L.Icon({
   popupAnchor: [1, -34],
   shadowSize: [41, 41]
 }) : null as any;
-
-const MapSearchControl = ({ onLocationChange }: { onLocationChange: (lat: number, lng: number) => void }) => {
-  const map = useMap();
-  const [query, setQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<any[]>([]);
-
-  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setQuery(val);
-    if (val.length > 2) {
-      try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&countrycodes=th&limit=5`);
-        const data = await res.json();
-        setSuggestions(data);
-      } catch(err){}
-    } else {
-      setSuggestions([]);
-    }
-  };
-
-  const handleSelect = (item: any) => {
-    const lat = parseFloat(item.lat);
-    const lon = parseFloat(item.lon);
-    if (typeof window !== 'undefined' && map) {
-      map.flyTo([lat, lon], 16);
-    }
-    onLocationChange(lat, lon);
-    setQuery(item.display_name.split(',')[0]);
-    setSuggestions([]);
-  };
-
-  return (
-    <>
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] w-[90%] max-w-sm drop-shadow-md pointer-events-auto">
-        <div className="flex shadow-lg rounded-full overflow-hidden bg-white border border-slate-200">
-          <input 
-            type="text" 
-            placeholder="ค้นหาสถานที่..." 
-            value={query} 
-            onChange={handleInputChange} 
-            className="flex-1 px-3 py-2 outline-none text-sm text-slate-800" 
-          />
-        </div>
-        {suggestions.length > 0 && (
-          <ul className="absolute top-full left-0 w-full mt-2 bg-white rounded-xl shadow-xl overflow-hidden border border-slate-100 max-h-48 overflow-y-auto">
-            {suggestions.map((item, idx) => (
-              <li key={idx} onClick={() => handleSelect(item)} className="px-4 py-3 text-sm border-b cursor-pointer hover:bg-slate-50 text-slate-700 truncate">
-                {item.display_name}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </>
-  );
-};
 
 function DraggableMarker({ lat, lng, onLocationChange }: DraggableMapProps) {
   const markerRef = useRef<L.Marker>(null);
@@ -113,20 +58,22 @@ export default function DraggableMap({ lat, lng, onLocationChange }: DraggableMa
   if (typeof window === 'undefined') return null;
 
   return (
-    <div className="h-[250px] w-full rounded-xl overflow-hidden border-2 border-orange-200 mt-3 relative z-0">
+    <div className="h-[300px] sm:h-[340px] w-full rounded-2xl overflow-hidden border-2 border-orange-200 mt-3 relative z-0 shadow-md">
       <MapContainer 
         center={[lat, lng]} 
         zoom={16} 
+        zoomControl={false}
         scrollWheelZoom={false} 
         className="w-full h-full z-0"
       >
-        <MapSearchControl onLocationChange={onLocationChange} />
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+        <GoogleMapControls 
+          searchTopClass="top-2.5 sm:top-3"
+          controlsBottomClass="bottom-3 sm:bottom-4"
+          onLocationSelect={(newLat, newLng) => onLocationChange(newLat, newLng)} 
         />
         <DraggableMarker lat={lat} lng={lng} onLocationChange={onLocationChange} />
       </MapContainer>
     </div>
   );
 }
+

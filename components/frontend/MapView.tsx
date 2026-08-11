@@ -42,75 +42,7 @@ interface CasePoint {
   status?: 'pending' | 'in_progress' | 'resolved' | 'cancelled';
 }
 
-const MapSearchControl = () => {
-  const map = useMap();
-  const [query, setQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [searchPin, setSearchPin] = useState<[number, number] | null>(null);
-
-  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setQuery(val);
-    if (val.length > 2) {
-      try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&countrycodes=th&limit=5`);
-        const data = await res.json();
-        setSuggestions(data);
-      } catch(err){}
-    } else {
-      setSuggestions([]);
-    }
-  };
-
-  const handleSelect = (item: any) => {
-    const lat = parseFloat(item.lat);
-    const lon = parseFloat(item.lon);
-    if (map && map.getContainer && map.getContainer()) {
-      try {
-        map.flyTo([lat, lon], 15);
-      } catch(e) {
-        console.warn('Error on flyTo in search:', e);
-      }
-    }
-    setSearchPin([lat, lon]);
-    setQuery(item.display_name.split(',')[0]);
-    setSuggestions([]);
-  };
-
-  return (
-    <>
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] w-[90%] max-w-sm drop-shadow-md pointer-events-auto">
-        <div className="flex shadow-lg rounded-full overflow-hidden bg-white border border-slate-200">
-          <input 
-            type="text" 
-            placeholder="ค้นหาสถานที่..." 
-            value={query} 
-            onChange={handleInputChange} 
-            className="flex-1 px-4 py-3 outline-none text-sm text-slate-800" 
-          />
-        </div>
-        {suggestions.length > 0 && (
-          <ul className="absolute top-full left-0 w-full mt-2 bg-white rounded-xl shadow-xl overflow-hidden border border-slate-100 max-h-48 overflow-y-auto">
-            {suggestions.map((item, idx) => (
-              <li key={idx} onClick={() => handleSelect(item)} className="px-4 py-3 text-sm border-b cursor-pointer hover:bg-slate-50 text-slate-700 truncate">
-                {item.display_name}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-      {searchPin && (
-        <Marker 
-          key={`search-${searchPin[0]}-${searchPin[1]}`}
-          position={searchPin}
-          icon={L.divIcon({ html: '<div class="bg-red-500 w-5 h-5 rounded-full border-2 border-white shadow-md animate-bounce"></div>', className: '', iconSize: [20, 20] })}
-        >
-          <Popup>ตำแหน่งจากผลการค้นหา</Popup>
-        </Marker>
-      )}
-    </>
-  );
-};
+import GoogleMapControls from '@/components/shared/GoogleMapControls';
 
 interface MapViewProps {
   onMarkerClick?: (caseData: any) => void;
@@ -380,44 +312,6 @@ export default function MapView({ onMarkerClick }: MapViewProps = {}) {
       {/* Collapsible Risk Level Legend Overlay */}
       <RiskLegend className="bottom-6 left-4" label="ระดับความเสี่ยง" />
 
-      {/* GPS Locate Button */}
-      <div className="absolute bottom-6 right-4 z-[1000] flex flex-col gap-2 pointer-events-none">
-        <div className="pointer-events-auto">
-          <button 
-            onClick={handleLocateMe}
-            className="bg-white text-gray-700 border border-gray-200 shadow-sm hover:bg-gray-50 flex items-center justify-center p-3 rounded-full transition-all duration-200 active:scale-95 dark:bg-[#0b1325]/95 dark:text-gray-300 dark:border-gray-800 dark:hover:bg-gray-800/50"
-          >
-            <Crosshair className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-          </button>
-        </div>
-      </div>
-
-      {/* Floating Action Buttons */}
-      <div className="absolute bottom-40 md:bottom-24 right-4 z-[1000] flex flex-col gap-2 pointer-events-none">
-        <div className="pointer-events-auto">
-          <button 
-            onClick={() => setShowSafeModal(true)}
-            className="bg-[#00B900] text-white shadow-lg shadow-green-500/30 flex items-center justify-center gap-2 px-5 py-3 rounded-full font-bold transition-all duration-200 active:scale-95 border-2 border-green-500 w-full"
-          >
-            <ShieldCheck className="w-5 h-5" />
-            <span className="font-bold">ฉันปลอดภัยดี</span>
-          </button>
-        </div>
-        
-        <div className="pointer-events-auto">
-          <button 
-            onClick={() => setShowHeatmap(!showHeatmap)}
-            className={`backdrop-blur-md flex items-center justify-center gap-2 px-5 py-3 rounded-full font-bold transition-all duration-200 active:scale-95 w-full ${
-              showHeatmap 
-                ? 'bg-orange-500 text-white shadow-lg border-2 border-orange-400' 
-                : 'bg-white text-gray-700 border border-gray-200 shadow-sm dark:bg-[#0b1325]/95 dark:text-gray-300 dark:border-gray-800'
-            }`}
-          >
-            {showHeatmap ? <MapPin className="w-5 h-5" /> : <Layers className="w-5 h-5" />}
-            <span className="font-bold">{showHeatmap ? 'ดูแบบหมุด' : 'ดูพื้นที่เสี่ยง'}</span>
-          </button>
-        </div>
-      </div>
 
       <MapContainer 
         center={position} 
@@ -427,11 +321,33 @@ export default function MapView({ onMarkerClick }: MapViewProps = {}) {
         style={{ height: "100%", width: "100%", zIndex: 0 }}
         ref={setMapInstance}
       >
-        <MapSearchControl />
-        <ZoomControl position="bottomleft" />
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+        <GoogleMapControls 
+          searchTopClass="top-16 sm:top-20" 
+          controlsBottomClass="bottom-20 sm:bottom-24"
+          leftControls={
+            <button 
+              type="button"
+              onClick={() => setShowHeatmap(!showHeatmap)}
+              className={`backdrop-blur-md flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-2xl font-bold transition-all duration-200 active:scale-95 shadow-lg border text-xs ${
+                showHeatmap 
+                  ? 'bg-orange-500 text-white border-orange-400' 
+                  : 'bg-white/95 text-slate-700 border-slate-200 dark:bg-slate-900/95 dark:text-slate-200 dark:border-slate-800'
+              }`}
+            >
+              {showHeatmap ? <MapPin className="w-4 h-4 text-white" /> : <Layers className="w-4 h-4 text-orange-500" />}
+              <span className="font-bold">{showHeatmap ? 'ดูแบบหมุด' : 'ดูพื้นที่เสี่ยง'}</span>
+            </button>
+          }
+          extraControls={
+            <button 
+              type="button"
+              onClick={() => setShowSafeModal(true)}
+              className="bg-[#00B900] text-white shadow-lg shadow-green-500/30 flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-full font-bold transition-all duration-200 active:scale-95 border-2 border-green-500 text-xs"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <span className="font-bold">ฉันปลอดภัยดี</span>
+            </button>
+          }
         />
         
         {(() => {
