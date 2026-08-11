@@ -227,15 +227,6 @@ export const VolunteerTaskBoard = ({
         updated_at: new Date().toISOString()
       }).eq('id', Number(caseId));
 
-      try {
-        await supabase.from('activity_logs').insert({
-          user_id: Number((currentUser as any).id || currentUser.uid || 0),
-          user: currentUser.name || (currentUser as any).username,
-          action: `รับเคสการช่วยเหลือ #${caseId}`,
-          status: 'success'
-        });
-      } catch (logErr) {}
-
       toast.success("รับเคสสำเร็จ");
     } catch (e) {
       console.error("Error accepting case:", e);
@@ -301,15 +292,6 @@ export const VolunteerTaskBoard = ({
         updated_at: now,
         resolved_at: now
       }).eq('id', Number(caseId));
-
-      try {
-        await supabase.from('activity_logs').insert({
-          user_id: Number((currentUser as any)?.id || currentUser?.uid || 0),
-          user: currentUser?.name || (currentUser as any)?.username || 'อาสาสมัคร',
-          action: `ปิดเคสช่วยเหลือ #${caseId} (สถานะ: ${newStatus})`,
-          status: 'success'
-        });
-      } catch (logErr) {}
 
       fetch('/api/line/push', {
         method: 'POST',
