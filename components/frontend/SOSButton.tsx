@@ -9,22 +9,24 @@ export const SOSButton = () => {
   const router = useRouter();
   const [status, setStatus] = useState<'idle' | 'locating' | 'sending' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // 1. Check if user has an active SOS from the last 10 minutes to auto-redirect
-    const lastSOS = localStorage.getItem('oonjai_last_sos');
-    if (lastSOS) {
-      try {
-        const parsed = JSON.parse(lastSOS);
-        const now = Date.now();
-        if (now - parsed.timestamp < 10 * 60 * 1000 && parsed.caseId) {
-          router.replace(`/tracking/${parsed.caseId}`);
-        }
-      } catch (e) {
-        console.warn('Error parsing local storage:', e);
-      }
+    const activeCaseId = localStorage.getItem('oonjai_active_case_id');
+    const lineUid = localStorage.getItem('oonjai_line_uid');
+    if (activeCaseId) {
+      router.replace(`/tracking/${activeCaseId}`);
+      return;
+    }
+    if (lineUid) {
+      supabase.from('cases').select('id').eq('reporter_name', lineUid).in('status', ['pending', 'in_progress']).order('created_at', { ascending: false }).limit(1).single()
+        .then(({ data }) => {
+          if (data) {
+            localStorage.setItem('oonjai_active_case_id', String(data.id));
+            router.replace(`/tracking/${data.id}`);
+          }
+        }, () => {});
     }
 
     // 2. Check if user has an active LINE case via LIFF
@@ -83,7 +85,35 @@ export const SOSButton = () => {
   };
 
   const handleSOSClick = async () => {
-    // 1. Check LIFF active case in Supabase
+    // 0. Synchronous check from localStorage
+    const activeCaseId = typeof window !== 'undefined' ? localStorage.getItem('oonjai_active_case_id') : null;
+    const lineUid = typeof window !== 'undefined' ? localStorage.getItem('oonjai_line_uid') : null;
+
+    if (activeCaseId) {
+      alert(`คุณมีเคสแจ้งเหตุฉุกเฉินที่กำลังดำเนินการอยู่แล้ว (เคส #${activeCaseId}) ระบบนำทางไปหน้าติดตามสถานะ`);
+      router.push(`/tracking/${activeCaseId}`);
+      return;
+    }
+
+    if (lineUid) {
+      try {
+        const { data: activeCase } = await supabase
+          .from('cases')
+          .select('id')
+          .eq('reporter_name', lineUid)
+          .in('status', ['pending', 'in_progress'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (activeCase) {
+          localStorage.setItem('oonjai_active_case_id', String(activeCase.id));
+          alert(`คุณมีเคสแจ้งเหตุฉุกเฉินที่กำลังดำเนินการอยู่แล้ว (เคส #${activeCase.id}) ระบบนำทางไปหน้าติดตามสถานะ`);
+          router.push(`/tracking/${activeCase.id}`);
+          return;
+        }
+      } catch (e) {}
+    }
     let liffUserId = '';
     let liffDisplayName = 'SOS User (Auto)';
     try {

@@ -60,6 +60,52 @@ export const BottomNav: React.FC = () => {
   const router = useRouter();
 
   const handleReportOrSosClick = async (e: React.MouseEvent, targetHref: string) => {
+    e.preventDefault(); // MUST BE SYNCHRONOUS to stop Next.js Link default navigation!
+
+    // 1. Synchronous check from localStorage
+    const activeCaseId = typeof window !== 'undefined' ? localStorage.getItem('oonjai_active_case_id') : null;
+    const lineUid = typeof window !== 'undefined' ? localStorage.getItem('oonjai_line_uid') : null;
+
+    if (activeCaseId) {
+      alert(`คุณมีเคสขอความช่วยเหลือที่กำลังดำเนินการอยู่แล้ว (เคส #${activeCaseId}) ระบบนำทางไปหน้าติดตามสถานะ`);
+      router.push(`/tracking/${activeCaseId}`);
+      return;
+    }
+
+    const lastReportStr = typeof window !== 'undefined' ? localStorage.getItem('oonjai_last_report') : null;
+    if (lastReportStr) {
+      try {
+        const lastReport = JSON.parse(lastReportStr);
+        if (Date.now() - lastReport.timestamp < 10 * 60 * 1000 && lastReport.caseId) {
+          alert('คุณมีเคสขอความช่วยเหลือที่กำลังดำเนินการอยู่แล้ว ระบบนำทางไปหน้าติดตามสถานะ');
+          router.push(`/tracking/${lastReport.caseId}`);
+          return;
+        }
+      } catch (err) {}
+    }
+
+    // 2. Asynchronous check from Supabase if lineUid exists
+    if (lineUid) {
+      try {
+        const { data: activeCase } = await supabase
+          .from('cases')
+          .select('id')
+          .eq('reporter_name', lineUid)
+          .in('status', ['pending', 'in_progress'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (activeCase) {
+          localStorage.setItem('oonjai_active_case_id', String(activeCase.id));
+          alert(`คุณมีเคสขอความช่วยเหลือที่กำลังดำเนินการอยู่แล้ว (เคส #${activeCase.id}) ระบบนำทางไปหน้าติดตามสถานะ`);
+          router.push(`/tracking/${activeCase.id}`);
+          return;
+        }
+      } catch (err) {}
+    }
+
+    // 3. Asynchronous check from LIFF
     try {
       const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
       if (liffId) {
@@ -67,6 +113,7 @@ export const BottomNav: React.FC = () => {
         if (liff.isLoggedIn()) {
           const profile = await liff.getProfile();
           if (profile?.userId) {
+            localStorage.setItem('oonjai_line_uid', profile.userId);
             const { data: activeCase } = await supabase
               .from('cases')
               .select('id')
@@ -77,7 +124,7 @@ export const BottomNav: React.FC = () => {
               .single();
 
             if (activeCase) {
-              e.preventDefault();
+              localStorage.setItem('oonjai_active_case_id', String(activeCase.id));
               alert(`คุณมีเคสขอความช่วยเหลือที่กำลังดำเนินการอยู่แล้ว (เคส #${activeCase.id}) ระบบนำทางไปหน้าติดตามสถานะ`);
               router.push(`/tracking/${activeCase.id}`);
               return;
@@ -87,18 +134,8 @@ export const BottomNav: React.FC = () => {
       }
     } catch (err) {}
 
-    const lastReportStr = localStorage.getItem('oonjai_last_report');
-    if (lastReportStr) {
-      try {
-        const lastReport = JSON.parse(lastReportStr);
-        if (Date.now() - lastReport.timestamp < 10 * 60 * 1000 && lastReport.caseId) {
-          e.preventDefault();
-          alert('คุณมีเคสขอความช่วยเหลือที่กำลังดำเนินการอยู่แล้ว ระบบนำทางไปหน้าติดตามสถานะ');
-          router.push(`/tracking/${lastReport.caseId}`);
-          return;
-        }
-      } catch (err) {}
-    }
+    // No active case -> navigate to targetHref
+    router.push(targetHref);
   };
 
   const navItems = [
