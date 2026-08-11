@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { Phone, CheckCircle2, Clock, MapPin, Building2, ShieldPlus, Package } from 'lucide-react';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { supabase } from '@/lib/supabase';
+import { isPendingCase, isCompletedCase, isShelterDestination, isHospitalDestination, isSuppliesDestination } from '@/lib/caseUtils';
 
 export default function InfoPage() {
   const [stats, setStats] = useState<{
@@ -152,21 +153,21 @@ export default function InfoPage() {
       const docId = String(data.id);
       const status = data.status || '';
 
-      // waiting
-      if (['pending', 'in_progress', 'wait'].includes(status)) {
+      // pending
+      if (isPendingCase(status)) {
         pendingCount++;
       } 
       
       // success
-      if (['resolved', 'completed'].includes(status)) {
+      if (isCompletedCase(status)) {
         completedCount++;
       }
 
       // evacuation and hospital board
-      if (['resolved', 'completed'].includes(status) && (data.destination || '').trim() !== '') {
+      if (isCompletedCase(status) && (data.destination || '').trim() !== '') {
         const dest = data.destination || '';
-        if (dest.includes('ศูนย์พักพิง')) shelterCount++;
-        if (dest.includes('โรงพยาบาล') || dest.includes('แพทย์')) hospitalCount++;
+        if (isShelterDestination(dest)) shelterCount++;
+        if (isHospitalDestination(dest)) hospitalCount++;
         
         let displayName = (data.name && !data.name.startsWith("U")) ? data.name : ((data.reporter_name && !data.reporter_name.startsWith("U")) ? data.reporter_name : "ผู้ใช้ LINE");
         const referenceId = data.case_number ? `CAS-${String(data.case_number).padStart(3, '0')}` : `CAS-${docId.substring(0, 5)}`;

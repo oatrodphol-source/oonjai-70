@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { CaseDetailModal } from './CaseDetailModal';
 import { FileSearch, CheckCircle2, Pencil } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { isPendingCase, isInProgressCase, isCompletedCase, isCancelledCase, isShelterDestination, isHospitalDestination, isSuppliesDestination } from '@/lib/caseUtils';
 
 const getDistanceKm = (lat1: any, lon1: any, lat2: any, lon2: any) => {
   if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
@@ -164,9 +165,10 @@ export const CaseTable = ({
 
   const filteredCases = cases.filter(c => {
     const status = c.status || '';
-    const isWait = status === 'pending';
-    const isInProgress = status === 'in_progress';
-    const isCompleted = status === 'resolved';
+    const isWait = isPendingCase(status);
+    const isInProgress = isInProgressCase(status);
+    const isCompleted = isCompletedCase(status);
+    const isCancelled = isCancelledCase(status);
 
     let matchStatus = false;
     if (statusFilter === 'all') {
@@ -178,7 +180,7 @@ export const CaseTable = ({
     } else if (statusFilter === 'เสร็จสิ้น' || statusFilter === 'completed' || statusFilter === 'resolved') {
       matchStatus = isCompleted;
     } else if (statusFilter === 'ยกเลิก' || statusFilter === 'cancelled') {
-      matchStatus = status === 'cancelled';
+      matchStatus = isCancelled;
     } else {
       matchStatus = status === statusFilter;
     }
@@ -192,7 +194,10 @@ export const CaseTable = ({
     
     if (statusFilter === 'completed' || statusFilter === 'resolved') {
       if (destinationFilter !== 'all') {
-        matchDestination = c.destination === destinationFilter;
+        if (destinationFilter === 'ศูนย์พักพิง') matchDestination = isShelterDestination(c.destination);
+        else if (destinationFilter === 'นำส่งโรงพยาบาล' || destinationFilter === 'โรงพยาบาล/หน่วยแพทย์') matchDestination = isHospitalDestination(c.destination);
+        else if (destinationFilter === 'มอบถุงยังชีพ' || destinationFilter === 'ถุงยังชีพ') matchDestination = isSuppliesDestination(c.destination);
+        else matchDestination = c.destination === destinationFilter;
       }
       if (searchCaseId) {
         matchCaseId = Boolean(c.id && String(c.id).toLowerCase().includes(String(searchCaseId).toLowerCase()));

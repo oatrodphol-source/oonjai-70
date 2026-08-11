@@ -5,6 +5,7 @@ import { HeatmapView } from '@/components/backend/HeatmapView';
 import { Button } from '@/components/ui/Button';
 import { Download, Loader2, X, Filter, RotateCcw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { isPendingCase, isActiveCase } from '@/lib/caseUtils';
 
 export default function HeatmapPage() {
   const [severityFilter, setSeverityFilter] = useState('all');
@@ -29,8 +30,8 @@ export default function HeatmapPage() {
         const fetchedCases: any[] = [];
         (data || []).forEach(docData => {
           if (docData.latitude && docData.longitude) {
-            const rawStatus = (docData.status || 'pending').toLowerCase();
-            const isActive = rawStatus === 'pending' || rawStatus === 'in_progress' || rawStatus === 'รอดำเนินการ';
+            const rawStatus = docData.status || 'pending';
+            const isActive = isActiveCase(rawStatus);
 
             fetchedCases.push({
               id: docData.case_number ? `CAS-${String(docData.case_number).padStart(3, '0')}` : `CAS-${String(docData.id).substring(0, 5)}`,
@@ -88,7 +89,7 @@ export default function HeatmapPage() {
 
     const sosCriticalCount = baseCases.filter(c => Number(c.severity) === 5).length;
     const vulnerableCount = baseCases.filter(c => c.bedridden || c.elderly).length;
-    const unassignedCount = baseCases.filter(c => c.status === 'pending' || c.status === 'รอดำเนินการ').length;
+    const unassignedCount = baseCases.filter(c => isPendingCase(c.status)).length;
 
     return { activeCount, totalCount, sosCriticalCount, vulnerableCount, unassignedCount };
   }, [cases, activeOnly]);
@@ -107,7 +108,7 @@ export default function HeatmapPage() {
       level2: baseCases.filter(c => Number(c.severity) === 2).length,
       level1: baseCases.filter(c => Number(c.severity) === 1).length,
       vulnerable: baseCases.filter(c => c.bedridden || c.elderly).length,
-      unassigned: baseCases.filter(c => c.status === 'pending' || c.status === 'รอดำเนินการ').length,
+      unassigned: baseCases.filter(c => isPendingCase(c.status)).length,
       time24h: baseCases.filter(c => (now - c.timestamp) <= 24 * 60 * 60 * 1000).length,
       time7d: baseCases.filter(c => (now - c.timestamp) <= 7 * 24 * 60 * 60 * 1000).length,
       timeMonth: baseCases.filter(c => (now - c.timestamp) <= 30 * 24 * 60 * 60 * 1000).length,

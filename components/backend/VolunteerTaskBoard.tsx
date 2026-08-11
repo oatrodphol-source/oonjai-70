@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { MapPin, Navigation, Package, Home, Hospital, Phone, Clock, Info, AlertTriangle, AlertCircle, CheckCircle, Users, Pencil } from 'lucide-react';
+import { isPendingCase, isInProgressCase, isCompletedCase, isShelterDestination, isHospitalDestination, isSuppliesDestination } from '@/lib/caseUtils';
 import { getSeverityBadgeStyle } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { CaseDetailModal } from './CaseDetailModal';
@@ -337,10 +338,9 @@ export const VolunteerTaskBoard = ({
 
   const filteredCases = cases.filter(c => {
     const status = c.status || '';
-    const isWait = status === 'pending';
-    const isInProgress = status === 'in_progress';
-
-    const isCompleted = status === 'resolved';
+    const isWait = isPendingCase(status);
+    const isInProgress = isInProgressCase(status);
+    const isCompleted = isCompletedCase(status);
 
     // Anti-Duplicate Race Condition Logic:
     // Only display if (Condition A) it's new/unassigned OR (Condition B) it's assigned to ME
@@ -365,7 +365,10 @@ export const VolunteerTaskBoard = ({
     
     if (statusFilter === 'completed' || statusFilter === 'resolved') {
       if (destinationFilter !== 'all') {
-        matchDestination = c.destination === destinationFilter;
+        if (destinationFilter === 'ศูนย์พักพิง') matchDestination = isShelterDestination(c.destination);
+        else if (destinationFilter === 'นำส่งโรงพยาบาล' || destinationFilter === 'โรงพยาบาล/หน่วยแพทย์') matchDestination = isHospitalDestination(c.destination);
+        else if (destinationFilter === 'มอบถุงยังชีพ' || destinationFilter === 'ถุงยังชีพ') matchDestination = isSuppliesDestination(c.destination);
+        else matchDestination = c.destination === destinationFilter;
       }
       if (searchCaseId) {
         matchCaseId = Boolean(c.id && String(c.id).toLowerCase().includes(String(searchCaseId).toLowerCase()));

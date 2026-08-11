@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { StatsCard } from '@/components/backend/StatsCard';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { supabase } from '@/lib/supabase';
+import { isPendingCase, isInProgressCase, isCompletedCase, isCancelledCase, isShelterDestination, isHospitalDestination, isSuppliesDestination } from '@/lib/caseUtils';
 import { 
   FileSpreadsheet, 
   FileText, 
@@ -209,14 +210,14 @@ export default function ReportDashboardPage() {
     roleAndDateFilteredCases.forEach(d => {
       const status = (d.status || '').toLowerCase();
       
-      // ข้ามเคสที่ถูกยกเลิก ไม่นำมารวมในสถิติวิเคราะห์ (เพื่อให้ตรงกับ Supabase Active Cases)
-      if (CANCELLED_STATUSES.includes(status)) {
+      // Skip cancelled cases
+      if (isCancelledCase(status)) {
         return; 
       }
 
       total++;
-      if (COMPLETED_STATUSES.includes(status)) completed++;
-      else if (status === 'in_progress') inProgress++;
+      if (isCompletedCase(status)) completed++;
+      else if (isInProgressCase(status)) inProgress++;
       else pending++;
       
       if (d.isBedridden || d.isElderly) vulnerableCount++;

@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { getSeverityBadgeStyle } from '@/lib/utils';
 import { AlertCircle, CheckCircle2, Clock, Users, Bot, ArrowRight, Activity } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { isPendingCase, isInProgressCase, isCompletedCase } from '@/lib/caseUtils';
 
 export default function DashboardPage() {
   const [latestFilter, setLatestFilter] = useState('all');
@@ -95,7 +96,7 @@ export default function DashboardPage() {
             const type = d.type || 'ไม่ระบุ';
             
             // Status counts
-            if (stat === 'pending') {
+            if (isPendingCase(stat)) {
               p++;
               allPending.push({
                 id: d.case_number ? `CAS-${String(d.case_number).padStart(3, '0')}` : `CAS-${String(d.id).substring(0, 5)}`,
@@ -108,8 +109,8 @@ export default function DashboardPage() {
                 phone: d.phone || '-'
               });
             }
-            else if (stat === 'in_progress') i++;
-            else if (stat === 'resolved') c++;
+            else if (isInProgressCase(stat)) i++;
+            else if (isCompletedCase(stat)) c++;
             
             // Severity counts
             if (sevNum === 5) s5++;

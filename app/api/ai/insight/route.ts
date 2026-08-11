@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { supabase } from '@/lib/supabase';
+import { isPendingCase, isInProgressCase, isActiveCase } from '@/lib/caseUtils';
 
 export async function POST() {
   try {
@@ -19,10 +20,7 @@ export async function POST() {
     }
 
     // Filter active cases (pending & in_progress)
-    const activeCases = allCases.filter(c => {
-      const s = String(c.status || '').toLowerCase();
-      return s !== 'resolved' && s !== 'completed' && s !== 'cancelled' && s !== 'เสร็จสิ้น' && s !== 'ช่วยเหลือสำเร็จ' && s !== 'ยกเลิก';
-    });
+    const activeCases = allCases.filter(c => isActiveCase(c.status));
 
     if (activeCases.length === 0) {
       return NextResponse.json({
@@ -31,15 +29,8 @@ export async function POST() {
     }
 
     // Accurately categorize active cases
-    const pendingCases = activeCases.filter(c => {
-      const s = String(c.status || '').toLowerCase();
-      return s === 'pending' || s === 'รอการช่วยเหลือ' || s === 'รอช่วยเหลือ' || s === '';
-    });
-
-    const inProgressCases = activeCases.filter(c => {
-      const s = String(c.status || '').toLowerCase();
-      return s === 'in_progress' || s === 'กำลังดำเนินการ' || s === 'กำลังช่วยเหลือ' || s === 'กำลังเข้าช่วยเหลือ';
-    });
+    const pendingCases = activeCases.filter(c => isPendingCase(c.status));
+    const inProgressCases = activeCases.filter(c => isInProgressCase(c.status));
 
     const level5Cases = activeCases.filter(c => {
       const sev = String(c.severity || c.level || 1).match(/\d+/);
