@@ -107,6 +107,38 @@ export const ReportStepForm = () => {
     };
     initLiff();
   }, [router]);
+  useEffect(() => {
+    const checkActiveCase = async () => {
+      if (typeof window === 'undefined') return;
+
+      const activeCaseId = localStorage.getItem('oonjai_active_case_id');
+      if (activeCaseId) {
+        alert(`คุณมีเคสขอความช่วยเหลือที่กำลังดำเนินการอยู่แล้ว (เคส #${activeCaseId}) ระบบนำทางไปหน้าติดตามสถานะ`);
+        router.push(`/tracking/${activeCaseId}`);
+        return;
+      }
+
+      const lineUid = localStorage.getItem('oonjai_line_uid');
+      if (lineUid) {
+        const { data: activeCase } = await supabase
+          .from('cases')
+          .select('id')
+          .eq('reporter_name', lineUid)
+          .in('status', ['pending', 'in_progress'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (activeCase) {
+          localStorage.setItem('oonjai_active_case_id', String(activeCase.id));
+          alert(`คุณมีเคสขอความช่วยเหลือที่กำลังดำเนินการอยู่แล้ว (เคส #${activeCase.id}) ระบบนำทางไปหน้าติดตามสถานะ`);
+          router.push(`/tracking/${activeCase.id}`);
+        }
+      }
+    };
+
+    checkActiveCase();
+  }, [router]);
 
   const handleCloseLiff = async () => {
     try {
@@ -370,8 +402,9 @@ export const ReportStepForm = () => {
       if (formData.image_file) {
         submitData.append('image', formData.image_file);
       }
-      if (liffProfile?.userId) {
-        submitData.append('reporter_name', liffProfile.userId);
+      const lineUid = liffProfile?.userId || (typeof window !== 'undefined' ? localStorage.getItem('oonjai_line_uid') : null);
+      if (lineUid) {
+        submitData.append('reporter_name', lineUid);
       }
 
       const response = await fetch('/api/cases', {

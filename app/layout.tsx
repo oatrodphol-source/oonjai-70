@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "react-hot-toast";
+import { LineUserInitializer } from "@/components/frontend/LineUserInitializer";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -40,6 +41,7 @@ export default function RootLayout({
         cz-shortcut-listen="true"
         suppressHydrationWarning
       >
+        <LineUserInitializer />
         {children}
         <Toaster 
           position="top-right"

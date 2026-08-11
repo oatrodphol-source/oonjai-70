@@ -63,7 +63,8 @@ async function saveLineUserLog(userId: string, accessToken: string) {
 }
 
 // 1. Build Main Emergency Flex Card
-function buildEmergencyFlexMessage() {
+function buildEmergencyFlexMessage(lineUserId?: string) {
+  const targetUrl = lineUserId ? `${BASE_URL}/?line_uid=${lineUserId}` : `${BASE_URL}/`;
   return {
     type: 'flex',
     altText: 'ศูนย์รับแจ้งเหตุฉุกเฉิน อุ่นใจ',
@@ -119,7 +120,7 @@ function buildEmergencyFlexMessage() {
             action: {
               type: 'uri',
               label: 'OonJai (เปิดเว็บไซต์หลัก)',
-              uri: `${BASE_URL}/`,
+              uri: targetUrl,
             },
           },
         ],
@@ -195,8 +196,9 @@ function buildVulnerableQuickReply(waterLevel: string) {
 }
 
 // Step 5: Final Summary Flex Message Card
-function buildScreeningSummaryFlexMessage(caseData: any) {
+function buildScreeningSummaryFlexMessage(caseData: any, lineUserId?: string) {
   const caseId = String(caseData.id);
+  const targetUrl = lineUserId ? `${BASE_URL}/?line_uid=${lineUserId}` : `${BASE_URL}/`;
   const severityLevel = Number(caseData.severity) || 1;
   const severityText = 
     severityLevel === 5 ? 'ระดับ 5 (วิกฤตด่วนที่สุด)' :
@@ -285,7 +287,7 @@ function buildScreeningSummaryFlexMessage(caseData: any) {
             action: {
               type: 'uri',
               label: 'OonJai (เปิดเว็บไซต์หลัก)',
-              uri: `${BASE_URL}/`,
+              uri: targetUrl,
             },
           },
         ],
@@ -295,7 +297,10 @@ function buildScreeningSummaryFlexMessage(caseData: any) {
 }
 
 // Build Location Success Flex Message Card
-function buildLocationSuccessFlexMessage(caseId: string) {
+function buildLocationSuccessFlexMessage(caseId: string, lineUserId?: string) {
+  const trackingUrl = lineUserId ? `${BASE_URL}/tracking/${caseId}?line_uid=${lineUserId}` : `${BASE_URL}/tracking/${caseId}`;
+  const homeUrl = lineUserId ? `${BASE_URL}/?line_uid=${lineUserId}` : `${BASE_URL}/`;
+
   return {
     type: 'flex',
     altText: 'บันทึกพิกัดตำแหน่งเรียบร้อยแล้ว',
@@ -349,7 +354,7 @@ function buildLocationSuccessFlexMessage(caseId: string) {
             action: {
               type: 'uri',
               label: 'ติดตามสถานะการช่วยเหลือ',
-              uri: `${BASE_URL}/tracking/${caseId}`,
+              uri: trackingUrl,
             },
           },
           {
@@ -359,7 +364,7 @@ function buildLocationSuccessFlexMessage(caseId: string) {
             action: {
               type: 'uri',
               label: 'OonJai',
-              uri: `${BASE_URL}/`,
+              uri: homeUrl,
             },
           },
         ],
@@ -489,7 +494,7 @@ export async function POST(req: Request) {
                 type: 'text',
                 text: 'ยินดีต้อนรับสู่ ศูนย์รับแจ้งเหตุฉุกเฉิน อุ่นใจ (OonJai)\n\nหากคุณต้องการขอความช่วยเหลือ โปรดกดปุ่มตอบคำถามคัดกรองเหตุผ่านแชทด้านล่างนี้'
               },
-              buildEmergencyFlexMessage()
+              buildEmergencyFlexMessage(reporterUserId)
             ],
             accessToken
           );
@@ -643,7 +648,7 @@ export async function POST(req: Request) {
 
                 await sendLineReply(
                   event.replyToken,
-                  [buildScreeningSummaryFlexMessage(finalData)],
+                  [buildScreeningSummaryFlexMessage(finalData, reporterUserId)],
                   accessToken
                 );
               }
@@ -668,7 +673,7 @@ export async function POST(req: Request) {
             if (isEmergencyTrigger) {
               await sendLineReply(
                 event.replyToken,
-                [buildEmergencyFlexMessage()],
+                [buildEmergencyFlexMessage(reporterUserId)],
                 accessToken
               );
               continue;
@@ -681,7 +686,7 @@ export async function POST(req: Request) {
                 await supabase.from('cases').update({ phone: text }).eq('id', activeCase.id);
                 await sendLineReply(
                   event.replyToken,
-                  [{ type: 'text', text: `บันทึกเบอร์โทรศัพท์ ${text} เรียบร้อยแล้ว` }, buildScreeningSummaryFlexMessage({ ...activeCase, phone: text })],
+                  [{ type: 'text', text: `บันทึกเบอร์โทรศัพท์ ${text} เรียบร้อยแล้ว` }, buildScreeningSummaryFlexMessage({ ...activeCase, phone: text }, reporterUserId)],
                   accessToken
                 );
               }
@@ -740,7 +745,7 @@ export async function POST(req: Request) {
               if (updatedCaseData) {
                 await sendLineReply(
                   event.replyToken,
-                  [buildScreeningSummaryFlexMessage(updatedCaseData)],
+                  [buildScreeningSummaryFlexMessage(updatedCaseData, reporterUserId)],
                   accessToken
                 );
               }
@@ -750,7 +755,7 @@ export async function POST(req: Request) {
             // Fallback for short text
             await sendLineReply(
               event.replyToken,
-              [buildEmergencyFlexMessage()],
+              [buildEmergencyFlexMessage(reporterUserId)],
               accessToken
             );
             continue;
@@ -839,7 +844,7 @@ export async function POST(req: Request) {
             if (updatedCaseData) {
               await sendLineReply(
                 event.replyToken,
-                [buildScreeningSummaryFlexMessage(updatedCaseData)],
+                [buildScreeningSummaryFlexMessage(updatedCaseData, reporterUserId)],
                 accessToken
               );
             }
@@ -870,7 +875,7 @@ export async function POST(req: Request) {
 
               await sendLineReply(
                 event.replyToken,
-                [buildLocationSuccessFlexMessage(caseId)],
+                [buildLocationSuccessFlexMessage(caseId, reporterUserId)],
                 accessToken
               );
             }

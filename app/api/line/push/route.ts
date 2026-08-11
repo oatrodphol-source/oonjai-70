@@ -107,7 +107,7 @@ export async function POST(req: Request) {
                 action: {
                   type: 'uri',
                   label: 'ติดตามสถานะการช่วยเหลือ',
-                  uri: `${BASE_URL}/tracking/${caseId}`,
+                  uri: `${BASE_URL}/tracking/${caseId}?line_uid=${lineUserId}`,
                 },
               },
               {
@@ -117,7 +117,7 @@ export async function POST(req: Request) {
                 action: {
                   type: 'uri',
                   label: 'OonJai',
-                  uri: `${BASE_URL}/`,
+                  uri: `${BASE_URL}/?line_uid=${lineUserId}`,
                 },
               },
             ],
@@ -186,7 +186,7 @@ export async function POST(req: Request) {
                 action: {
                   type: 'uri',
                   label: 'ประเมินและให้คะแนนอาสาสมัคร',
-                  uri: `${BASE_URL}/tracking/${caseId}`,
+                  uri: `${BASE_URL}/tracking/${caseId}?line_uid=${lineUserId}`,
                 },
               },
               {
@@ -196,7 +196,7 @@ export async function POST(req: Request) {
                 action: {
                   type: 'uri',
                   label: 'OonJai',
-                  uri: `${BASE_URL}/`,
+                  uri: `${BASE_URL}/?line_uid=${lineUserId}`,
                 },
               },
             ],
