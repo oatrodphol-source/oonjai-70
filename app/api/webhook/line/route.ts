@@ -39,14 +39,12 @@ function calculateCaseSeverity(waterLevel: string, bedridden: number, elderly: n
 // Helper: Save LINE User Profile Log
 async function saveLineUserLog(userId: string, accessToken: string) {
   try {
-    if (!userId || userId === 'Unknown' || !accessToken) return;
+    if (!userId || userId === 'Unknown' || !accessToken) return null;
     const res = await fetch(`https://api.line.me/v2/bot/profile/${userId}`, {
       headers: { Authorization: `Bearer ${accessToken}` }
     });
     if (res.ok) {
       const profile = await res.json();
-      console.log('[LINE Log] Fetched user profile:', profile.displayName, profile.userId);
-      
       try {
         await supabase.from('line_users').upsert({
           line_user_id: profile.userId,
@@ -56,13 +54,15 @@ async function saveLineUserLog(userId: string, accessToken: string) {
           last_active_at: new Date().toISOString()
         }, { onConflict: 'line_user_id' });
       } catch (dbErr) {}
+      return profile;
     }
   } catch (e) {
     console.error('[LINE Log ERROR]', e);
   }
+  return null;
 }
 
-// 1. Build the Main Emergency Assistance Flex Message Card (Formal, Emoji-Free)
+// 1. Build Main Emergency Flex Card
 function buildEmergencyFlexMessage() {
   return {
     type: 'flex',
@@ -90,7 +90,7 @@ function buildEmergencyFlexMessage() {
         contents: [
           {
             type: 'text',
-            text: 'หากต้องการความช่วยเหลือด่วน โปรดกดปุ่มแชร์พิกัดตำแหน่ง (GPS) หรือตอบคำถามคัดกรองเหตุ',
+            text: 'หากต้องการขอความช่วยเหลือผ่านแชท โปรดกดปุ่มตอบคำถามคัดกรองเหตุในแชทด้านล่างนี้',
             wrap: true,
             size: 'sm',
             color: '#374151',
@@ -107,15 +107,6 @@ function buildEmergencyFlexMessage() {
             style: 'primary',
             color: '#2563EB',
             action: {
-              type: 'uri',
-              label: 'แชร์พิกัดตำแหน่ง (GPS)',
-              uri: 'line://nv/location',
-            },
-          },
-          {
-            type: 'button',
-            style: 'secondary',
-            action: {
               type: 'message',
               label: 'ตอบคำถามคัดกรองเหตุในแชท',
               text: 'ระบุสถานการณ์',
@@ -127,8 +118,8 @@ function buildEmergencyFlexMessage() {
             color: '#FF6600',
             action: {
               type: 'uri',
-              label: 'OonJai (เปิดในเว็บ)',
-              uri: REPORT_URL,
+              label: 'OonJai (เปิดเว็บไซต์หลัก)',
+              uri: `${BASE_URL}/`,
             },
           },
         ],
@@ -137,7 +128,7 @@ function buildEmergencyFlexMessage() {
   };
 }
 
-// Step 1: Quick Reply for Incident Type (Exact Web Form Dropdown)
+// Step 1: Quick Reply for Incident Type
 function buildSituationQuickReply() {
   return {
     type: 'text',
@@ -154,11 +145,11 @@ function buildSituationQuickReply() {
   };
 }
 
-// Step 2: Quick Reply for People Count (Pure Integer Values)
+// Step 2: Quick Reply for People Count
 function buildPeopleCountQuickReply(caseType: string) {
   return {
     type: 'text',
-    text: `บันทึกประเภท: ${caseType}\n\n[ขั้นตอนที่ 2/4]\nจำนวนผู้ประสบภัยในจุดเกิดเหตุ:`,
+    text: `บันทึกประเภท: ${caseType}\n\n[ขั้นตอนที่ 2/4]\nโปรดเลือกจำนวนผู้ประสบภัยในจุดเกิดเหตุ:`,
     quickReply: {
       items: [
         { type: 'action', action: { type: 'message', label: '1 คน', text: 'คัดกรอง:จำนวน:1' } },
@@ -170,7 +161,7 @@ function buildPeopleCountQuickReply(caseType: string) {
   };
 }
 
-// Step 3: Quick Reply for Water Level (All 5 Exact Web Form Options)
+// Step 3: Quick Reply for Water Level
 function buildWaterLevelQuickReply(peopleCount: number) {
   return {
     type: 'text',
@@ -203,7 +194,7 @@ function buildVulnerableQuickReply(waterLevel: string) {
   };
 }
 
-// Step 5: Final Summary Flex Message Card (Formal, Emoji-Free)
+// Step 5: Final Summary Flex Message Card
 function buildScreeningSummaryFlexMessage(caseData: any) {
   const caseId = String(caseData.id);
   const severityLevel = Number(caseData.severity) || 1;
@@ -229,7 +220,7 @@ function buildScreeningSummaryFlexMessage(caseData: any) {
         contents: [
           {
             type: 'text',
-            text: 'สรุปข้อมูลคัดกรองเหตุฉุกเฉิน',
+            text: 'สรุปข้อมูลคัดกรองเหตุฉุกเฉินสำเร็จ',
             weight: 'bold',
             size: 'md',
             color: '#FFFFFF',
@@ -255,6 +246,7 @@ function buildScreeningSummaryFlexMessage(caseData: any) {
             layout: 'vertical',
             spacing: 'xs',
             contents: [
+              { type: 'text', text: `ผู้แจ้งเหตุ: ${caseData.name || 'ผู้ใช้ LINE'}`, size: 'xs', color: '#111827', weight: 'bold' },
               { type: 'text', text: `ประเภทความช่วยเหลือ: ${caseData.type || '-'}`, size: 'xs', color: '#374151', weight: 'bold' },
               { type: 'text', text: `จำนวนผู้ประสบภัย: ${caseData.people_count || 1} คน`, size: 'xs', color: '#374151' },
               { type: 'text', text: `ระดับน้ำปัจจุบัน: ${caseData.water_level || '-'}`, size: 'xs', color: '#374151' },
@@ -264,7 +256,7 @@ function buildScreeningSummaryFlexMessage(caseData: any) {
           },
           {
             type: 'text',
-            text: 'สำคัญมาก: โปรดกดปุ่ม "แชร์พิกัดตำแหน่ง (GPS)" ด้านล่าง เพื่อให้เจ้าหน้าที่และอาสาสมัครทราบพิกัดสถานที่เกิดเหตุที่แม่นยำ',
+            text: 'สำคัญมาก: โปรดกดปุ่ม "แชร์พิกัดตำแหน่ง (GPS)" ด้านล่าง เพื่อส่งตำแหน่งสถานที่เกิดเหตุให้ทีมกู้ภัยเข้าช่วยเหลือตรงจุด',
             size: 'xs',
             color: '#4B5563',
             wrap: true,
@@ -312,7 +304,7 @@ function buildScreeningSummaryFlexMessage(caseData: any) {
   };
 }
 
-// Build Location Success Flex Message Card (Formal, Emoji-Free)
+// Build Location Success Flex Message Card
 function buildLocationSuccessFlexMessage(caseId: string) {
   return {
     type: 'flex',
@@ -410,10 +402,8 @@ async function sendLineReply(
   }
 }
 
-// Helper: Get Active Pending Case OR Check Cooldown
-async function getOrCreateActiveCase(reporterUserId: string, initialData: Record<string, any> = {}) {
-  const TEN_MINUTES_AGO = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-
+// Helper: Get Active Pending Case OR Create New Case (with real LINE Display Name!)
+async function getOrCreateActiveCase(reporterUserId: string, initialData: Record<string, any> = {}, accessToken: string = '') {
   // Find most recent pending case for this LINE user
   const { data: existingCase } = await supabase
     .from('cases')
@@ -425,26 +415,23 @@ async function getOrCreateActiveCase(reporterUserId: string, initialData: Record
     .single();
 
   if (existingCase) {
-    return { caseData: existingCase, isNew: false, isCooldownBlocked: false };
+    return existingCase;
   }
 
-  // Check if user completed/submitted a case within the last 10 minutes (Anti-Spam Cooldown)
-  const { data: recentCompletedCase } = await supabase
-    .from('cases')
-    .select('id, created_at')
-    .eq('reporter_name', reporterUserId)
-    .gte('created_at', TEN_MINUTES_AGO)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single();
-
-  if (recentCompletedCase) {
-    return { caseData: recentCompletedCase, isNew: false, isCooldownBlocked: true };
+  // Fetch LINE Profile Display Name if available
+  let lineDisplayName = 'ผู้ใช้ LINE';
+  if (reporterUserId !== 'Unknown' && accessToken) {
+    try {
+      const profile = await saveLineUserLog(reporterUserId, accessToken);
+      if (profile && profile.displayName) {
+        lineDisplayName = profile.displayName;
+      }
+    } catch (e) {}
   }
 
   // Create new active pending case
   const newCaseData = {
-    name: 'ผู้ใช้ LINE',
+    name: lineDisplayName,
     reporter_name: reporterUserId,
     phone: '-',
     type: initialData.type || 'ฉุกเฉิน/ป่วยต้องการหมออาสา',
@@ -467,10 +454,10 @@ async function getOrCreateActiveCase(reporterUserId: string, initialData: Record
 
   if (error || !inserted) {
     console.error('[DB ERROR] Failed to create active case:', error);
-    return { caseData: null, isNew: false, isCooldownBlocked: false };
+    return null;
   }
 
-  return { caseData: inserted, isNew: true, isCooldownBlocked: false };
+  return inserted;
 }
 
 export async function POST(req: Request) {
@@ -510,7 +497,7 @@ export async function POST(req: Request) {
             [
               {
                 type: 'text',
-                text: 'ยินดีต้อนรับสู่ ศูนย์รับแจ้งเหตุฉุกเฉิน อุ่นใจ (OonJai)\n\nหากคุณต้องการความช่วยเหลือด่วน โปรดแชร์พิกัดตำแหน่ง (GPS) หรือตอบคำถามคัดกรองเหตุเพื่อประสานงานเจ้าหน้าที่กู้ภัย'
+                text: 'ยินดีต้อนรับสู่ ศูนย์รับแจ้งเหตุฉุกเฉิน อุ่นใจ (OonJai)\n\nหากคุณต้องการขอความช่วยเหลือ โปรดกดปุ่มตอบคำถามคัดกรองเหตุผ่านแชทด้านล่างนี้'
               },
               buildEmergencyFlexMessage()
             ],
@@ -527,6 +514,22 @@ export async function POST(req: Request) {
             const text: string = (event.message.text || '').trim();
             const textLower = text.toLowerCase();
             console.log(`4. [Text] User text: "${text}"`);
+
+            // TEST BACKUP COMMAND: "รีเซ็ต" / "reset" / "ทดสอบใหม่"
+            if (['รีเซ็ต', 'reset', 'ทดสอบใหม่', 'เริ่มใหม่', 'ยกเลิกเคส'].includes(textLower)) {
+              await supabase
+                .from('cases')
+                .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+                .eq('reporter_name', reporterUserId)
+                .eq('status', 'pending');
+
+              await sendLineReply(
+                event.replyToken,
+                [{ type: 'text', text: 'เคลียร์สถานะเคสสำหรับการทดสอบเรียบร้อยแล้ว คุณสามารถเริ่มพิมพ์ "แจ้งเหตุ" เพื่อทดสอบสร้างเคสใหม่เสมือนจริงได้ทันทีครับ' }],
+                accessToken
+              );
+              continue;
+            }
 
             // 1. Emergency Trigger Keywords -> Main Emergency Flex Card
             const isEmergencyTrigger = EMERGENCY_TRIGGER_KEYWORDS.some(
@@ -555,23 +558,14 @@ export async function POST(req: Request) {
             // 3. Step 1 Answer: Incident Type ("คัดกรอง:ประเภท:...")
             if (text.startsWith('คัดกรอง:ประเภท:')) {
               const selectedType = text.replace('คัดกรอง:ประเภท:', '').trim();
-              const { caseData, isCooldownBlocked } = await getOrCreateActiveCase(reporterUserId, { type: selectedType });
+              const activeCase = await getOrCreateActiveCase(reporterUserId, { type: selectedType }, accessToken);
 
-              if (isCooldownBlocked && caseData) {
-                await sendLineReply(
-                  event.replyToken,
-                  [{ type: 'text', text: `ระบบกำลังดำเนินการเคสของคุณอยู่แล้ว (เคส #${caseData.id}) หากต้องการแชร์พิกัด GPS หรือส่งรูปภาพ สามารถส่งมาในแชทได้ทันที` }],
-                  accessToken
-                );
-                continue;
-              }
-
-              if (caseData) {
+              if (activeCase) {
                 const updatedSeverity = calculateCaseSeverity(
-                  caseData.water_level || '-',
-                  caseData.bedridden || 0,
-                  caseData.elderly || 0,
-                  caseData.people_count || 1,
+                  activeCase.water_level || '-',
+                  activeCase.bedridden || 0,
+                  activeCase.elderly || 0,
+                  activeCase.people_count || 1,
                   selectedType
                 );
 
@@ -579,7 +573,7 @@ export async function POST(req: Request) {
                   type: selectedType,
                   severity: updatedSeverity,
                   details: `ประเภท: ${selectedType}`
-                }).eq('id', caseData.id);
+                }).eq('id', activeCase.id);
 
                 await sendLineReply(
                   event.replyToken,
@@ -593,21 +587,21 @@ export async function POST(req: Request) {
             // 4. Step 2 Answer: People Count ("คัดกรอง:จำนวน:...")
             if (text.startsWith('คัดกรอง:จำนวน:')) {
               const countVal = parseInt(text.replace('คัดกรอง:จำนวน:', '').trim(), 10) || 1;
-              const { caseData } = await getOrCreateActiveCase(reporterUserId, { people_count: countVal });
+              const activeCase = await getOrCreateActiveCase(reporterUserId, { people_count: countVal }, accessToken);
 
-              if (caseData) {
+              if (activeCase) {
                 const updatedSeverity = calculateCaseSeverity(
-                  caseData.water_level || '-',
-                  caseData.bedridden || 0,
-                  caseData.elderly || 0,
+                  activeCase.water_level || '-',
+                  activeCase.bedridden || 0,
+                  activeCase.elderly || 0,
                   countVal,
-                  caseData.type || 'ฉุกเฉิน/ป่วยต้องการหมออาสา'
+                  activeCase.type || 'ฉุกเฉิน/ป่วยต้องการหมออาสา'
                 );
 
                 await supabase.from('cases').update({
                   people_count: countVal,
                   severity: updatedSeverity
-                }).eq('id', caseData.id);
+                }).eq('id', activeCase.id);
 
                 await sendLineReply(
                   event.replyToken,
@@ -621,21 +615,21 @@ export async function POST(req: Request) {
             // 5. Step 3 Answer: Water Level ("คัดกรอง:ระดับน้ำ:...")
             if (text.startsWith('คัดกรอง:ระดับน้ำ:')) {
               const waterLevelVal = text.replace('คัดกรอง:ระดับน้ำ:', '').trim();
-              const { caseData } = await getOrCreateActiveCase(reporterUserId, { water_level: waterLevelVal });
+              const activeCase = await getOrCreateActiveCase(reporterUserId, { water_level: waterLevelVal }, accessToken);
 
-              if (caseData) {
+              if (activeCase) {
                 const updatedSeverity = calculateCaseSeverity(
                   waterLevelVal,
-                  caseData.bedridden || 0,
-                  caseData.elderly || 0,
-                  caseData.people_count || 1,
-                  caseData.type || 'ฉุกเฉิน/ป่วยต้องการหมออาสา'
+                  activeCase.bedridden || 0,
+                  activeCase.elderly || 0,
+                  activeCase.people_count || 1,
+                  activeCase.type || 'ฉุกเฉิน/ป่วยต้องการหมออาสา'
                 );
 
                 await supabase.from('cases').update({
                   water_level: waterLevelVal,
                   severity: updatedSeverity
-                }).eq('id', caseData.id);
+                }).eq('id', activeCase.id);
 
                 await sendLineReply(
                   event.replyToken,
@@ -656,15 +650,15 @@ export async function POST(req: Request) {
               else if (vulnerableVal === 'ผู้สูงอายุ') { elderly = 1; }
               else if (vulnerableVal === 'ทั้งสองกลุ่ม') { bedridden = 1; elderly = 1; }
 
-              const { caseData } = await getOrCreateActiveCase(reporterUserId, { bedridden, elderly });
+              const activeCase = await getOrCreateActiveCase(reporterUserId, { bedridden, elderly }, accessToken);
 
-              if (caseData) {
+              if (activeCase) {
                 const finalSeverity = calculateCaseSeverity(
-                  caseData.water_level || '-',
+                  activeCase.water_level || '-',
                   bedridden,
                   elderly,
-                  caseData.people_count || 1,
-                  caseData.type || 'ฉุกเฉิน/ป่วยต้องการหมออาสา'
+                  activeCase.people_count || 1,
+                  activeCase.type || 'ฉุกเฉิน/ป่วยต้องการหมออาสา'
                 );
 
                 const { data: updatedCase } = await supabase
@@ -675,11 +669,11 @@ export async function POST(req: Request) {
                     severity: finalSeverity,
                     updated_at: new Date().toISOString()
                   })
-                  .eq('id', caseData.id)
+                  .eq('id', activeCase.id)
                   .select()
                   .single();
 
-                const finalData = updatedCase || { ...caseData, bedridden, elderly, severity: finalSeverity };
+                const finalData = updatedCase || { ...activeCase, bedridden, elderly, severity: finalSeverity };
 
                 await sendLineReply(
                   event.replyToken,
@@ -692,12 +686,12 @@ export async function POST(req: Request) {
 
             // 7. Phone Number Input ("0812345678")
             if (/^0\d{9}$/.test(text)) {
-              const { caseData } = await getOrCreateActiveCase(reporterUserId, { phone: text });
-              if (caseData) {
-                await supabase.from('cases').update({ phone: text }).eq('id', caseData.id);
+              const activeCase = await getOrCreateActiveCase(reporterUserId, { phone: text }, accessToken);
+              if (activeCase) {
+                await supabase.from('cases').update({ phone: text }).eq('id', activeCase.id);
                 await sendLineReply(
                   event.replyToken,
-                  [{ type: 'text', text: `บันทึกเบอร์โทรศัพท์ ${text} เรียบร้อยแล้ว` }, buildScreeningSummaryFlexMessage({ ...caseData, phone: text })],
+                  [{ type: 'text', text: `บันทึกเบอร์โทรศัพท์ ${text} เรียบร้อยแล้ว` }, buildScreeningSummaryFlexMessage({ ...activeCase, phone: text })],
                   accessToken
                 );
               }
@@ -707,10 +701,10 @@ export async function POST(req: Request) {
             // 8. Regular text input: Gemini AI Extraction -> Update Active Case
             if (text.length > 3) {
               const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
-              let { caseData } = await getOrCreateActiveCase(reporterUserId, { details: text });
-              let updatedCaseData = caseData;
+              let activeCase = await getOrCreateActiveCase(reporterUserId, { details: text }, accessToken);
+              let updatedCaseData = activeCase;
 
-              if (geminiApiKey && caseData) {
+              if (geminiApiKey && activeCase) {
                 try {
                   const ai = new GoogleGenAI({ apiKey: geminiApiKey });
                   const systemPrompt = `You are a disaster relief AI assistant. Extract information from user text into JSON format with keys: "type" (string), "details" (string), "people_count" (integer), "bedridden" (integer 0 or 1), "elderly" (integer 0 or 1), "phone" (string), "water_level" (string), "severity" (integer 1-5). Return ONLY valid JSON.`;
@@ -725,24 +719,24 @@ export async function POST(req: Request) {
 
                   try {
                     const parsed = JSON.parse(rawText);
-                    const bCount = Number(parsed.bedridden) || caseData.bedridden || 0;
-                    const eCount = Number(parsed.elderly) || caseData.elderly || 0;
-                    const pCount = Number(parsed.people_count) || caseData.people_count || 1;
-                    const wLevel = parsed.water_level || caseData.water_level || '-';
-                    const cType = parsed.type || caseData.type || 'ฉุกเฉิน/ป่วยต้องการหมออาสา';
+                    const bCount = Number(parsed.bedridden) || activeCase.bedridden || 0;
+                    const eCount = Number(parsed.elderly) || activeCase.elderly || 0;
+                    const pCount = Number(parsed.people_count) || activeCase.people_count || 1;
+                    const wLevel = parsed.water_level || activeCase.water_level || '-';
+                    const cType = parsed.type || activeCase.type || 'ฉุกเฉิน/ป่วยต้องการหมออาสา';
 
                     const calcSeverity = calculateCaseSeverity(wLevel, bCount, eCount, pCount, cType);
 
                     const { data: dbUpdated } = await supabase.from('cases').update({
                       type: cType,
-                      details: `${caseData.details || ''}\n${parsed.details || text}`.trim(),
+                      details: `${activeCase.details || ''}\n${parsed.details || text}`.trim(),
                       people_count: pCount,
                       bedridden: bCount,
                       elderly: eCount,
                       water_level: wLevel,
                       severity: calcSeverity,
-                      phone: parsed.phone && parsed.phone !== '-' ? parsed.phone : caseData.phone
-                    }).eq('id', caseData.id).select().single();
+                      phone: parsed.phone && parsed.phone !== '-' ? parsed.phone : activeCase.phone
+                    }).eq('id', activeCase.id).select().single();
 
                     if (dbUpdated) updatedCaseData = dbUpdated;
                   } catch (e) {
@@ -777,10 +771,10 @@ export async function POST(req: Request) {
             console.log(`4. [Image] Received image message ID: ${event.message.id}`);
             const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
             const lineFetchToken = process.env.LINE_CHANNEL_ACCESS_TOKEN || accessToken;
-            let { caseData } = await getOrCreateActiveCase(reporterUserId, { details: 'ส่งรูปภาพหน้างาน' });
-            let updatedCaseData = caseData;
+            let activeCase = await getOrCreateActiveCase(reporterUserId, { details: 'ส่งรูปภาพหน้างาน' }, accessToken);
+            let updatedCaseData = activeCase;
 
-            if (geminiApiKey && lineFetchToken && caseData) {
+            if (geminiApiKey && lineFetchToken && activeCase) {
               try {
                 const imageRes = await fetch(`https://api-data.line.me/v2/bot/message/${event.message.id}/content`, {
                   headers: { Authorization: `Bearer ${lineFetchToken}` }
@@ -830,18 +824,18 @@ export async function POST(req: Request) {
                   }
 
                   const aiSeverity = Number(aiExtracted.risk_level) || 3;
-                  const finalSeverity = Math.max(caseData.severity || 1, aiSeverity);
-                  const updatedDetails = `${caseData.details || ''}\n[AI Vision (${aiSeverity}/5): ${aiExtracted.situation_summary} | คำแนะนำ: ${aiExtracted.recommended_action}]`.trim();
+                  const finalSeverity = Math.max(activeCase.severity || 1, aiSeverity);
+                  const updatedDetails = `${activeCase.details || ''}\n[AI Vision (${aiSeverity}/5): ${aiExtracted.situation_summary} | คำแนะนำ: ${aiExtracted.recommended_action}]`.trim();
 
                   const { data: dbUpdated } = await supabase
                     .from('cases')
                     .update({
-                      image_url: imageUrl || caseData.image_url,
+                      image_url: imageUrl || activeCase.image_url,
                       details: updatedDetails,
                       severity: finalSeverity,
                       updated_at: new Date().toISOString()
                     })
-                    .eq('id', caseData.id)
+                    .eq('id', activeCase.id)
                     .select()
                     .single();
 
@@ -867,22 +861,22 @@ export async function POST(req: Request) {
             const { latitude, longitude, address } = event.message;
             console.log(`4. [Location] Location: ${latitude}, ${longitude}, address: ${address || 'N/A'}`);
 
-            const { caseData } = await getOrCreateActiveCase(reporterUserId, {
+            const activeCase = await getOrCreateActiveCase(reporterUserId, {
               latitude,
               longitude,
               details: `พิกัดจาก LINE: ${address || ''}`
-            });
+            }, accessToken);
 
-            if (caseData) {
-              const caseId = String(caseData.id);
+            if (activeCase) {
+              const caseId = String(activeCase.id);
               await supabase
                 .from('cases')
                 .update({
                   latitude,
                   longitude,
-                  details: `${caseData.details || ''}\n[พิกัด GPS: ${address || ''}]`.trim()
+                  details: `${activeCase.details || ''}\n[พิกัด GPS: ${address || ''}]`.trim()
                 })
-                .eq('id', caseData.id);
+                .eq('id', activeCase.id);
 
               await sendLineReply(
                 event.replyToken,
