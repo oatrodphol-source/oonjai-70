@@ -576,16 +576,16 @@ export default function ReportDashboardPage() {
                 >
                   {role === 'admin' ? (
                     <>
-                      <option value="cases">📋 เคสฉุกเฉินทั้งหมด (All Cases)</option>
-                      <option value="shelter_cases">🏠 รายงานเคสนำส่งศูนย์พักพิง (Shelter Cases)</option>
-                      <option value="hospital_cases">🏥 รายงานเคสนำส่งโรงพยาบาล/หน่วยแพทย์ (Hospital & Medical Cases)</option>
-                      <option value="supplies_cases">📦 รายงานเคสแจกถุงยังชีพ/เสบียง (Supplies Rations)</option>
-                      <option value="line_cases">💬 รายงานผู้แจ้งเหตุผ่าน LINE (LINE SOS Cases)</option>
-                      <option value="vulnerable_cases">♿ รายงานเคสกลุ่มเปราะบาง/ติดเตียง (Vulnerable & Bedridden)</option>
-                      <option value="critical_cases">🚨 รายงานเคสวิกฤตด่วนสูงสุด ระดับ 5 (Critical Level 5 Cases)</option>
-                      <option value="safe">✅ รายชื่อผู้ปลอดภัยทั้งหมด (Safe Reports)</option>
-                      <option value="users">👷 ข้อมูลอาสาสมัครทั้งหมด (Volunteers)</option>
-                      <option value="logs">📜 ประวัติการทำงานระบบ (System Audit Logs)</option>
+                      <option value="cases">เคสฉุกเฉินทั้งหมด (All Cases)</option>
+                      <option value="shelter_cases">รายงานเคสนำส่งศูนย์พักพิง (Shelter Cases)</option>
+                      <option value="hospital_cases">รายงานเคสนำส่งโรงพยาบาล/หน่วยแพทย์ (Hospital & Medical Cases)</option>
+                      <option value="supplies_cases">รายงานเคสแจกถุงยังชีพ/เสบียง (Supplies Rations)</option>
+                      <option value="line_cases">รายงานผู้แจ้งเหตุผ่าน LINE (LINE SOS Cases)</option>
+                      <option value="vulnerable_cases">รายงานเคสกลุ่มเปราะบาง/ติดเตียง (Vulnerable & Bedridden)</option>
+                      <option value="critical_cases">รายงานเคสวิกฤตด่วนสูงสุด ระดับ 5 (Critical Level 5 Cases)</option>
+                      <option value="safe">รายชื่อผู้ปลอดภัยทั้งหมด (Safe Reports)</option>
+                      <option value="users">ข้อมูลอาสาสมัครทั้งหมด (Volunteers)</option>
+                      <option value="logs">ประวัติการทำงานระบบ (System Audit Logs)</option>
                     </>
                   ) : (
                     <>
