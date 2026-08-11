@@ -4,6 +4,7 @@ import { GoogleGenAI } from '@google/genai';
 
 // Helper for website base URL
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://oonjai-70-6yo4.vercel.app');
+const REPORT_URL = process.env.NEXT_PUBLIC_LIFF_ID ? `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID}` : `${BASE_URL}/report`;
 
 // Trigger keywords that show the Emergency Flex Card (no DB insert)
 const EMERGENCY_TRIGGER_KEYWORDS = ['แจ้งเหตุ', 'sos', 'สวัสดี', 'ช่วยด้วย', 'ขอความช่วยเหลือ', 'ฉุกเฉิน'];
@@ -62,9 +63,9 @@ function buildEmergencyFlexMessage() {
             type: 'button',
             style: 'secondary',
             action: {
-              type: 'message',
-              label: '🌊 ระบุสถานการณ์ / ขอเสบียง',
-              text: 'ระบุสถานการณ์',
+              type: 'uri',
+              label: '📝 กรอกฟอร์มคัดกรอง / ขอเสบียง',
+              uri: REPORT_URL,
             },
           },
           {
@@ -100,9 +101,9 @@ function buildCaseRegisteredFlexMessage(caseId?: string, titleText: string = '�
       type: 'button',
       style: 'secondary',
       action: {
-        type: 'message',
-        label: '🌊 ระบุสถานการณ์เพิ่มเติม',
-        text: 'ระบุสถานการณ์',
+        type: 'uri',
+        label: '📝 กรอกฟอร์มคัดกรองเพิ่มเติม',
+        uri: REPORT_URL,
       },
     },
   ];
