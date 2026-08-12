@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { 
   ChevronLeft, CheckCircle2, Clock, Truck, ShieldCheck, MapPin, 
   AlertCircle, Share2, XCircle, Star, UserPlus, AlertTriangle, 
-  PhoneCall, BatteryCharging, Flashlight, PackageCheck, Lightbulb, BellRing
+  PhoneCall, BatteryCharging, Flashlight, PackageCheck, Lightbulb, BellRing, Info
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -20,6 +20,10 @@ interface CaseData {
   details: string;
   latitude: number;
   longitude: number;
+  people_count?: number;
+  bedridden?: number | boolean;
+  elderly?: number | boolean;
+  severity?: number;
   rescuer_name?: string;
   rescuer_phone?: string;
   assigned_volunteer_name?: string;
@@ -31,9 +35,9 @@ interface CaseData {
 }
 
 const STEPS = [
-  { id: 'pending', label: 'รอดำเนินการ', icon: Clock },
-  { id: 'in_progress', label: 'กำลังเข้าช่วยเหลือ', icon: Truck },
-  { id: 'resolved', label: 'ช่วยเหลือสำเร็จ', icon: CheckCircle2 }
+  { id: 'pending', label: 'รอดำเนินการ', desc: 'ระบบรับข้อมูลแล้ว กำลังกระจายงานให้อาสา', icon: Clock },
+  { id: 'in_progress', label: 'กำลังเข้าช่วยเหลือ', desc: 'ทีมอาสากำลังเดินทางไปยังพิกัดของคุณ', icon: Truck },
+  { id: 'resolved', label: 'ช่วยเหลือสำเร็จ', desc: 'ผู้ประสบภัยได้รับการช่วยเหลือแล้ว', icon: CheckCircle2 }
 ];
 
 export default function TrackingPage({ params }: { params: Promise<{ id: string }> }) {
@@ -178,7 +182,7 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-6">
         <div className="w-12 h-12 border-4 border-[#ff6600]/30 border-t-[#ff6600] rounded-full animate-spin mb-4"></div>
-        <p className="text-gray-500 font-medium">กำลังโหลดสถานะ...</p>
+        <p className="text-gray-500 font-medium">กำลังโหลดข้อมูลติดตามเรียลไทม์จากระบบ...</p>
       </div>
     );
   }
@@ -236,6 +240,57 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
   const volunteerPhone = caseData.assigned_volunteer_phone || caseData.rescuer_phone;
   const volunteerUnit = caseData.assigned_volunteer_unit || "อาสาสมัครศูนย์กู้ภัย";
 
+  // Dynamic ETA Severity Computation
+  const sevVal = (caseData as any).severity || (caseData.type === 'sos' || caseData.type === 'SOS ด่วน' ? 5 : 1);
+  const eta = (() => {
+    const sev = Number(sevVal || 1);
+    if (sev >= 5) {
+      return {
+        timeText: 'ภายใน 15 – 30 นาที',
+        label: 'ระดับ 5 (วิกฤตฉุกเฉินด่วนที่สุด)',
+        badgeBg: 'bg-red-600 text-white',
+        borderBg: 'border-red-500/30 bg-red-500/10 dark:bg-red-950/40 text-red-700 dark:text-red-300',
+        IconComponent: AlertTriangle
+      };
+    }
+    if (sev === 4) {
+      return {
+        timeText: 'ภายใน 30 – 60 นาที',
+        label: 'ระดับ 4 (เสี่ยงสูง/รุนแรง)',
+        badgeBg: 'bg-orange-600 text-white',
+        borderBg: 'border-orange-500/30 bg-orange-500/10 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300',
+        IconComponent: Clock
+      };
+    }
+    if (sev === 3) {
+      return {
+        timeText: 'ภายใน 1 – 3 ชั่วโมง',
+        label: 'ระดับ 3 (ปานกลาง)',
+        badgeBg: 'bg-amber-500 text-white',
+        borderBg: 'border-amber-500/30 bg-amber-500/10 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300',
+        IconComponent: Truck
+      };
+    }
+    if (sev === 2) {
+      return {
+        timeText: 'ภายใน 6 – 12 ชั่วโมง',
+        label: 'ระดับ 2 (เฝ้าระวัง)',
+        badgeBg: 'bg-blue-600 text-white',
+        borderBg: 'border-blue-500/30 bg-blue-500/10 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300',
+        IconComponent: ShieldCheck
+      };
+    }
+    return {
+      timeText: 'ภายใน 24 ชั่วโมง',
+      label: 'ระดับ 1 (ทั่วไป/พื้นที่ปลอดภัย)',
+      badgeBg: 'bg-emerald-600 text-white',
+      borderBg: 'border-emerald-500/30 bg-emerald-500/10 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300',
+      IconComponent: AlertCircle
+    };
+  })();
+
+  const EtaIcon = eta.IconComponent;
+
   return (
     <div className="p-4 sm:p-6 w-full max-w-lg mx-auto pb-24 relative min-h-screen">
       {/* Header Bar */}
@@ -244,12 +299,12 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
           <button onClick={() => router.push('/history')} className="p-2 -ml-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
             <ChevronLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-xl font-bold text-[#ff6600]">ติดตามสถานะการช่วยเหลือ</h1>
+          <h1 className="text-lg sm:text-xl font-extrabold text-[#ff6600]">ติดตามสถานะการช่วยเหลือ</h1>
         </div>
 
         <button
           onClick={() => router.push('/report?proxy=true')}
-          className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 px-3 py-1.5 rounded-full font-semibold flex items-center gap-1.5 hover:bg-blue-100 transition-colors shadow-sm cursor-pointer"
+          className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 px-3 py-1.5 rounded-full font-semibold flex items-center gap-1 hover:bg-blue-100 transition-colors shadow-sm cursor-pointer shrink-0"
         >
           <UserPlus className="w-3.5 h-3.5" /> แจ้งแทนผู้อื่น
         </button>
@@ -317,22 +372,9 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
         </div>
       )}
 
-      {/* Completion Banner */}
-      {terminalStates.includes(caseData.status) && (
-        <div className="bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-500 text-emerald-700 dark:text-emerald-400 p-4 rounded-2xl mb-5 flex items-center gap-3 shadow-sm animate-in fade-in slide-in-from-top-4">
-          <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/50 rounded-full flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-          </div>
-          <div>
-            <h3 className="font-bold text-base">ผู้ประสบภัยปลอดภัยแล้ว / ยุติการช่วยเหลือ</h3>
-            <p className="text-xs opacity-90 mt-0.5">ขอบคุณทีมกู้ภัยและอาสาสมัครที่ร่วมปฏิบัติติการ</p>
-          </div>
-        </div>
-      )}
-
       {/* 🌟 1. Star Rating & Feedback (PROMINENT AT TOP CENTER when resolved) */}
       {caseData.status === 'resolved' && (
-        <div className="bg-white dark:bg-[#0b1325] p-6 rounded-3xl border-2 border-amber-400 shadow-xl mb-6 text-center animate-in zoom-in duration-300 relative overflow-hidden">
+        <div className="bg-white dark:bg-[#0b1325] p-6 rounded-3xl border-2 border-amber-400 shadow-xl mb-5 text-center animate-in zoom-in duration-300 relative overflow-hidden">
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-400/10 rounded-full blur-2xl"></div>
 
           <span className="inline-block px-3 py-1 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 text-xs font-bold rounded-full mb-3">
@@ -394,232 +436,203 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
         </div>
       )}
 
-      {/* Case Details Card */}
-      <Card className="p-5 border-2 border-gray-100 dark:border-gray-800 bg-white dark:bg-[#0b1325] shadow-sm mb-5 relative overflow-hidden text-center rounded-3xl">
-        <div className="absolute -top-10 -right-10 w-32 h-32 bg-orange-500/10 rounded-full blur-2xl"></div>
+      {/* 🏆 CONSOLIDATED MASTER HERO CARD (รวมข้อมูลหลักทั้งหมดไว้อย่างสะอาดและเรียบหรู) */}
+      <Card className="p-5 border-2 border-orange-100 dark:border-orange-950 bg-white dark:bg-[#0b1325] shadow-md mb-5 relative overflow-hidden rounded-3xl">
+        <div className="absolute -top-12 -right-12 w-40 h-40 bg-orange-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-        <div className="mb-4 pb-4 border-b border-gray-100 dark:border-gray-800 relative z-10">
-          <p className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">หมายเลขเหตุการณ์ (Case ID)</p>
-          <h1 className="text-5xl sm:text-6xl font-black text-[#ff6600] tracking-tighter mt-1 mb-1">
-            #{caseData.case_number ? String(caseData.case_number).padStart(3, '0') : String(caseData.id).substring(0, 5)}
-          </h1>
-          <h2 className="font-bold text-base text-gray-800 dark:text-gray-200">{caseData.type === 'sos' ? '🚨 SOS ฉุกเฉิน' : caseData.type}</h2>
-        </div>
-
-        <div className="space-y-2 text-xs sm:text-sm relative z-10 text-left">
-          <div className="flex justify-between border-b border-gray-50 dark:border-gray-800/50 pb-2">
-            <span className="text-gray-500">เวลาแจ้งเหตุ:</span>
-            <span className="font-bold text-orange-600 bg-orange-50 dark:bg-orange-950/40 px-2 py-0.5 rounded">
-              {caseData.created_at ? new Date(caseData.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-'}
+        {/* Top Case Badge & Status Pill */}
+        <div className="flex items-center justify-between gap-2 pb-4 border-b border-gray-100 dark:border-gray-800">
+          <div>
+            <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase font-black tracking-widest block">CASE ID</span>
+            <h2 className="text-3xl font-black text-[#ff6600] tracking-tight">
+              #{caseData.case_number ? String(caseData.case_number).padStart(3, '0') : String(caseData.id).substring(0, 5)}
+            </h2>
+            <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
+              {caseData.type === 'sos' ? '🚨 SOS ฉุกเฉิน' : caseData.type}
             </span>
           </div>
-          <div className="flex justify-between border-b border-gray-50 dark:border-gray-800/50 pb-2 pt-1">
-            <span className="text-gray-500">ระดับน้ำ:</span>
-            <span className="font-medium text-gray-800 dark:text-gray-200">{caseData.water_level || '-'}</span>
+
+          <div className="flex flex-col items-end">
+            <span className={`px-3 py-1.5 rounded-full text-xs font-extrabold flex items-center gap-1.5 shadow-sm ${
+              caseData.status === 'pending'
+                ? 'bg-orange-500 text-white animate-pulse'
+                : caseData.status === 'in_progress'
+                ? 'bg-yellow-500 text-white animate-pulse'
+                : caseData.status === 'resolved'
+                ? 'bg-emerald-600 text-white'
+                : 'bg-red-500 text-white'
+            }`}>
+              <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
+              {(caseData.status as string) === 'pending' && 'รอดำเนินการ'}
+              {(caseData.status as string) === 'in_progress' && 'กำลังเข้าช่วยเหลือ'}
+              {(caseData.status as string) === 'resolved' && 'ช่วยเหลือสำเร็จ'}
+              {(caseData.status as string) === 'cancelled' && 'ยกเลิกแล้ว'}
+            </span>
+            <span className="text-[11px] text-gray-400 dark:text-gray-500 mt-1 font-semibold">
+              {caseData.created_at ? new Date(caseData.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.' : '-'}
+            </span>
           </div>
-          {caseData.details && (
-            <div className="flex flex-col pt-1">
-              <span className="text-gray-500 mb-1">รายละเอียด:</span>
-              <span className="font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/60 p-2.5 rounded-xl border border-gray-100 dark:border-gray-800">{caseData.details}</span>
-            </div>
-          )}
         </div>
-      </Card>
 
-      {/* 🌟 2. Volunteer Assigned Info Card (Shown prominently when in_progress or assigned) */}
-      {caseData.status !== 'pending' && volunteerName && (
-        <div className="bg-white dark:bg-[#0b1325] rounded-3xl shadow-lg border-2 border-emerald-500 p-5 mb-5 animate-in slide-in-from-bottom-3 duration-300">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center text-xl shrink-0">
-              <Truck className="w-6 h-6 animate-pulse" />
-            </div>
-            <div className="flex flex-col min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">เจ้าหน้าที่เข้าช่วยเหลือ</span>
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-              </div>
-              <span className="text-base font-black text-gray-900 dark:text-white leading-tight truncate">
-                {volunteerName}
-              </span>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate">
-                {volunteerUnit}
-              </span>
-            </div>
-          </div>
-
-          {volunteerPhone && (volunteerPhone !== 'ไม่ระบุเบอร์โทร') && (
-            <>
-              <hr className="my-3.5 border-gray-100 dark:border-gray-800" />
-              <a
-                href={`tel:${volunteerPhone}`}
-                className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white py-3 px-4 rounded-xl font-bold text-sm transition-all shadow-md shadow-emerald-600/20"
-              >
-                📞 โทรติดต่อเจ้าหน้าที่ ({volunteerPhone})
-              </a>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* 🌟 3. Estimated Arrival Time Box based on Severity 1-5 */}
-      {!terminalStates.includes(caseData.status) && (() => {
-        const sevVal = (caseData as any).severity || (caseData.type === 'sos' || caseData.type === 'SOS ด่วน' ? 5 : 1);
-        const eta = (() => {
-          const sev = Number(sevVal || 1);
-          if (sev >= 5) {
-            return {
-              timeText: 'ภายใน 15 – 30 นาที',
-              label: 'ระดับ 5 (วิกฤตฉุกเฉินด่วนที่สุด)',
-              bg: 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300',
-              badge: 'bg-red-600 text-white',
-              IconComponent: AlertTriangle
-            };
-          }
-          if (sev === 4) {
-            return {
-              timeText: 'ภายใน 30 – 60 นาที',
-              label: 'ระดับ 4 (เสี่ยงสูง/รุนแรง)',
-              bg: 'bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300',
-              badge: 'bg-orange-600 text-white',
-              IconComponent: Clock
-            };
-          }
-          if (sev === 3) {
-            return {
-              timeText: 'ภายใน 1 – 3 ชั่วโมง',
-              label: 'ระดับ 3 (ปานกลาง)',
-              bg: 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300',
-              badge: 'bg-amber-500 text-white',
-              IconComponent: Truck
-            };
-          }
-          if (sev === 2) {
-            return {
-              timeText: 'ภายใน 6 – 12 ชั่วโมง',
-              label: 'ระดับ 2 (เฝ้าระวัง)',
-              bg: 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300',
-              badge: 'bg-blue-600 text-white',
-              IconComponent: ShieldCheck
-            };
-          }
-          return {
-            timeText: 'ภายใน 24 ชั่วโมง',
-            label: 'ระดับ 1 (ทั่วไป/พื้นที่ปลอดภัย)',
-            bg: 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300',
-            badge: 'bg-emerald-600 text-white',
-            IconComponent: AlertCircle
-          };
-        })();
-
-        const IconComp = eta.IconComponent;
-
-        return (
-          <div className={`p-4 rounded-3xl border ${eta.bg} mb-5 flex items-start gap-3 shadow-sm animate-in fade-in duration-300`}>
-            <div className="mt-0.5 shrink-0">
-              <IconComp className="w-6 h-6" />
+        {/* ETA Arrival Banner (if active) */}
+        {!terminalStates.includes(caseData.status) && (
+          <div className={`mt-4 p-3.5 rounded-2xl border ${eta.borderBg} flex items-center gap-3`}>
+            <div className="p-2 rounded-xl bg-white/80 dark:bg-black/30 shrink-0">
+              <EtaIcon className="w-5 h-5 text-current" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
-                <span className="text-xs font-bold uppercase tracking-wider opacity-90">คาดการณ์เวลาทีมกู้ภัยเข้าช่วยเหลือ</span>
-                <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold ${eta.badge}`}>
+              <div className="flex items-center justify-between gap-1 flex-wrap">
+                <span className="text-[11px] font-bold text-gray-600 dark:text-gray-300 uppercase">คาดการณ์เวลาทีมอาสาถึงพื้นที่</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-extrabold ${eta.badgeBg}`}>
                   {eta.label}
                 </span>
               </div>
-              <p className="text-sm font-semibold leading-tight mt-1">
-                ทีมอาสาจะถึงพื้นที่: <span className="font-extrabold text-base underline decoration-2">{eta.timeText}</span>
-              </p>
-              <p className="text-xs opacity-75 mt-1">
-                ประเมินความเร่งด่วนตามระดับความเสี่ยงของเหตุการณ์โดย AI Triage
+              <p className="text-sm font-extrabold mt-0.5">
+                ประมาณ: <span className="underline decoration-2 text-base font-black">{eta.timeText}</span>
               </p>
             </div>
           </div>
-        );
-      })()}
+        )}
 
-      {/* 🌟 4. Smart Victim Preparation & Action Guide */}
-      {!terminalStates.includes(caseData.status) && (
-        <div className="bg-slate-900 text-white rounded-3xl p-5 mb-6 shadow-md border border-slate-800 relative overflow-hidden">
-          <div className="flex items-center gap-2 mb-3 border-b border-slate-800 pb-2">
-            <Lightbulb className="w-5 h-5 text-yellow-400 animate-pulse" />
-            <h3 className="font-bold text-xs text-yellow-400 tracking-wider uppercase">
-              ข้อควรปฏิบัติ & การเตรียมตัวสำหรับผู้ประสบภัย
-            </h3>
+        {/* Integrated Volunteer Card (If assigned) */}
+        {caseData.status !== 'pending' && volunteerName && (
+          <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+            <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 rounded-2xl p-3.5 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 bg-emerald-600 text-white rounded-xl flex items-center justify-center shrink-0 shadow-sm">
+                  <Truck className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">เจ้าหน้าที่รับเคสแล้ว</div>
+                  <div className="text-sm font-extrabold text-gray-900 dark:text-white truncate">{volunteerName}</div>
+                  <div className="text-[11px] text-gray-500 truncate">{volunteerUnit}</div>
+                </div>
+              </div>
+
+              {volunteerPhone && (volunteerPhone !== 'ไม่ระบุเบอร์โทร') && (
+                <a
+                  href={`tel:${volunteerPhone}`}
+                  className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-3.5 py-2 rounded-xl text-xs font-bold shrink-0 flex items-center gap-1 shadow-md shadow-emerald-600/30 transition-transform"
+                >
+                  📞 โทรหาอาสา
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+      </Card>
+
+      {/* 📋 SECTION 2: Dynamic Supabase Incident Details & Smart Guide */}
+      <div className="space-y-4 mb-5">
+        
+        {/* Incident Raw Details Card from Supabase */}
+        <Card className="p-4 border border-gray-100 dark:border-gray-800 bg-white dark:bg-[#0b1325] rounded-3xl shadow-sm space-y-3">
+          <div className="flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-2">
+            <Info className="w-4 h-4 text-orange-500" />
+            <h3 className="font-extrabold text-sm text-gray-900 dark:text-white">ข้อมูลรายละเอียดแจ้งเหตุ</h3>
           </div>
 
-          {caseData.status === 'pending' ? (
-            <div className="space-y-2.5 text-xs text-slate-300">
-              <div className="flex items-start gap-2.5">
-                <BatteryCharging className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span><strong className="text-white">เตรียมแบตเตอรี่:</strong> ชาร์จแบตโทรศัพท์และพาวเวอร์แบงก์ไว้ให้พร้อมใช้งานเสมอ</span>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <MapPin className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
-                <span><strong className="text-white">ประจำจุดพิกัด:</strong> อยู่ในตำแหน่งที่แจ้งพิกัดไว้ หรือขึ้นที่สูงเพื่อความปลอดภัย</span>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <BellRing className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                <span><strong className="text-white">เปิดเสียงโทรศัพท์:</strong> เปิดเสียงสั่นไว้เพื่อไม่ให้พลาดการติดต่อจากเจ้าหน้าที่</span>
-              </div>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="bg-gray-50 dark:bg-gray-800/50 p-2.5 rounded-2xl border border-gray-100 dark:border-gray-800">
+              <span className="text-gray-400 block text-[10px]">ระดับน้ำ</span>
+              <span className="font-bold text-gray-800 dark:text-gray-200">{caseData.water_level || '-'}</span>
             </div>
-          ) : (
-            <div className="space-y-2.5 text-xs text-slate-300">
-              <div className="flex items-start gap-2.5">
-                <Truck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span><strong className="text-white">ทีมอาสากำลังเดินทาง:</strong> โปรดเตรียมพร้อมสำหรับการอพยพหรือรับความช่วยเหลือ</span>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <PackageCheck className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                <span><strong className="text-white">จัดเตรียมของจำเป็น:</strong> รวบรวมเอกสารสำคัญ ยาสมัครประจำตัว น้ำดื่ม และเสื้อผ้า</span>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <Flashlight className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                <span><strong className="text-white">ส่งสัญญาณ:</strong> หากเป็นเวลากลางคืน ให้เปิดไฟฉายหรือส่งสัญญาณเมื่อได้ยินเสียงเจ้าหน้าที่</span>
-              </div>
+            <div className="bg-gray-50 dark:bg-gray-800/50 p-2.5 rounded-2xl border border-gray-100 dark:border-gray-800">
+              <span className="text-gray-400 block text-[10px]">จำนวนผู้ติดค้าง</span>
+              <span className="font-bold text-gray-800 dark:text-gray-200">{caseData.people_count || 1} คน</span>
+            </div>
+          </div>
+
+          {caseData.details && (
+            <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800 text-xs">
+              <span className="text-gray-400 block text-[10px] mb-1">รายละเอียดเพิ่มเติม:</span>
+              <p className="font-medium text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{caseData.details}</p>
             </div>
           )}
-        </div>
-      )}
+        </Card>
 
-      {/* Vertical Status Timeline */}
+        {/* Smart Victim Action & Preparation Guide (glowing sleek design) */}
+        {!terminalStates.includes(caseData.status) && (
+          <div className="bg-slate-900 text-white rounded-3xl p-4 shadow-md border border-slate-800 relative overflow-hidden">
+            <div className="flex items-center gap-2 mb-2.5 border-b border-slate-800 pb-2">
+              <Lightbulb className="w-4 h-4 text-yellow-400 animate-pulse" />
+              <h3 className="font-bold text-xs text-yellow-400 tracking-wider uppercase">
+                คำแนะนำสำหรับผู้ประสบภัย
+              </h3>
+            </div>
+
+            {caseData.status === 'pending' ? (
+              <div className="space-y-2 text-xs text-slate-300">
+                <div className="flex items-start gap-2">
+                  <BatteryCharging className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span><strong className="text-white">เตรียมแบตเตอรี่:</strong> ชาร์จแบตโทรศัพท์/พาวเวอร์แบงก์ไว้ให้พร้อมใช้งาน</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <MapPin className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
+                  <span><strong className="text-white">ประจำจุดพิกัด:</strong> อยู่ตำแหน่งที่แจ้งพิกัดไว้ หรือขึ้นที่สูงปลอดภัย</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <BellRing className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                  <span><strong className="text-white">เปิดเสียงโทรศัพท์:</strong> เปิดเสียงไว้เพื่อไม่ให้พลาดสายจากเจ้าหน้าที่</span>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2 text-xs text-slate-300">
+                <div className="flex items-start gap-2">
+                  <Truck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span><strong className="text-white">ทีมอาสากำลังเดินทาง:</strong> โปรดเตรียมพร้อมรับการเข้าช่วยเหลือ</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <PackageCheck className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <span><strong className="text-white">จัดเตรียมของจำเป็น:</strong> รวบรวมเอกสาร ยาประจำตัว และน้ำดื่ม</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Flashlight className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                  <span><strong className="text-white">ส่งสัญญาณ:</strong> หากเป็นกลางคืน ให้เปิดไฟฉายเมื่อได้ยินเสียงเจ้าหน้าที่</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+      </div>
+
+      {/* 🛤️ SECTION 3: Vertical Status Timeline */}
       {caseData.status !== 'resolved' && (
-        <div className="bg-white dark:bg-[#0b1325] rounded-3xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 mb-8">
-          <h3 className="font-bold text-base mb-5 text-gray-800 dark:text-gray-200">สถานะปัจจุบัน</h3>
-          <div className="relative pl-6 space-y-7">
-            <div className="absolute top-2 bottom-2 left-[27px] w-0.5 bg-gray-200 dark:bg-gray-800 z-0"></div>
+        <Card className="bg-white dark:bg-[#0b1325] rounded-3xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 mb-8">
+          <h3 className="font-extrabold text-sm mb-4 text-gray-800 dark:text-gray-200">ลำดับขั้นตอนการช่วยเหลือ</h3>
+          <div className="relative pl-5 space-y-6">
+            <div className="absolute top-2 bottom-2 left-[23px] w-0.5 bg-gray-200 dark:bg-gray-800 z-0"></div>
 
             {STEPS.map((step, index) => {
               const isCompleted = index < activeIndex;
               const isActive = index === activeIndex;
-              const Icon = step.icon;
+              const StepIcon = step.icon;
 
               return (
-                <div key={step.id} className="relative z-10 flex items-start gap-3.5">
+                <div key={step.id} className="relative z-10 flex items-start gap-3">
                   <div className={`
-                        w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm transition-all duration-300
+                        w-7 h-7 rounded-full flex items-center justify-center shrink-0 shadow-sm transition-all duration-300
                         ${isCompleted ? 'bg-emerald-500 text-white shadow-emerald-500/20' :
                       isActive ? 'bg-[#ff6600] text-white shadow-[#ff6600]/30 ring-4 ring-orange-100 dark:ring-orange-900/20' :
                         'bg-gray-100 dark:bg-gray-800 text-gray-400 border border-gray-200 dark:border-gray-700'}
                       `}>
-                    <Icon className={`w-4 h-4 ${isActive ? 'animate-pulse' : ''}`} />
+                    <StepIcon className={`w-3.5 h-3.5 ${isActive ? 'animate-pulse' : ''}`} />
                   </div>
 
-                  <div className={`pt-1 transition-all duration-300 ${isActive ? 'opacity-100 translate-x-1' : isCompleted ? 'opacity-80' : 'opacity-40'}`}>
-                    <h4 className={`font-bold ${isActive ? 'text-[#ff6600] text-base' : isCompleted ? 'text-emerald-600' : 'text-gray-500'}`}>
+                  <div className={`pt-0.5 transition-all duration-300 ${isActive ? 'opacity-100 translate-x-1' : isCompleted ? 'opacity-80' : 'opacity-40'}`}>
+                    <h4 className={`font-bold text-xs sm:text-sm ${isActive ? 'text-[#ff6600]' : isCompleted ? 'text-emerald-600' : 'text-gray-500'}`}>
                       {step.label}
                     </h4>
-                    {isActive && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
-                        {step.id === 'pending' && 'ระบบได้รับข้อมูลแล้ว กำลังกระจายงานให้เจ้าหน้าที่...'}
-                        {step.id === 'in_progress' && 'ทีมกู้ภัยรับทราบเหตุและกำลังเดินทางไปยังพิกัดของคุณ'}
-                        {step.id === 'resolved' && `✅ ช่วยเหลือสำเร็จ`}
-                      </p>
-                    )}
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                      {step.desc}
+                    </p>
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Floating Bottom Actions (Share, Cancel, Map) */}
