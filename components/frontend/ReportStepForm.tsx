@@ -455,8 +455,9 @@ export const ReportStepForm = () => {
         console.error("🔥 FAILED TO SAVE LOCAL STORAGE:", error);
       }
       
+      localStorage.setItem('oonjai_active_case_id', String(caseId));
       setSubmittedCaseId(caseId);
-      setShowSuccessModal(true);
+      router.push(`/tracking/${caseId}`);
     } catch (error) {
       console.error('Submission error:', error);
       alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง');

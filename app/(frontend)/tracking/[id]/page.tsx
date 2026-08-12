@@ -279,6 +279,77 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
         </div>
       </Card>
 
+      {/* Estimated Arrival Time Box based on Severity 1-5 */}
+      {!terminalStates.includes(caseData.status) && (() => {
+        const sevVal = (caseData as any).severity || (caseData.type === 'sos' || caseData.type === 'SOS ด่วน' ? 5 : 1);
+        const eta = (() => {
+          const sev = Number(sevVal || 1);
+          if (sev >= 5) {
+            return {
+              timeText: 'ภายใน 15 – 30 นาที',
+              label: 'ระดับ 5 (วิกฤตฉุกเฉินด่วนที่สุด)',
+              bg: 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300',
+              badge: 'bg-red-600 text-white',
+              icon: '🚨'
+            };
+          }
+          if (sev === 4) {
+            return {
+              timeText: 'ภายใน 30 – 60 นาที',
+              label: 'ระดับ 4 (เสี่ยงสูง/รุนแรง)',
+              bg: 'bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300',
+              badge: 'bg-orange-600 text-white',
+              icon: '⚡'
+            };
+          }
+          if (sev === 3) {
+            return {
+              timeText: 'ภายใน 1 – 3 ชั่วโมง',
+              label: 'ระดับ 3 (ปานกลาง)',
+              bg: 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300',
+              badge: 'bg-amber-500 text-white',
+              icon: '🚚'
+            };
+          }
+          if (sev === 2) {
+            return {
+              timeText: 'ภายใน 6 – 12 ชั่วโมง',
+              label: 'ระดับ 2 (เฝ้าระวัง)',
+              bg: 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300',
+              badge: 'bg-blue-600 text-white',
+              icon: '🛡️'
+            };
+          }
+          return {
+            timeText: 'ภายใน 24 ชั่วโมง',
+            label: 'ระดับ 1 (ทั่วไป/พื้นที่ปลอดภัย)',
+            bg: 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300',
+            badge: 'bg-emerald-600 text-white',
+            icon: 'ℹ️'
+          };
+        })();
+
+        return (
+          <div className={`p-4 rounded-2xl border ${eta.bg} mb-6 flex items-start gap-3 shadow-sm animate-in fade-in duration-300`}>
+            <div className="text-2xl mt-0.5 shrink-0">{eta.icon}</div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
+                <span className="text-xs font-bold uppercase tracking-wider opacity-90">คาดการณ์เวลาทีมกู้ภัยเข้าช่วยเหลือ</span>
+                <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold ${eta.badge}`}>
+                  {eta.label}
+                </span>
+              </div>
+              <p className="text-sm font-semibold leading-tight mt-1">
+                ทีมอาสาจะถึงพื้นที่: <span className="font-extrabold text-base underline decoration-2">{eta.timeText}</span>
+              </p>
+              <p className="text-xs opacity-75 mt-1">
+                ประเมินความเร่งด่วนตามระดับความเสี่ยงของเหตุการณ์โดย AI Triage
+              </p>
+            </div>
+          </div>
+        );
+      })()}
+
       {caseData.status !== 'pending' && (caseData.volunteer_name || caseData.assigned_volunteer_name || caseData.rescuer_name) && (
         <div className="bg-white dark:bg-[#151b2c] rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-5 mb-6">
           <div className="flex items-center gap-4">

@@ -256,12 +256,13 @@ export const SOSButton = () => {
               }
             }
 
-            // Show toast and redirect instantly to history
+            // Show toast and redirect directly to tracking page
             setIsLoading(false);
+            localStorage.setItem('oonjai_active_case_id', String(caseId));
             toast.success(`ส่งข้อมูลสำเร็จ! ระบบได้รับเคสหมายเลข #${caseId} ของคุณแล้ว`, {
               duration: 5000,
             });
-            router.push('/history');
+            router.push(`/tracking/${caseId}`);
           } else {
             setIsLoading(false);
             throw new Error('ไม่สามารถบันทึกข้อมูลได้');
