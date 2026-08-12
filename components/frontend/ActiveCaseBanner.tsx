@@ -279,6 +279,22 @@ export const ActiveCaseBanner = () => {
           </Link>
         </div>
       )}
+
+      {/* 🔴 3. RED ACTIVE CASE PILL BUTTON (Renders on Map page under search bar when case is active, linking to History) */}
+      {(pathname === '/' || pathname === '/map') && isBannerVisible && activeCaseId && (
+        <div className="fixed top-28 sm:top-32 left-1/2 -translate-x-1/2 z-[1000] pointer-events-auto">
+          <Link 
+            href="/history" 
+            className="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-full shadow-xl flex items-center gap-2.5 transition-all border-2 border-white/20 backdrop-blur-md animate-in fade-in slide-in-from-top-4"
+          >
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+            </span>
+            <span className="text-xs sm:text-sm font-bold tracking-wide">กำลังขอความช่วยเหลือ</span>
+          </Link>
+        </div>
+      )}
     </>
   );
 };
