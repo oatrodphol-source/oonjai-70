@@ -3,9 +3,9 @@ import React, { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { 
-  ChevronLeft, CheckCircle2, Clock, Truck, ShieldCheck, MapPin, 
-  AlertCircle, Share2, XCircle, Star, UserPlus, AlertTriangle, 
+import {
+  ChevronLeft, CheckCircle2, Clock, Truck, ShieldCheck, MapPin,
+  AlertCircle, Share2, XCircle, Star, UserPlus, AlertTriangle,
   PhoneCall, BatteryCharging, Flashlight, PackageCheck, Lightbulb, BellRing, Info
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -315,7 +315,7 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white dark:bg-[#0b1325] border-2 border-emerald-500 rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl scale-100 animate-in zoom-in-95 duration-300 relative overflow-hidden">
             <div className="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl"></div>
-            
+
             <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
               <Truck className="w-8 h-8" />
             </div>
@@ -397,8 +397,8 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
                   >
                     <Star
                       className={`w-10 h-10 ${(hoveredRating || rating) >= star
-                          ? 'fill-amber-400 text-amber-400 drop-shadow-md'
-                          : 'text-gray-300 dark:text-gray-700'
+                        ? 'fill-amber-400 text-amber-400 drop-shadow-md'
+                        : 'text-gray-300 dark:text-gray-700'
                         } transition-colors`}
                     />
                   </button>
@@ -444,7 +444,7 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
         <div className="flex items-center justify-between gap-2 pb-4 border-b border-gray-100 dark:border-gray-800">
           <div>
             <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase font-black tracking-widest block">CASE ID</span>
-            <h2 className="text-5xl sm:text-6xl font-black text-[#ff6600] tracking-tighter leading-none my-1">
+            <h2 className="text-6xl sm:text-7xl font-black text-[#ff6600] tracking-tighter leading-none my-1">
               #{caseData.case_number ? String(caseData.case_number).padStart(3, '0') : String(caseData.id).substring(0, 5)}
             </h2>
             <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
@@ -453,15 +453,14 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
           </div>
 
           <div className="flex flex-col items-end">
-            <span className={`px-3 py-1.5 rounded-full text-xs font-extrabold flex items-center gap-1.5 shadow-sm ${
-              caseData.status === 'pending'
+            <span className={`px-3 py-1.5 rounded-full text-xs font-extrabold flex items-center gap-1.5 shadow-sm ${caseData.status === 'pending'
                 ? 'bg-orange-500 text-white animate-pulse'
                 : caseData.status === 'in_progress'
-                ? 'bg-yellow-500 text-white animate-pulse'
-                : caseData.status === 'resolved'
-                ? 'bg-emerald-600 text-white'
-                : 'bg-red-500 text-white'
-            }`}>
+                  ? 'bg-yellow-500 text-white animate-pulse'
+                  : caseData.status === 'resolved'
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-red-500 text-white'
+              }`}>
               <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
               {(caseData.status as string) === 'pending' && 'รอดำเนินการ'}
               {(caseData.status as string) === 'in_progress' && 'กำลังเข้าช่วยเหลือ'}
@@ -539,7 +538,7 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
 
       {/* 📋 SECTION 2: Dynamic Supabase Incident Details & Smart Guide */}
       <div className="space-y-4 mb-5">
-        
+
         {/* Incident Raw Details Card from Supabase */}
         <Card className="p-4 border border-gray-100 dark:border-gray-800 bg-white dark:bg-[#0b1325] rounded-3xl shadow-sm space-y-3">
           <div className="flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-2">
