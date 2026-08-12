@@ -223,20 +223,11 @@ export const SOSButton = () => {
         <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-sm mx-auto">กดหนึ่งครั้งเพื่อส่งสัญญาณขอความช่วยเหลือด่วน ระบบจะส่งพิกัดของคุณอัตโนมัติ</p>
       </div>
 
-      {/* Cooldown Banner */}
-      {cooldownRemaining > 0 && (
-        <div className="text-center mb-4 sm:mb-6">
-          <p className="text-xs sm:text-sm text-red-500 font-bold animate-pulse px-4 py-2 bg-red-100 dark:bg-red-900/30 rounded-full inline-block shadow-sm">
-            ⏳ กรุณารอ {formatTime(cooldownRemaining)} นาที
-          </p>
-        </div>
-      )}
-
       {/* SOS Button Container */}
       <div className="relative flex items-center justify-center my-4 sm:my-8">
         
         {/* Background Ripple Animation */}
-        {status === 'idle' && cooldownRemaining === 0 && (
+        {status === 'idle' && (
           <div className="absolute w-72 h-72 rounded-full bg-red-500/10 dark:bg-red-500/20 animate-ping" style={{ animationDuration: '2s' }}></div>
         )}
         {(status === 'locating' || status === 'sending') && (
@@ -245,12 +236,10 @@ export const SOSButton = () => {
 
         {/* Main Button */}
         <button
-          disabled={isLoading || status === 'success' || cooldownRemaining > 0}
+          disabled={isLoading || status === 'success'}
           onClick={handleSOSClick}
           className={`relative z-10 w-64 h-64 md:w-80 md:h-80 rounded-full flex flex-col items-center justify-center border-[12px] shadow-[0_20px_50px_rgba(255,102,0,0.3)] transition-all duration-300 transform active:scale-95 ${
-            cooldownRemaining > 0
-              ? 'bg-gray-400 border-gray-300 shadow-none text-white cursor-not-allowed opacity-80'
-              : status === 'success' 
+            status === 'success' 
               ? 'bg-emerald-500 border-emerald-400 shadow-[0_20px_50px_rgba(16,185,129,0.4)] text-white' 
               : status === 'error'
               ? 'bg-red-600 border-red-500 shadow-[0_20px_50px_rgba(220,38,38,0.4)] text-white'
