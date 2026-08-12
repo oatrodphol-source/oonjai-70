@@ -3,7 +3,7 @@ import React, { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { ChevronLeft, CheckCircle2, Clock, Truck, ShieldCheck, MapPin, AlertCircle, Share2, XCircle, Star, UserPlus } from 'lucide-react';
+import { ChevronLeft, CheckCircle2, Clock, Truck, ShieldCheck, MapPin, AlertCircle, Share2, XCircle, Star, UserPlus, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface CaseData {
@@ -290,7 +290,7 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
               label: 'ระดับ 5 (วิกฤตฉุกเฉินด่วนที่สุด)',
               bg: 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300',
               badge: 'bg-red-600 text-white',
-              icon: '🚨'
+              IconComponent: AlertTriangle
             };
           }
           if (sev === 4) {
@@ -299,7 +299,7 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
               label: 'ระดับ 4 (เสี่ยงสูง/รุนแรง)',
               bg: 'bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300',
               badge: 'bg-orange-600 text-white',
-              icon: '⚡'
+              IconComponent: Clock
             };
           }
           if (sev === 3) {
@@ -308,7 +308,7 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
               label: 'ระดับ 3 (ปานกลาง)',
               bg: 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300',
               badge: 'bg-amber-500 text-white',
-              icon: '🚚'
+              IconComponent: Truck
             };
           }
           if (sev === 2) {
@@ -317,7 +317,7 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
               label: 'ระดับ 2 (เฝ้าระวัง)',
               bg: 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300',
               badge: 'bg-blue-600 text-white',
-              icon: '🛡️'
+              IconComponent: ShieldCheck
             };
           }
           return {
@@ -325,13 +325,17 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
             label: 'ระดับ 1 (ทั่วไป/พื้นที่ปลอดภัย)',
             bg: 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300',
             badge: 'bg-emerald-600 text-white',
-            icon: 'ℹ️'
+            IconComponent: AlertCircle
           };
         })();
 
+        const IconComp = eta.IconComponent;
+
         return (
           <div className={`p-4 rounded-2xl border ${eta.bg} mb-6 flex items-start gap-3 shadow-sm animate-in fade-in duration-300`}>
-            <div className="text-2xl mt-0.5 shrink-0">{eta.icon}</div>
+            <div className="mt-0.5 shrink-0">
+              <IconComp className="w-6 h-6" />
+            </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
                 <span className="text-xs font-bold uppercase tracking-wider opacity-90">คาดการณ์เวลาทีมกู้ภัยเข้าช่วยเหลือ</span>
