@@ -551,47 +551,30 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
           )}
         </Card>
 
-        {/* Smart Victim Action & Preparation Guide (glowing sleek design) */}
-        {!terminalStates.includes(caseData.status) && (
-          <div className="bg-slate-900 text-white rounded-3xl p-4 shadow-md border border-slate-800 relative overflow-hidden">
+        {/* Smart Victim Action & Preparation Guide (Shown ONLY after volunteer accepts case) */}
+        {caseData.status === 'in_progress' && (
+          <div className="bg-slate-900 text-white rounded-3xl p-4 shadow-sm border border-slate-800 animate-in fade-in duration-300">
             <div className="flex items-center gap-2 mb-2.5 border-b border-slate-800 pb-2">
-              <Lightbulb className="w-4 h-4 text-yellow-400 animate-pulse" />
+              <Lightbulb className="w-4 h-4 text-yellow-400" />
               <h3 className="font-bold text-xs text-yellow-400 tracking-wider uppercase">
-                คำแนะนำสำหรับผู้ประสบภัย
+                คำแนะนำสำหรับการเตรียมพร้อมรับการช่วยเหลือ
               </h3>
             </div>
 
-            {caseData.status === 'pending' ? (
-              <div className="space-y-2 text-xs text-slate-300">
-                <div className="flex items-start gap-2">
-                  <BatteryCharging className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <span><strong className="text-white">เตรียมแบตเตอรี่:</strong> ชาร์จแบตโทรศัพท์/พาวเวอร์แบงก์ไว้ให้พร้อมใช้งาน</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
-                  <span><strong className="text-white">ประจำจุดพิกัด:</strong> อยู่ตำแหน่งที่แจ้งพิกัดไว้ หรือขึ้นที่สูงปลอดภัย</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <BellRing className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                  <span><strong className="text-white">เปิดเสียงโทรศัพท์:</strong> เปิดเสียงไว้เพื่อไม่ให้พลาดสายจากเจ้าหน้าที่</span>
-                </div>
+            <div className="space-y-2 text-xs text-slate-300">
+              <div className="flex items-start gap-2">
+                <Truck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <span><strong className="text-white">ทีมอาสากำลังเดินทาง:</strong> โปรดเตรียมพร้อมรับการเข้าช่วยเหลือ</span>
               </div>
-            ) : (
-              <div className="space-y-2 text-xs text-slate-300">
-                <div className="flex items-start gap-2">
-                  <Truck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <span><strong className="text-white">ทีมอาสากำลังเดินทาง:</strong> โปรดเตรียมพร้อมรับการเข้าช่วยเหลือ</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <PackageCheck className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                  <span><strong className="text-white">จัดเตรียมของจำเป็น:</strong> รวบรวมเอกสาร ยาประจำตัว และน้ำดื่ม</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <Flashlight className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                  <span><strong className="text-white">ส่งสัญญาณ:</strong> หากเป็นกลางคืน ให้เปิดไฟฉายเมื่อได้ยินเสียงเจ้าหน้าที่</span>
-                </div>
+              <div className="flex items-start gap-2">
+                <PackageCheck className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <span><strong className="text-white">จัดเตรียมของจำเป็น:</strong> รวบรวมเอกสาร ยาประจำตัว และน้ำดื่ม</span>
               </div>
-            )}
+              <div className="flex items-start gap-2">
+                <Flashlight className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                <span><strong className="text-white">ส่งสัญญาณ:</strong> หากเป็นกลางคืน ให้เปิดไฟฉายเมื่อได้ยินเสียงเจ้าหน้าที่</span>
+              </div>
+            </div>
           </div>
         )}
 
