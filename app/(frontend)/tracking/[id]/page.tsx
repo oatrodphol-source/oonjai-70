@@ -494,6 +494,21 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
           </div>
         )}
 
+        {/* Clear Pending Action Guidance for Victims */}
+        {caseData.status === 'pending' && (
+          <div className="mt-4 p-3.5 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/60 rounded-2xl flex items-start gap-3 text-xs text-orange-900 dark:text-orange-200">
+            <Clock className="w-5 h-5 text-orange-600 shrink-0 mt-0.5 animate-spin" style={{ animationDuration: '4s' }} />
+            <div className="space-y-1">
+              <p className="font-extrabold text-orange-800 dark:text-orange-300">
+                📢 ระบบกำลังกระจายพิกัดของคุณถึงทีมกู้ภัยในพื้นที่
+              </p>
+              <p className="leading-relaxed opacity-90 text-[11px]">
+                ข้อมูลพิกัดถูกส่งเข้าศูนย์ช่วยเหลือเรียบร้อยแล้ว อาสาสมัครกำลังเข้าตรวจสอบเคส <strong>คุณสามารถเปิดหน้านี้ไว้ หรือกดแชร์สถานะให้ญาติทราบได้ทันที</strong> เมื่อมีอาสารับเคส ระบบจะเด้งป๊อปอัปแจ้งชื่อและเบอร์โทรอาสาทันทีครับ
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Integrated Volunteer Card (If assigned) */}
         {caseData.status !== 'pending' && volunteerName && (
           <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
