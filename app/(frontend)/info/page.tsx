@@ -340,45 +340,72 @@ export default function InfoPage() {
         {paginatedSafePeople.length > 0 ? (
           <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {paginatedSafePeople.map((person, idx) => (
-                <div key={`${person.type}-${person.id}-${idx}`} className="bg-white dark:bg-[#151b2c] border border-gray-100 dark:border-gray-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col gap-4">
-                  <div className="flex justify-between items-start gap-3">
-                    <div className="flex items-start gap-3 overflow-hidden">
-                      <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0 text-green-600 mt-1">
-                        <CheckCircle2 className="w-5 h-5" />
+              {paginatedSafePeople.map((person, idx) => {
+                let displayName = person.name || 'ผู้ประสบภัย';
+                let caseTag = '';
+
+                // Extract [ปิดเคส #...] tag if embedded in title
+                const matchCase = displayName.match(/\[(ปิดเคส #[^\]]+)\]/);
+                if (matchCase) {
+                  caseTag = matchCase[1];
+                  displayName = displayName.replace(/\[ปิดเคส #[^\]]+\]/, '').trim();
+                }
+
+                displayName = displayName.replace(/\s+/g, ' ').trim();
+                const isSelfReported = person.helper?.includes('แจ้งด้วยตนเอง') || (person as any).volunteer_id === 'self-reported';
+
+                return (
+                  <div key={`${person.type}-${person.id}-${idx}`} className="bg-white dark:bg-[#151b2c] border border-gray-100 dark:border-gray-800 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between gap-3 relative overflow-hidden">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="flex items-start gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5 shadow-inner">
+                          <CheckCircle2 className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="font-bold text-gray-900 dark:text-white text-sm sm:text-base leading-snug line-clamp-2">{displayName}</h4>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1 font-medium">
+                            <Clock className="w-3 h-3 text-gray-400" />
+                            {new Date(person.timestamp).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
+                          </p>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <h4 className="font-bold text-gray-900 dark:text-white truncate">{person.name}</h4>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                          {new Date(person.timestamp).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
-                        </p>
+
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        {caseTag ? (
+                          <span className="bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 text-[10px] px-2.5 py-0.5 rounded-full font-bold border border-emerald-200 dark:border-emerald-800 shadow-xs">
+                            {caseTag}
+                          </span>
+                        ) : isSelfReported ? (
+                          <span className="bg-green-50 text-green-700 dark:bg-green-900/40 dark:text-green-300 text-[10px] px-2.5 py-0.5 rounded-full font-bold border border-green-200 dark:border-green-800 shadow-xs">
+                            แจ้งด้วยตนเอง
+                          </span>
+                        ) : (
+                          <span className="bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 text-[10px] px-2.5 py-0.5 rounded-full font-bold border border-blue-200 dark:border-blue-800 shadow-xs">
+                            กู้ภัยช่วยเหลือแล้ว
+                          </span>
+                        )}
                       </div>
                     </div>
-                    {person.type === 'external' && (
-                      <span className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 text-[10px] px-2 py-1 rounded-full font-bold whitespace-nowrap flex-shrink-0">
-                        ข้อมูลภายนอก
-                      </span>
-                    )}
-                  </div>
-                  
-                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 text-sm space-y-2 mt-auto border border-gray-100 dark:border-gray-700/50">
-                    <div className="flex items-start gap-2">
-                      <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                      <span className="text-gray-700 dark:text-gray-300 text-sm leading-tight">
-                        <span className="font-semibold text-gray-500 dark:text-gray-400 mr-1">จุดหมาย:</span> 
-                        {person.destination}
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <ShieldPlus className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                      <span className="text-gray-700 dark:text-gray-300 text-sm leading-tight">
-                        <span className="font-semibold text-gray-500 dark:text-gray-400 mr-1">ช่วยเหลือโดย:</span> 
-                        {person.helper}
-                      </span>
+
+                    <div className="bg-slate-50 dark:bg-slate-900/60 rounded-xl p-3 text-xs space-y-1.5 border border-slate-100 dark:border-slate-800">
+                      <div className="flex items-start gap-2">
+                        <MapPin className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
+                        <span className="text-gray-700 dark:text-gray-300 leading-tight">
+                          <span className="font-semibold text-gray-500 dark:text-gray-400 mr-1">สถานที่/จุดหมาย:</span>
+                          <span className="font-bold text-gray-900 dark:text-gray-100">{person.destination || 'พื้นที่ปลอดภัย'}</span>
+                        </span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <ShieldPlus className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
+                        <span className="text-gray-700 dark:text-gray-300 leading-tight">
+                          <span className="font-semibold text-gray-500 dark:text-gray-400 mr-1">ผู้บันทึก:</span>
+                          <span className="font-medium">{person.helper}</span>
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Pagination Controls */}

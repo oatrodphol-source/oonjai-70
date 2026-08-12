@@ -246,36 +246,43 @@ export default function MapView({ onMarkerClick }: MapViewProps = {}) {
         try { const parsed = JSON.parse(lastReport); if (parsed.caseId) localCases.push(parsed.caseId); } catch(e){}
       }
       
-      // 1. Record the safe report
-      const phoneText = safePhone.trim() ? `เบอร์: ${safePhone}` : 'ไม่ระบุเบอร์';
-      const areaText = safeArea.trim() ? ` พื้นที่: ${safeArea}` : '';
+      const ids = localCases.map((id: any) => {
+        if (typeof id === 'string' && id.startsWith('CAS-')) {
+          return Number(id.replace('CAS-', ''));
+        }
+        return Number(id);
+      }).filter((id: number) => !isNaN(id));
+
+      // 1. Record the safe report with clean fields
+      const phoneText = safePhone.trim() ? safePhone.trim() : 'ไม่ระบุเบอร์';
+      const areaText = safeArea.trim() ? safeArea.trim() : 'พื้นที่ปลอดภัย';
+      const caseText = ids.length > 0 ? `[ปิดเคส #${ids.join(', #')}]` : '';
+
       const { error: safeError } = await supabase.from('safe_reports').insert({
-        name: `ผู้ประสบภัย (${phoneText})${areaText}`,
+        name: `ผู้ประสบภัย (${phoneText}) ${caseText}`.trim(),
+        phone: safePhone.trim() || null,
+        area: safeArea.trim() || null,
+        destination: areaText,
+        agency: 'แจ้งด้วยตนเอง',
         status: 'safe',
         timestamp: new Date().toISOString()
       });
 
-      if (safeError) throw safeError;
+      if (safeError) console.warn('safe_reports insert notice:', safeError);
 
-      // Step A: Close by IDs
-      if (Array.isArray(localCases) && localCases.length > 0) {
-        const ids = localCases.map((id: any) => {
-          if (typeof id === 'string' && id.startsWith('CAS-')) {
-            return Number(id.replace('CAS-', ''));
-          }
-          return Number(id);
-        }).filter((id: number) => !isNaN(id));
+      // Step A: Close by BOTH ID AND Case Number
+      if (ids.length > 0) {
+        const updatePayload = {
+          status: 'resolved', 
+          destination: 'แจ้งปลอดภัยด้วยตนเอง',
+          updated_at: new Date().toISOString(),
+          volunteer_id: 'self-reported',
+          volunteer_name: 'แจ้งด้วยตนเอง',
+          assigned_volunteer_name: 'แจ้งด้วยตนเอง'
+        };
 
-        if (ids.length > 0) {
-          await supabase.from('cases').update({
-            status: 'resolved', 
-            destination: 'แจ้งปลอดภัยด้วยตนเอง',
-            updated_at: new Date().toISOString(),
-            volunteer_id: 'self-reported',
-            volunteer_name: 'แจ้งด้วยตนเอง',
-            assigned_volunteer_name: 'แจ้งด้วยตนเอง'
-          }).in('id', ids);
-        }
+        await supabase.from('cases').update(updatePayload).in('id', ids);
+        await supabase.from('cases').update(updatePayload).in('case_number', ids);
       }
 
       // Step B: Close by Phone

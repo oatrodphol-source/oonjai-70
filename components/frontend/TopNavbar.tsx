@@ -138,14 +138,15 @@ export const TopNavbar: React.FC = () => {
       if (!caseIds || caseIds.length === 0) return [];
       const numericIds = caseIds.map(Number).filter(id => !isNaN(id));
       if (numericIds.length === 0) return [];
-      const { data, error } = await supabase
-        .from('cases')
-        .select('*')
-        .in('id', numericIds);
-      if (data && !error) {
-        return data;
-      }
-      return [];
+
+      const { data: idData } = await supabase.from('cases').select('*').in('id', numericIds);
+      const { data: numData } = await supabase.from('cases').select('*').in('case_number', numericIds);
+
+      const combinedMap = new Map();
+      (idData || []).forEach(c => combinedMap.set(String(c.id), c));
+      (numData || []).forEach(c => combinedMap.set(String(c.id), c));
+
+      return Array.from(combinedMap.values());
     };
 
     const loadAndSubscribeCases = async () => {
@@ -176,8 +177,9 @@ export const TopNavbar: React.FC = () => {
           const updateCasesUI = (fetchedData: any[]) => {
             const casesMap = new Map();
             fetchedData.forEach(data => {
-              casesMap.set(String(data.id), {
-                id: String(data.id),
+              const navId = data.case_number ? String(data.case_number) : String(data.id);
+              casesMap.set(navId, {
+                id: navId,
                 status: data.status,
                 timestamp: data.updated_at || data.created_at || 0
               });

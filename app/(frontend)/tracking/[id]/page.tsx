@@ -125,17 +125,24 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
   useEffect(() => {
     const fetchCase = async () => {
       try {
-        const { data, error } = await supabase.from('cases').select('*').eq('id', caseIdQuery).single();
-        if (error || !data) {
-          localStorage.removeItem('oonjai_last_sos');
-          localStorage.removeItem('oonjai_last_report');
+        let query = supabase.from('cases').select('*');
+        if (!isNaN(Number(id))) {
+          query = query.or(`id.eq.${id},case_number.eq.${id}`);
+        } else {
+          query = query.eq('id', id);
+        }
+
+        const { data, error } = await query.order('created_at', { ascending: false }).limit(1);
+        const caseItem = data && data.length > 0 ? data[0] : null;
+
+        if (error || !caseItem) {
           setError('ไม่พบข้อมูลแจ้งเหตุ หรือเคสนี้ถูกปิด/ลบออกจากระบบแล้ว');
           setIsLoading(false);
         } else {
-          setCaseData({ ...data, id: String(data.id) } as CaseData);
-          if (data.rating) {
-              setRatingSubmitted(true);
-              setRating(data.rating);
+          setCaseData({ ...caseItem, id: String(caseItem.id) } as CaseData);
+          if (caseItem.rating) {
+            setRatingSubmitted(true);
+            setRating(caseItem.rating);
           }
           setIsLoading(false);
         }
@@ -145,20 +152,17 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
         setIsLoading(false);
       }
     };
+
     fetchCase();
 
-    const channel = supabase.channel(`tracking-${id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'cases', filter: `id=eq.${id}` }, async (payload) => {
-        console.log('🔄 ข้อมูลเคสมีการเปลี่ยนแปลง:', payload.eventType);
-        
-        const { data, error } = await supabase.from('cases').select('*').eq('id', caseIdQuery).single();
-        if (data && !error) {
-          setCaseData({ ...data, id: String(data.id) } as CaseData);
-        }
+    const channel = supabase.channel(`tracking-case-page-${id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cases' }, () => {
+        console.log('🔄 ข้อมูลเคสมีการเปลี่ยนแปลง Realtime: re-fetching case');
+        fetchCase();
       }).subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [id, caseIdQuery]);
+  }, [id]);
 
   if (isLoading) {
     return (

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 import { supabase } from '@/lib/supabase';
+import { isActiveCase } from '@/lib/caseUtils';
 
 export default function HistoryPage() {
   const [activeCases, setActiveCases] = useState<any[]>([]);
@@ -25,6 +26,19 @@ export default function HistoryPage() {
           console.error('Error parsing my cases', e);
         }
 
+        const lastSos = localStorage.getItem('oonjai_last_sos');
+        if (lastSos) {
+          try { const p = JSON.parse(lastSos); if (p?.caseId) myCaseIds.push(String(p.caseId)); } catch(e){}
+        }
+
+        const lastReport = localStorage.getItem('oonjai_last_report');
+        if (lastReport) {
+          try { const p = JSON.parse(lastReport); if (p?.caseId) myCaseIds.push(String(p.caseId)); } catch(e){}
+        }
+
+        const activeCaseId = localStorage.getItem('oonjai_active_case_id');
+        if (activeCaseId) myCaseIds.push(String(activeCaseId));
+
         if (!myCaseIds || myCaseIds.length === 0) {
           setActiveCases([]);
           setPastCases([]);
@@ -32,7 +46,9 @@ export default function HistoryPage() {
           return;
         }
 
-        const numericCaseIds = myCaseIds.map(Number).filter(id => !isNaN(id));
+        const numericCaseIds = Array.from(new Set(
+          myCaseIds.map(Number).filter(id => !isNaN(id) && id > 0)
+        ));
 
         if (numericCaseIds.length === 0) {
           setActiveCases([]);
@@ -41,24 +57,33 @@ export default function HistoryPage() {
           return;
         }
 
-        const { data: snapshot, error } = await supabase
+        const { data: idData } = await supabase
           .from('cases')
           .select('*')
           .in('id', numericCaseIds)
           .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        const { data: numData } = await supabase
+          .from('cases')
+          .select('*')
+          .in('case_number', numericCaseIds)
+          .order('created_at', { ascending: false });
 
-        const activeStatuses = ['pending', 'in_progress', 'wait', 'accepted'];
-        
+        const combinedMap = new Map<number, any>();
+        (idData || []).forEach(c => combinedMap.set(c.id, c));
+        (numData || []).forEach(c => combinedMap.set(c.id, c));
+
+        const snapshot = Array.from(combinedMap.values());
+
         const active: any[] = [];
         const past: any[] = [];
 
         (snapshot || []).forEach(data => {
           const docId = String(data.id);
+          const rawNavId = data.case_number ? String(data.case_number) : docId;
           const caseItem = {
             id: data.case_number ? `CAS-${String(data.case_number).padStart(3, '0')}` : `CAS-${docId.substring(0, 5)}`,
-            rawId: docId,
+            rawId: rawNavId,
             type: data.type || 'ไม่ระบุ',
             status: data.status || 'pending',
             time: data.updated_at ? new Date(data.updated_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : 
@@ -66,8 +91,7 @@ export default function HistoryPage() {
             timestamp: data.updated_at || data.created_at || 0
           };
 
-          const s = typeof caseItem.status === 'string' ? caseItem.status.toLowerCase() : String(caseItem.status);
-          if (activeStatuses.includes(s)) {
+          if (isActiveCase(data.status)) {
             active.push(caseItem);
           } else {
             past.push(caseItem);
