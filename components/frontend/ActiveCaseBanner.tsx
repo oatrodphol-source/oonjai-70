@@ -64,7 +64,7 @@ export const ActiveCaseBanner = () => {
             .from('cases')
             .select('id, case_number, status, volunteer_name, assigned_volunteer_name, rescuer_name, assigned_volunteer_phone, rescuer_phone, assigned_volunteer_unit')
             .in('id', numericIds)
-            .order('updated_at', { ascending: false })
+            .order('id', { ascending: false })
             .limit(1);
 
           if (data && data.length > 0 && !error) {
@@ -281,17 +281,17 @@ export const ActiveCaseBanner = () => {
       )}
 
       {/* 🔴 3. RED ACTIVE CASE PILL BUTTON (Renders on Map page under search bar when case is active, linking to History) */}
-      {(pathname === '/' || pathname === '/map') && isBannerVisible && activeCaseId && (
-        <div className="fixed top-28 sm:top-32 left-1/2 -translate-x-1/2 z-[1000] pointer-events-auto">
+      {(pathname === '/' || pathname === '/map') && isBannerVisible && (
+        <div className="fixed top-20 sm:top-24 left-1/2 -translate-x-1/2 z-[9995] pointer-events-auto">
           <Link 
             href="/history" 
-            className="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-full shadow-xl flex items-center gap-2.5 transition-all border-2 border-white/20 backdrop-blur-md animate-in fade-in slide-in-from-top-4"
+            className="bg-red-600 hover:bg-red-700 active:scale-95 text-white px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-2.5 transition-all border-2 border-white/40 backdrop-blur-md animate-in fade-in slide-in-from-top-4"
           >
             <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90"></span>
               <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
             </span>
-            <span className="text-xs sm:text-sm font-bold tracking-wide">กำลังขอความช่วยเหลือ</span>
+            <span className="text-xs sm:text-sm font-extrabold tracking-wide drop-shadow-sm">กำลังขอความช่วยเหลือ</span>
           </Link>
         </div>
       )}
