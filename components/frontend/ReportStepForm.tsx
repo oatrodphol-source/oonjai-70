@@ -360,14 +360,17 @@ export const ReportStepForm = () => {
               return; // Block
             }
             // Allow through and increment later
-          } else {
-            // Not proxy, check distance
+            // Not proxy, check distance between new pin and previous pin
             const dist = getDistanceKm(formData.latitude, formData.longitude, lastReport.lat, lastReport.lng);
-            if (dist <= 1.0) { // Same area <= 1km
-              alert('คุณเพิ่งแจ้งเหตุในบริเวณนี้ไป กรุณารอสักครู่');
+            if (dist <= 0.5) { // Same area <= 500m
+              const gotoTrack = confirm('คุณเพิ่งแจ้งเหตุในบริเวณหมุดนี้ไปเมื่อไม่นานมานี้ (เพื่อป้องกันการแจ้งซ้ำซ้อน)\n\n• กด "ตกลง" เพื่อเปิดดูหน้าติดตามสถานะเคสปัจจุบัน\n• กด "ยกเลิก" หากต้องการเลื่อนหมุดพิกัดไปจุดอื่น หรือกดเลือกแจ้งแทนผู้อื่น');
+              if (gotoTrack && (lastReport.caseId || localStorage.getItem('oonjai_active_case_id'))) {
+                const targetId = lastReport.caseId || localStorage.getItem('oonjai_active_case_id');
+                router.push(`/tracking/${targetId}`);
+              }
               return; // Block
             }
-            // Distance > 1km, allow through
+            // Distance > 500m (different location pin), allow through!
           }
         }
       } catch (e) {}

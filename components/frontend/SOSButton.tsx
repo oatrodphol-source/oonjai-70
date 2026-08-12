@@ -12,63 +12,33 @@ export const SOSButton = () => {
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Initialize LIFF profile if available
   useEffect(() => {
-    const activeCaseId = localStorage.getItem('oonjai_active_case_id');
-    const lineUid = localStorage.getItem('oonjai_line_uid');
-    if (activeCaseId) {
-      router.replace(`/tracking/${activeCaseId}`);
-      return;
-    }
-    if (lineUid) {
-      supabase.from('cases').select('id').eq('reporter_name', lineUid).in('status', ['pending', 'in_progress']).order('created_at', { ascending: false }).limit(1).single()
-        .then(({ data }) => {
-          if (data) {
-            localStorage.setItem('oonjai_active_case_id', String(data.id));
-            router.replace(`/tracking/${data.id}`);
-          }
-        }, () => {});
-    }
-
-    // 2. Check if user has an active LINE case via LIFF
-    const checkLiffActiveCase = async () => {
+    const initLiff = async () => {
       try {
         const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
         if (!liffId) return;
         const liff = (await import('@line/liff')).default;
         await liff.init({ liffId });
-        if (liff.isLoggedIn()) {
-          const profile = await liff.getProfile();
-          if (profile?.userId) {
-            const { data: activeCase } = await supabase
-              .from('cases')
-              .select('id')
-              .eq('reporter_name', profile.userId)
-              .in('status', ['pending', 'in_progress'])
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .single();
-
-            if (activeCase) {
-              router.replace(`/tracking/${activeCase.id}`);
-            }
-          }
-        }
       } catch (e) {}
     };
-    checkLiffActiveCase();
-  }, [router]);
+    initLiff();
+  }, []);
 
   useEffect(() => {
     const checkCooldown = () => {
-      const lastReportTime = localStorage.getItem('oonjai_last_report_time');
-      if (lastReportTime) {
-        const elapsed = Date.now() - parseInt(lastReportTime);
-        const remaining = 600000 - elapsed;
-        if (remaining > 0) {
-          setCooldownRemaining(remaining);
-        } else {
-          setCooldownRemaining(0);
-        }
+      const lastSosStr = localStorage.getItem('oonjai_last_sos');
+      if (lastSosStr) {
+        try {
+          const lastSos = JSON.parse(lastSosStr);
+          const elapsed = Date.now() - lastSos.timestamp;
+          const remaining = 600000 - elapsed;
+          if (remaining > 0) {
+            setCooldownRemaining(remaining);
+          } else {
+            setCooldownRemaining(0);
+          }
+        } catch (e) {}
       }
     };
 
@@ -85,35 +55,30 @@ export const SOSButton = () => {
   };
 
   const handleSOSClick = async () => {
-    // 0. Synchronous check from localStorage
+    // 1. Check 10-minute cooldown for SOS button
+    const lastSosStr = typeof window !== 'undefined' ? localStorage.getItem('oonjai_last_sos') : null;
     const activeCaseId = typeof window !== 'undefined' ? localStorage.getItem('oonjai_active_case_id') : null;
-    const lineUid = typeof window !== 'undefined' ? localStorage.getItem('oonjai_line_uid') : null;
 
-    if (activeCaseId) {
-      alert(`คุณมีเคสแจ้งเหตุฉุกเฉินที่กำลังดำเนินการอยู่แล้ว (เคส #${activeCaseId}) ระบบนำทางไปหน้าติดตามสถานะ`);
-      router.push(`/tracking/${activeCaseId}`);
-      return;
-    }
-
-    if (lineUid) {
+    if (lastSosStr) {
       try {
-        const { data: activeCase } = await supabase
-          .from('cases')
-          .select('id')
-          .eq('reporter_name', lineUid)
-          .in('status', ['pending', 'in_progress'])
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-
-        if (activeCase) {
-          localStorage.setItem('oonjai_active_case_id', String(activeCase.id));
-          alert(`คุณมีเคสแจ้งเหตุฉุกเฉินที่กำลังดำเนินการอยู่แล้ว (เคส #${activeCase.id}) ระบบนำทางไปหน้าติดตามสถานะ`);
-          router.push(`/tracking/${activeCase.id}`);
+        const lastSos = JSON.parse(lastSosStr);
+        const elapsed = Date.now() - lastSos.timestamp;
+        if (elapsed < 10 * 60 * 1000) {
+          const remainingMins = Math.ceil((10 * 60 * 1000 - elapsed) / 60000);
+          const targetCaseId = lastSos.caseId || activeCaseId;
+          const gotoTrack = confirm(
+            `คุณเพิ่งแจ้งเหตุ SOS ไปเมื่อไม่นานมานี้ (คูลดาวน์ ${remainingMins} นาทีเพื่อป้องกันการแจ้งซ้ำซ้อน)\n\n• กด "ตกลง" เพื่อเปิดดูหน้าติดตามสถานะเคสปัจจุบัน (${targetCaseId ? `#${targetCaseId}` : ''})\n• กด "ยกเลิก" หากต้องการกรอกฟอร์มแจ้งเหตุแทนผู้อื่น / เลื่อนหมุดพิกัดอื่น`
+          );
+          if (gotoTrack && targetCaseId) {
+            router.push(`/tracking/${targetCaseId}`);
+          } else {
+            router.push('/report?proxy=true');
+          }
           return;
         }
       } catch (e) {}
     }
+
     let liffUserId = '';
     let liffDisplayName = 'SOS User (Auto)';
     try {
@@ -125,50 +90,10 @@ export const SOSButton = () => {
           if (profile?.userId) {
             liffUserId = profile.userId;
             liffDisplayName = profile.displayName || liffDisplayName;
-
-            const { data: activeCase } = await supabase
-              .from('cases')
-              .select('id')
-              .eq('reporter_name', profile.userId)
-              .in('status', ['pending', 'in_progress'])
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .single();
-
-            if (activeCase) {
-              alert(`คุณมีเคสแจ้งเหตุฉุกเฉินที่กำลังดำเนินการอยู่แล้ว (เคส #${activeCase.id}) ระบบนำทางไปหน้าติดตามสถานะ`);
-              router.push(`/tracking/${activeCase.id}`);
-              return;
-            }
           }
         }
       }
     } catch (e) {}
-
-    // 2. Check localStorage for recent SOS
-    const lastReportStr = localStorage.getItem('oonjai_last_report');
-    if (lastReportStr) {
-      try {
-        const lastReport = JSON.parse(lastReportStr);
-        if (Date.now() - lastReport.timestamp < 10 * 60 * 1000 && lastReport.caseId) {
-          alert('คุณได้แจ้งเหตุฉุกเฉินไปแล้วเมื่อไม่นานมานี้ ระบบจะพาไปดูสถานะเคสปัจจุบัน');
-          router.push(`/tracking/${lastReport.caseId}`);
-          return;
-        }
-      } catch(e) {}
-    }
-
-    const lastReportDataStr = localStorage.getItem('oonjai_last_report_data');
-    if (lastReportDataStr) {
-      try {
-        const lastReport = JSON.parse(lastReportDataStr);
-        if (Date.now() - lastReport.timestamp < 10 * 60 * 1000) {
-          alert('คุณได้แจ้งเหตุฉุกเฉินไปแล้วเมื่อไม่นานมานี้ ระบบจะพาไปดูสถานะเคสปัจจุบัน');
-          router.push('/history');
-          return;
-        }
-      } catch(e) {}
-    }
 
     setIsLoading(true);
     // 3. Check Geolocation support
