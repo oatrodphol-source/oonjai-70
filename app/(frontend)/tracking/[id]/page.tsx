@@ -444,7 +444,7 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
         <div className="flex items-center justify-between gap-2 pb-4 border-b border-gray-100 dark:border-gray-800">
           <div>
             <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase font-black tracking-widest block">CASE ID</span>
-            <h2 className="text-3xl font-black text-[#ff6600] tracking-tight">
+            <h2 className="text-5xl sm:text-6xl font-black text-[#ff6600] tracking-tighter leading-none my-1">
               #{caseData.case_number ? String(caseData.case_number).padStart(3, '0') : String(caseData.id).substring(0, 5)}
             </h2>
             <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
