@@ -102,27 +102,94 @@ export async function POST(req: Request) {
       },
     };
 
-    // 3. Call LINE Messaging API Broadcast Endpoint
-    const res = await fetch('https://api.line.me/v2/bot/message/broadcast', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        messages: [flexMessage],
-      }),
-    });
+    // 3. Gather target LINE User IDs from line_users and cases tables (same source as LINE Users Log)
+    const { data: dbLineUsers } = await supabase.from('line_users').select('line_user_id');
+    const { data: caseLineUsers } = await supabase.from('cases').select('reporter_name').like('reporter_name', 'U%');
 
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error('[LINE Broadcast Error]', res.status, errText);
-      return NextResponse.json({ error: errText }, { status: res.status });
+    const userIdsSet = new Set<string>();
+    (dbLineUsers || []).forEach((u: any) => { if (u?.line_user_id) userIdsSet.add(u.line_user_id); });
+    (caseLineUsers || []).forEach((c: any) => { if (c?.reporter_name) userIdsSet.add(c.reporter_name); });
+
+    const targetUserIds = Array.from(userIdsSet).filter(id => typeof id === 'string' && id.startsWith('U') && id.length > 10);
+    console.log(`[LINE Broadcast] Found ${targetUserIds.length} target LINE user IDs for Multicast.`);
+
+    let multicastSuccess = false;
+    let multicastError = null;
+
+    // 4. Send via LINE Multicast API to all known LINE User IDs in batches of 500
+    if (targetUserIds.length > 0) {
+      try {
+        for (let i = 0; i < targetUserIds.length; i += 500) {
+          const batch = targetUserIds.slice(i, i + 500);
+          const multiRes = await fetch('https://api.line.me/v2/bot/message/multicast', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({
+              to: batch,
+              messages: [flexMessage],
+            }),
+          });
+
+          if (multiRes.ok) {
+            multicastSuccess = true;
+          } else {
+            const errText = await multiRes.text();
+            console.error('[LINE Multicast Error]', multiRes.status, errText);
+            multicastError = errText;
+          }
+        }
+      } catch (err: any) {
+        console.error('[LINE Multicast Exception]', err);
+        multicastError = err.message;
+      }
     }
 
-    return NextResponse.json({ success: true, message: 'Broadcast sent successfully to all LINE followers' }, { status: 200 });
+    // 5. Also send via LINE Broadcast API as fallback
+    let broadcastSuccess = false;
+    let broadcastError = null;
+    try {
+      const broadRes = await fetch('https://api.line.me/v2/bot/message/broadcast', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          messages: [flexMessage],
+        }),
+      });
+
+      if (broadRes.ok) {
+        broadcastSuccess = true;
+      } else {
+        const errText = await broadRes.text();
+        console.error('[LINE Broadcast API Error]', broadRes.status, errText);
+        broadcastError = errText;
+      }
+    } catch (err: any) {
+      console.error('[LINE Broadcast Exception]', err);
+      broadcastError = err.message;
+    }
+
+    if (multicastSuccess || broadcastSuccess) {
+      return NextResponse.json({
+        success: true,
+        message: `ส่งการแจ้งเตือนสำเร็จ (Multicast: ${targetUserIds.length} รายชื่อ, Broadcast: ${broadcastSuccess ? 'สำเร็จ' : 'ไม่สำเร็จ'})`,
+        recipientCount: targetUserIds.length
+      }, { status: 200 });
+    }
+
+    return NextResponse.json({
+      error: 'Failed to send LINE notification',
+      multicastError,
+      broadcastError
+    }, { status: 400 });
+
   } catch (error: any) {
-    console.error('Error sending LINE broadcast:', error);
+    console.error('Error sending LINE notification:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
