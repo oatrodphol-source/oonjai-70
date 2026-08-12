@@ -255,47 +255,28 @@ export const ActiveCaseBanner = () => {
         </div>
       )}
 
-      {/* 🚨 2. PERSISTENT FLOATING BANNER (Renders on other pages when banner is active) */}
-      {!isTrackingPageForThisCase && (
+      {/* 🚨 2. PERSISTENT FLOATING BANNER (Only renders on other pages when volunteer has accepted case) */}
+      {!isTrackingPageForThisCase && (caseStatus === 'in_progress' || caseStatus === 'accepted' || volunteerName) && (
         <div className="fixed top-16 sm:top-20 left-1/2 -translate-x-1/2 z-[9990] w-full max-w-sm px-4 pointer-events-auto animate-in fade-in slide-in-from-top-4 duration-300">
-          {(caseStatus === 'in_progress' || caseStatus === 'accepted' || volunteerName) ? (
-            <Link
-              href={`/tracking/${activeCaseId}`}
-              className="bg-emerald-600 dark:bg-emerald-700 text-white p-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 border-2 border-emerald-400 hover:bg-emerald-700 transition-all cursor-pointer"
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-9 h-9 bg-white text-emerald-700 rounded-xl flex items-center justify-center shrink-0 shadow-sm animate-bounce">
-                  <Truck className="w-5 h-5" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[10px] font-extrabold uppercase bg-white/20 px-2 py-0.5 rounded-full inline-block">อาสารับเคสแล้ว!</div>
-                  <p className="text-xs font-black truncate mt-0.5">
-                    {volunteerName ? `ทีมอาสา ${volunteerName} กำลังเดินทาง` : 'อาสาสมัครกำลังเดินทางมาช่วยเหลือ'}
-                  </p>
-                </div>
+          <Link
+            href={`/tracking/${activeCaseId}`}
+            className="bg-emerald-600 dark:bg-emerald-700 text-white p-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 border-2 border-emerald-400 hover:bg-emerald-700 transition-all cursor-pointer"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 bg-white text-emerald-700 rounded-xl flex items-center justify-center shrink-0 shadow-sm animate-bounce">
+                <Truck className="w-5 h-5" />
               </div>
-              <span className="text-xs font-bold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-xl shrink-0 flex items-center gap-1">
-                ดูสถานะ <ChevronRight className="w-3.5 h-3.5" />
-              </span>
-            </Link>
-          ) : (
-            <Link
-              href={`/tracking/${activeCaseId}`}
-              className="bg-orange-600 text-white px-5 py-2.5 rounded-full shadow-xl flex items-center justify-between gap-2 hover:bg-orange-700 transition-all border-2 border-white/20 backdrop-blur-md"
-            >
-              <div className="flex items-center gap-2">
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
-                </span>
-                <Clock className="w-4 h-4 text-orange-200" />
-                <span className="text-xs font-bold tracking-wide">กำลังขอความช่วยเหลือ (#{activeCaseId})</span>
+              <div className="min-w-0">
+                <div className="text-[10px] font-extrabold uppercase bg-white/20 px-2 py-0.5 rounded-full inline-block">อาสารับเคสแล้ว!</div>
+                <p className="text-xs font-black truncate mt-0.5">
+                  {volunteerName ? `ทีมอาสา ${volunteerName} กำลังเดินทาง` : 'อาสาสมัครกำลังเดินทางมาช่วยเหลือ'}
+                </p>
               </div>
-              <span className="text-[11px] font-extrabold bg-white/20 px-2.5 py-1 rounded-full flex items-center gap-0.5">
-                ติดตาม <ChevronRight className="w-3 h-3" />
-              </span>
-            </Link>
-          )}
+            </div>
+            <span className="text-xs font-bold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-xl shrink-0 flex items-center gap-1">
+              ดูสถานะ <ChevronRight className="w-3.5 h-3.5" />
+            </span>
+          </Link>
         </div>
       )}
     </>
