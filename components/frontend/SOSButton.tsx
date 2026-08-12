@@ -5,6 +5,15 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'react-hot-toast';
 
+const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
+  const R = 6371;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * (Math.PI/180)) * Math.cos(lat2 * (Math.PI/180)) * Math.sin(dLon/2) * Math.sin(dLon/2);
+  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+};
+
 export const SOSButton = () => {
   const router = useRouter();
   const [status, setStatus] = useState<'idle' | 'locating' | 'sending' | 'success' | 'error'>('idle');
@@ -25,60 +34,7 @@ export const SOSButton = () => {
     initLiff();
   }, []);
 
-  useEffect(() => {
-    const checkCooldown = () => {
-      const lastSosStr = localStorage.getItem('oonjai_last_sos');
-      if (lastSosStr) {
-        try {
-          const lastSos = JSON.parse(lastSosStr);
-          const elapsed = Date.now() - lastSos.timestamp;
-          const remaining = 600000 - elapsed;
-          if (remaining > 0) {
-            setCooldownRemaining(remaining);
-          } else {
-            setCooldownRemaining(0);
-          }
-        } catch (e) {}
-      }
-    };
-
-    checkCooldown();
-    const interval = setInterval(checkCooldown, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const formatTime = (ms: number) => {
-    const totalSeconds = Math.floor(ms / 1000);
-    const m = Math.floor(totalSeconds / 60);
-    const s = totalSeconds % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
-
   const handleSOSClick = async () => {
-    // 1. Check 10-minute cooldown for SOS button
-    const lastSosStr = typeof window !== 'undefined' ? localStorage.getItem('oonjai_last_sos') : null;
-    const activeCaseId = typeof window !== 'undefined' ? localStorage.getItem('oonjai_active_case_id') : null;
-
-    if (lastSosStr) {
-      try {
-        const lastSos = JSON.parse(lastSosStr);
-        const elapsed = Date.now() - lastSos.timestamp;
-        if (elapsed < 10 * 60 * 1000) {
-          const remainingMins = Math.ceil((10 * 60 * 1000 - elapsed) / 60000);
-          const targetCaseId = lastSos.caseId || activeCaseId;
-          const gotoTrack = confirm(
-            `คุณเพิ่งแจ้งเหตุ SOS ไปเมื่อไม่นานมานี้ (คูลดาวน์ ${remainingMins} นาทีเพื่อป้องกันการแจ้งซ้ำซ้อน)\n\n• กด "ตกลง" เพื่อเปิดดูหน้าติดตามสถานะเคสปัจจุบัน (${targetCaseId ? `#${targetCaseId}` : ''})\n• กด "ยกเลิก" หากต้องการกรอกฟอร์มแจ้งเหตุแทนผู้อื่น / เลื่อนหมุดพิกัดอื่น`
-          );
-          if (gotoTrack && targetCaseId) {
-            router.push(`/tracking/${targetCaseId}`);
-          } else {
-            router.push('/report?proxy=true');
-          }
-          return;
-        }
-      } catch (e) {}
-    }
-
     let liffUserId = '';
     let liffDisplayName = 'SOS User (Auto)';
     try {
@@ -96,7 +52,7 @@ export const SOSButton = () => {
     } catch (e) {}
 
     setIsLoading(true);
-    // 3. Check Geolocation support
+    // Check Geolocation support
     if (!navigator.geolocation) {
       setStatus('error');
       setErrorMessage('เบราว์เซอร์หรืออุปกรณ์ของคุณไม่รองรับการดึงพิกัด GPS');
@@ -111,11 +67,31 @@ export const SOSButton = () => {
 
     setStatus('locating');
 
-    // 4. Get Geolocation & POST to API
+    // Get Geolocation & POST to API
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
         
+        // Check 10-minute location geofencing: if same area <= 500m, silently redirect to tracking page
+        const lastReportDataStr = typeof window !== 'undefined' ? localStorage.getItem('oonjai_last_report_data') : null;
+        if (lastReportDataStr) {
+          try {
+            const lastReport = JSON.parse(lastReportDataStr);
+            const elapsed = Date.now() - lastReport.timestamp;
+            if (elapsed < 10 * 60 * 1000 && lastReport.lat && lastReport.lng) {
+              const dist = getDistanceKm(latitude, longitude, lastReport.lat, lastReport.lng);
+              if (dist <= 0.5) { // Same area <= 500m
+                const targetCaseId = lastReport.caseId || localStorage.getItem('oonjai_active_case_id');
+                if (targetCaseId) {
+                  setIsLoading(false);
+                  router.push(`/tracking/${targetCaseId}`);
+                  return;
+                }
+              }
+            }
+          } catch (e) {}
+        }
+
         setStatus('sending');
 
         try {
@@ -161,9 +137,12 @@ export const SOSButton = () => {
               }
               localStorage.setItem('oonjai_last_report_data', JSON.stringify({
                 timestamp: Date.now(),
+                caseId: caseId,
                 lat: latitude,
-                lng: longitude
+                lng: longitude,
+                type: 'sos'
               }));
+              localStorage.setItem('oonjai_active_case_id', String(caseId));
               
               try {
                 const newCaseId = caseId;
@@ -172,7 +151,6 @@ export const SOSButton = () => {
                   existingCases.push(newCaseId);
                   localStorage.setItem('oonjai_my_cases', JSON.stringify(existingCases));
                 }
-                console.log("🔥 SAVED TO LOCAL STORAGE:", newCaseId, existingCases);
                 
                 // Dispatch a custom event so the History page can listen and refresh immediately
                 window.dispatchEvent(new Event('localCasesUpdated'));
@@ -183,7 +161,6 @@ export const SOSButton = () => {
 
             // Show toast and redirect directly to tracking page
             setIsLoading(false);
-            localStorage.setItem('oonjai_active_case_id', String(caseId));
             toast.success(`ส่งข้อมูลสำเร็จ! ระบบได้รับเคสหมายเลข #${caseId} ของคุณแล้ว`, {
               duration: 5000,
             });

@@ -325,21 +325,22 @@ export const ReportStepForm = () => {
           if (isProxyReport) {
             const proxyCount = parseInt(localStorage.getItem('oonjai_proxy_count') || '0', 10);
             if (proxyCount >= 3) {
-              alert('คุณได้แจ้งเหตุแทนบุคคลอื่นครบกำหนด (3 เคส) แล้ว กรุณารอ 10 นาทีเพื่อป้องกันสแปม');
+              alert('คุณได้แจ้งเหตุแทนบุคคลอื่นครบกำหนด (3 เคส) แล้ว กรุณารอสักครู่เพื่อป้องกันสแปม');
               return; // Block
             }
-            // Allow through and increment later
-            // Not proxy, check distance between new pin and previous pin
+            // Allow through for proxy report!
+          } else {
+            // Not proxy, check distance between new pin and previous pin (SOS or Form)
             const dist = getDistanceKm(formData.latitude, formData.longitude, lastReport.lat, lastReport.lng);
             if (dist <= 0.5) { // Same area <= 500m
-              const gotoTrack = confirm('คุณเพิ่งแจ้งเหตุในบริเวณหมุดนี้ไปเมื่อไม่นานมานี้ (เพื่อป้องกันการแจ้งซ้ำซ้อน)\n\n• กด "ตกลง" เพื่อเปิดดูหน้าติดตามสถานะเคสปัจจุบัน\n• กด "ยกเลิก" หากต้องการเลื่อนหมุดพิกัดไปจุดอื่น หรือกดเลือกแจ้งแทนผู้อื่น');
-              if (gotoTrack && (lastReport.caseId || localStorage.getItem('oonjai_active_case_id'))) {
-                const targetId = lastReport.caseId || localStorage.getItem('oonjai_active_case_id');
+              const targetId = lastReport.caseId || localStorage.getItem('oonjai_active_case_id');
+              if (targetId) {
+                setIsSubmitting(false);
                 router.push(`/tracking/${targetId}`);
+                return; // Block submission & silently redirect directly to tracking page
               }
-              return; // Block
             }
-            // Distance > 500m (different location pin), allow through!
+            // Distance > 500m (different location pin), allow new submission!
           }
         }
       } catch (e) {}
@@ -404,8 +405,10 @@ export const ReportStepForm = () => {
       
       localStorage.setItem('oonjai_last_report_data', JSON.stringify({
         timestamp: Date.now(),
+        caseId: String(caseId),
         lat: formData.latitude,
-        lng: formData.longitude
+        lng: formData.longitude,
+        type: 'report'
       }));
       if (isProxyReport) {
         const currentCount = parseInt(localStorage.getItem('oonjai_proxy_count') || '0', 10);
