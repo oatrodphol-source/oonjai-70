@@ -19,7 +19,7 @@ export default function InfoPage() {
     shelterCount: 0,
     hospitalCount: 0,
   });
-  
+
   const [evacuees, setEvacuees] = useState<any[]>([]);
   const [safeList, setSafeList] = useState<any[]>([]);
   const [rawCases, setRawCases] = useState<any[]>([]);
@@ -35,16 +35,16 @@ export default function InfoPage() {
   }, [searchTerm, destinationFilter, sourceFilter]);
 
   const completedStatuses = ["resolved", "completed"];
-  
+
   const resolvedCases = evacuees.filter(c => {
-      // 1. Check if status string implies completion
-      const currentStatus = c.status || "";
-      const hasCompletedStatus = completedStatuses.some(s => currentStatus.includes(s));
-      
-      // 2. MUST have an assigned volunteer (Reject ghost cases)
-      const hasVolunteer = Boolean(c.volunteer_id); 
-      
-      return hasCompletedStatus && hasVolunteer;
+    // 1. Check if status string implies completion
+    const currentStatus = c.status || "";
+    const hasCompletedStatus = completedStatuses.some(s => currentStatus.includes(s));
+
+    // 2. MUST have an assigned volunteer (Reject ghost cases)
+    const hasVolunteer = Boolean(c.volunteer_id);
+
+    return hasCompletedStatus && hasVolunteer;
   });
 
   // Combining evacuees (system cases) and safeList (manual reports)
@@ -88,7 +88,7 @@ export default function InfoPage() {
 
   const totalPages = Math.ceil(filteredSafePeople.length / itemsPerPage);
   const paginatedSafePeople = filteredSafePeople.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  
+
   useEffect(() => {
     const fetchSafeReports = async () => {
       try {
@@ -146,7 +146,7 @@ export default function InfoPage() {
     let completedCount = 0;
     let shelterCount = 0;
     let hospitalCount = 0;
-    
+
     const evacueesList: any[] = [];
 
     rawCases.forEach(data => {
@@ -156,8 +156,8 @@ export default function InfoPage() {
       // pending
       if (isPendingCase(status)) {
         pendingCount++;
-      } 
-      
+      }
+
       // success
       if (isCompletedCase(status)) {
         completedCount++;
@@ -168,19 +168,19 @@ export default function InfoPage() {
         const dest = data.destination || '';
         if (isShelterDestination(dest)) shelterCount++;
         if (isHospitalDestination(dest)) hospitalCount++;
-        
+
         let displayName = (data.name && !data.name.startsWith("U")) ? data.name : ((data.reporter_name && !data.reporter_name.startsWith("U")) ? data.reporter_name : "ผู้ใช้ LINE");
         const referenceId = data.case_number ? `CAS-${String(data.case_number).padStart(3, '0')}` : `CAS-${docId.substring(0, 5)}`;
-        
+
         if (displayName.includes("SOS User") || displayName === "ผู้ประสบภัย" || displayName === "ผู้ใช้ LINE") {
-            const phone = data.phone || "";
-            if (phone.length >= 4 && phone !== '-') {
-                displayName = `ผู้ประสบภัย (เบอร์: 0XX-XXX-${phone.slice(-4)})`;
-            } else if (data.name && !data.name.startsWith("U")) {
-                displayName = data.name;
-            } else {
-                displayName = `ผู้ใช้ LINE (${referenceId})`;
-            }
+          const phone = data.phone || "";
+          if (phone.length >= 4 && phone !== '-') {
+            displayName = `ผู้ประสบภัย (เบอร์: 0XX-XXX-${phone.slice(-4)})`;
+          } else if (data.name && !data.name.startsWith("U")) {
+            displayName = data.name;
+          } else {
+            displayName = `ผู้ใช้ LINE (${referenceId})`;
+          }
         }
 
         evacueesList.push({
@@ -222,7 +222,7 @@ export default function InfoPage() {
 
   return (
     <div className="w-full max-w-full overflow-x-hidden px-4 pb-32 pt-24 sm:px-6 mx-auto space-y-6">
-      
+
       {/* Header */}
       <div>
         <h2 className="text-2xl font-black text-gray-900 dark:text-white">ภาพรวมสถานการณ์</h2>
@@ -236,7 +236,7 @@ export default function InfoPage() {
           <h3 className="text-2xl sm:text-3xl font-bold text-orange-600 dark:text-orange-500">{stats.pendingCount}</h3>
           <p className="whitespace-normal break-words text-center text-xs sm:text-sm w-full leading-tight font-semibold text-orange-800 dark:text-orange-400 mt-1">รอการช่วยเหลือ</p>
         </div>
-        
+
         <div className="w-full min-w-0 h-full bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800/50 p-3 sm:p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-sm overflow-hidden min-h-[100px] sm:min-h-[120px]">
           <CheckCircle2 className="w-8 h-8 text-green-500 mb-2 hidden sm:block" />
           <h3 className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-500">{stats.completedCount}</h3>
@@ -264,14 +264,14 @@ export default function InfoPage() {
           <ShieldCheck className="w-5 h-5 text-emerald-500" />
           ข้อมูลรายชื่อผู้ปลอดภัย
         </h3>
-        
+
         {/* Search & Filters */}
         <div className="flex flex-col gap-4 mb-6 bg-white dark:bg-[#151b2c] p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1 relative">
               <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="ค้นหาชื่อ หรือ รหัสอ้างอิง..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -279,7 +279,7 @@ export default function InfoPage() {
               />
             </div>
             <div className="w-full sm:w-72 shrink-0">
-              <select 
+              <select
                 value={sourceFilter}
                 onChange={(e) => setSourceFilter(e.target.value)}
                 className="w-full h-12 px-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 text-sm focus:ring-2 focus:ring-green-500 outline-none dark:text-white border border-gray-200 dark:border-gray-700 font-medium transition-all"
@@ -291,45 +291,41 @@ export default function InfoPage() {
               </select>
             </div>
           </div>
-          
+
           <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-2 sm:pb-0 -mx-4 px-4 sm:mx-0 sm:px-0">
             <button
               onClick={() => setDestinationFilter('all')}
-              className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all border ${
-                destinationFilter === 'all' 
-                  ? 'bg-green-100 border-green-200 text-green-700 dark:bg-green-900/30 dark:border-green-800/50 dark:text-green-400' 
+              className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all border ${destinationFilter === 'all'
+                  ? 'bg-green-100 border-green-200 text-green-700 dark:bg-green-900/30 dark:border-green-800/50 dark:text-green-400'
                   : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800'
-              }`}
+                }`}
             >
               ทั้งหมด
             </button>
             <button
               onClick={() => setDestinationFilter('hospital')}
-              className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all border ${
-                destinationFilter === 'hospital' 
-                  ? 'bg-red-100 border-red-200 text-red-700 dark:bg-red-900/30 dark:border-red-800/50 dark:text-red-400' 
+              className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all border ${destinationFilter === 'hospital'
+                  ? 'bg-red-100 border-red-200 text-red-700 dark:bg-red-900/30 dark:border-red-800/50 dark:text-red-400'
                   : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800'
-              }`}
+                }`}
             >
               โรงพยาบาล
             </button>
             <button
               onClick={() => setDestinationFilter('shelter')}
-              className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all border ${
-                destinationFilter === 'shelter' 
-                  ? 'bg-blue-100 border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-800/50 dark:text-blue-400' 
+              className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all border ${destinationFilter === 'shelter'
+                  ? 'bg-blue-100 border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-800/50 dark:text-blue-400'
                   : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800'
-              }`}
+                }`}
             >
               ศูนย์พักพิง
             </button>
             <button
               onClick={() => setDestinationFilter('supplies')}
-              className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all border ${
-                destinationFilter === 'supplies' 
-                  ? 'bg-orange-100 border-orange-200 text-orange-700 dark:bg-orange-900/30 dark:border-orange-800/50 dark:text-orange-400' 
+              className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all border ${destinationFilter === 'supplies'
+                  ? 'bg-orange-100 border-orange-200 text-orange-700 dark:bg-orange-900/30 dark:border-orange-800/50 dark:text-orange-400'
                   : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800'
-              }`}
+                }`}
             >
               รับถุงยังชีพ
             </button>
@@ -340,85 +336,58 @@ export default function InfoPage() {
         {paginatedSafePeople.length > 0 ? (
           <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {paginatedSafePeople.map((person, idx) => {
-                let displayName = person.name || 'ผู้ประสบภัย';
-                let caseTag = '';
-
-                // Extract [ปิดเคส #...] tag if embedded in title
-                const matchCase = displayName.match(/\[(ปิดเคส #[^\]]+)\]/);
-                if (matchCase) {
-                  caseTag = matchCase[1];
-                  displayName = displayName.replace(/\[ปิดเคส #[^\]]+\]/, '').trim();
-                }
-
-                displayName = displayName.replace(/\s+/g, ' ').trim();
-                const isSelfReported = person.helper?.includes('แจ้งด้วยตนเอง') || (person as any).volunteer_id === 'self-reported';
-
-                return (
-                  <div key={`${person.type}-${person.id}-${idx}`} className="bg-white dark:bg-[#151b2c] border border-gray-100 dark:border-gray-800 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between gap-3 relative overflow-hidden">
-                    <div className="flex justify-between items-start gap-2">
-                      <div className="flex items-start gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5 shadow-inner">
-                          <CheckCircle2 className="w-5 h-5" />
-                        </div>
-                        <div className="min-w-0">
-                          <h4 className="font-bold text-gray-900 dark:text-white text-sm sm:text-base leading-snug line-clamp-2">{displayName}</h4>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1 font-medium">
-                            <Clock className="w-3 h-3 text-gray-400" />
-                            {new Date(person.timestamp).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
-                          </p>
-                        </div>
+              {paginatedSafePeople.map((person, idx) => (
+                <div key={`${person.type}-${person.id}-${idx}`} className="bg-white dark:bg-[#151b2c] border border-gray-100 dark:border-gray-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col gap-4">
+                  <div className="flex justify-between items-start gap-3">
+                    <div className="flex items-start gap-3 overflow-hidden">
+                      <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0 text-green-600 mt-1">
+                        <CheckCircle2 className="w-5 h-5" />
                       </div>
-
-                      <div className="flex flex-col items-end gap-1 shrink-0">
-                        {caseTag ? (
-                          <span className="bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 text-[10px] px-2.5 py-0.5 rounded-full font-bold border border-emerald-200 dark:border-emerald-800 shadow-xs">
-                            {caseTag}
-                          </span>
-                        ) : isSelfReported ? (
-                          <span className="bg-green-50 text-green-700 dark:bg-green-900/40 dark:text-green-300 text-[10px] px-2.5 py-0.5 rounded-full font-bold border border-green-200 dark:border-green-800 shadow-xs">
-                            แจ้งด้วยตนเอง
-                          </span>
-                        ) : (
-                          <span className="bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 text-[10px] px-2.5 py-0.5 rounded-full font-bold border border-blue-200 dark:border-blue-800 shadow-xs">
-                            กู้ภัยช่วยเหลือแล้ว
-                          </span>
-                        )}
+                      <div className="min-w-0">
+                        <h4 className="font-bold text-gray-900 dark:text-white truncate">{person.name}</h4>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          {new Date(person.timestamp).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
+                        </p>
                       </div>
                     </div>
+                    {person.type === 'external' && (
+                      <span className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 text-[10px] px-2 py-1 rounded-full font-bold whitespace-nowrap flex-shrink-0">
+                        ข้อมูลภายนอก
+                      </span>
+                    )}
+                  </div>
 
-                    <div className="bg-slate-50 dark:bg-slate-900/60 rounded-xl p-3 text-xs space-y-1.5 border border-slate-100 dark:border-slate-800">
-                      <div className="flex items-start gap-2">
-                        <MapPin className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
-                        <span className="text-gray-700 dark:text-gray-300 leading-tight">
-                          <span className="font-semibold text-gray-500 dark:text-gray-400 mr-1">สถานที่/จุดหมาย:</span>
-                          <span className="font-bold text-gray-900 dark:text-gray-100">{person.destination || 'พื้นที่ปลอดภัย'}</span>
-                        </span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <ShieldPlus className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
-                        <span className="text-gray-700 dark:text-gray-300 leading-tight">
-                          <span className="font-semibold text-gray-500 dark:text-gray-400 mr-1">ผู้บันทึก:</span>
-                          <span className="font-medium">{person.helper}</span>
-                        </span>
-                      </div>
+                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 text-sm space-y-2 mt-auto border border-gray-100 dark:border-gray-700/50">
+                    <div className="flex items-start gap-2">
+                      <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                      <span className="text-gray-700 dark:text-gray-300 text-sm leading-tight">
+                        <span className="font-semibold text-gray-500 dark:text-gray-400 mr-1">จุดหมาย:</span>
+                        {person.destination}
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <ShieldPlus className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                      <span className="text-gray-700 dark:text-gray-300 text-sm leading-tight">
+                        <span className="font-semibold text-gray-500 dark:text-gray-400 mr-1">ช่วยเหลือโดย:</span>
+                        {person.helper}
+                      </span>
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
               <div className="flex justify-center items-center gap-2 mt-8 pb-4">
-                <button 
+                <button
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
                   className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors bg-white dark:bg-[#151b2c] text-gray-700 dark:text-gray-300 shadow-sm"
                 >
                   ก่อนหน้า
                 </button>
-                
+
                 <div className="flex gap-1 overflow-x-auto max-w-[200px] sm:max-w-none no-scrollbar">
                   {Array.from({ length: totalPages }).map((_, i) => {
                     const page = i + 1;
@@ -427,11 +396,10 @@ export default function InfoPage() {
                         <button
                           key={page}
                           onClick={() => setCurrentPage(page)}
-                          className={`w-10 h-10 flex-shrink-0 rounded-lg text-sm font-bold transition-colors shadow-sm ${
-                            currentPage === page 
-                              ? 'bg-green-600 text-white border border-green-600' 
+                          className={`w-10 h-10 flex-shrink-0 rounded-lg text-sm font-bold transition-colors shadow-sm ${currentPage === page
+                              ? 'bg-green-600 text-white border border-green-600'
                               : 'bg-white dark:bg-[#151b2c] border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300'
-                          }`}
+                            }`}
                         >
                           {page}
                         </button>
@@ -443,7 +411,7 @@ export default function InfoPage() {
                   })}
                 </div>
 
-                <button 
+                <button
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
                   className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors bg-white dark:bg-[#151b2c] text-gray-700 dark:text-gray-300 shadow-sm"
@@ -471,7 +439,7 @@ export default function InfoPage() {
         <h3 className="font-bold text-gray-900 dark:text-white mb-4">เบอร์โทรฉุกเฉิน</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {emergencyNumbers.map((item, index) => (
-            <a 
+            <a
               key={index}
               href={`tel:${item.number}`}
               className="flex items-center gap-3 p-4 bg-white dark:bg-[#151b2c] border border-gray-50 dark:border-gray-800 rounded-2xl shadow-sm hover:shadow-md active:scale-95 active:bg-gray-50 dark:active:bg-gray-800 transition-all cursor-pointer"

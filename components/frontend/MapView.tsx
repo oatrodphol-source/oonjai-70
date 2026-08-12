@@ -25,10 +25,10 @@ const getDistanceKm = (lat1: any, lon1: any, lat2: any, lon2: any) => {
   const R = 6371; // Earth's radius in km
   const dLat = (lat2 - lat1) * (Math.PI / 180);
   const dLon = (lon2 - lon1) * (Math.PI / 180);
-  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-            Math.cos(lat1 * (Math.PI/180)) * Math.cos(lat2 * (Math.PI/180)) *
-            Math.sin(dLon/2) * Math.sin(dLon/2);
-  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 };
 
 interface CasePoint {
@@ -87,7 +87,7 @@ export default function MapView({ onMarkerClick }: MapViewProps = {}) {
       // Use rawgit cdn for leaflet color markers
       const redIcon = createIcon('https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png');
       const yellowIcon = createIcon('https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-gold.png');
-      
+
       setIcons({ red: redIcon, yellow: yellowIcon });
     }
   }, []);
@@ -97,7 +97,7 @@ export default function MapView({ onMarkerClick }: MapViewProps = {}) {
       try {
         const { data, error } = await supabase.from('cases').select('*');
         if (error) throw error;
-        
+
         const activeCases: CasePoint[] = [];
         (data || []).forEach(docData => {
           if ((docData.status === 'pending' || docData.status === 'in_progress') && docData.latitude && docData.longitude) {
@@ -113,7 +113,7 @@ export default function MapView({ onMarkerClick }: MapViewProps = {}) {
           }
         });
         setCases(activeCases);
-        
+
         // Auto-center map based on cases bounds
         if (mapInstance && mapInstance.getContainer && mapInstance.getContainer()) {
           if (activeCases.length > 0) {
@@ -230,59 +230,52 @@ export default function MapView({ onMarkerClick }: MapViewProps = {}) {
 
   const handleSafeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    
+
+
     setIsSubmittingSafe(true);
     try {
       const myCases = JSON.parse(localStorage.getItem('oonjai_my_cases') || '[]');
       const lastSos = localStorage.getItem('oonjai_last_sos');
       const lastReport = localStorage.getItem('oonjai_last_report');
-      
+
       const localCases: any[] = Array.isArray(myCases) ? [...myCases] : [];
       if (lastSos) {
-        try { const parsed = JSON.parse(lastSos); if (parsed.caseId) localCases.push(parsed.caseId); } catch(e){}
+        try { const parsed = JSON.parse(lastSos); if (parsed.caseId) localCases.push(parsed.caseId); } catch (e) { }
       }
       if (lastReport) {
-        try { const parsed = JSON.parse(lastReport); if (parsed.caseId) localCases.push(parsed.caseId); } catch(e){}
+        try { const parsed = JSON.parse(lastReport); if (parsed.caseId) localCases.push(parsed.caseId); } catch (e) { }
       }
-      
-      const ids = localCases.map((id: any) => {
-        if (typeof id === 'string' && id.startsWith('CAS-')) {
-          return Number(id.replace('CAS-', ''));
-        }
-        return Number(id);
-      }).filter((id: number) => !isNaN(id));
 
-      // 1. Record the safe report with clean fields
-      const phoneText = safePhone.trim() ? safePhone.trim() : 'ไม่ระบุเบอร์';
-      const areaText = safeArea.trim() ? safeArea.trim() : 'พื้นที่ปลอดภัย';
-      const caseText = ids.length > 0 ? `[ปิดเคส #${ids.join(', #')}]` : '';
-
+      // 1. Record the safe report
+      const phoneText = safePhone.trim() ? `เบอร์: ${safePhone}` : 'ไม่ระบุเบอร์';
+      const areaText = safeArea.trim() ? ` พื้นที่: ${safeArea}` : '';
       const { error: safeError } = await supabase.from('safe_reports').insert({
-        name: `ผู้ประสบภัย (${phoneText}) ${caseText}`.trim(),
-        phone: safePhone.trim() || null,
-        area: safeArea.trim() || null,
-        destination: areaText,
-        agency: 'แจ้งด้วยตนเอง',
+        name: `ผู้ประสบภัย (${phoneText})${areaText}`,
         status: 'safe',
         timestamp: new Date().toISOString()
       });
 
-      if (safeError) console.warn('safe_reports insert notice:', safeError);
+      if (safeError) throw safeError;
 
-      // Step A: Close by BOTH ID AND Case Number
-      if (ids.length > 0) {
-        const updatePayload = {
-          status: 'resolved', 
-          destination: 'แจ้งปลอดภัยด้วยตนเอง',
-          updated_at: new Date().toISOString(),
-          volunteer_id: 'self-reported',
-          volunteer_name: 'แจ้งด้วยตนเอง',
-          assigned_volunteer_name: 'แจ้งด้วยตนเอง'
-        };
+      // Step A: Close by IDs
+      if (Array.isArray(localCases) && localCases.length > 0) {
+        const ids = localCases.map((id: any) => {
+          if (typeof id === 'string' && id.startsWith('CAS-')) {
+            return Number(id.replace('CAS-', ''));
+          }
+          return Number(id);
+        }).filter((id: number) => !isNaN(id));
 
-        await supabase.from('cases').update(updatePayload).in('id', ids);
-        await supabase.from('cases').update(updatePayload).in('case_number', ids);
+        if (ids.length > 0) {
+          await supabase.from('cases').update({
+            status: 'resolved',
+            destination: 'แจ้งปลอดภัยด้วยตนเอง',
+            updated_at: new Date().toISOString(),
+            volunteer_id: 'self-reported',
+            volunteer_name: 'แจ้งด้วยตนเอง',
+            assigned_volunteer_name: 'แจ้งด้วยตนเอง'
+          }).in('id', ids);
+        }
       }
 
       // Step B: Close by Phone
@@ -295,8 +288,8 @@ export default function MapView({ onMarkerClick }: MapViewProps = {}) {
           volunteer_name: 'แจ้งด้วยตนเอง',
           assigned_volunteer_name: 'แจ้งด้วยตนเอง'
         })
-        .eq('phone', safePhone.trim())
-        .not('status', 'in', '("resolved","cancelled")');
+          .eq('phone', safePhone.trim())
+          .not('status', 'in', '("resolved","cancelled")');
       }
 
       alert('บันทึกข้อมูลสำเร็จ! ระบบได้ทำการอัปเดตสถานะการขอความช่วยเหลือของคุณเรียบร้อยแล้ว');
@@ -315,38 +308,37 @@ export default function MapView({ onMarkerClick }: MapViewProps = {}) {
 
   return (
     <div className="flex-1 w-full relative z-0 h-full min-h-[50vh] md:min-h-[400px]">
-      
+
       {/* Collapsible Risk Level Legend Overlay */}
       <RiskLegend className="bottom-6 left-4" label="ระดับความเสี่ยง" />
 
 
-      <MapContainer 
-        center={position} 
-        zoom={13} 
+      <MapContainer
+        center={position}
+        zoom={13}
         zoomControl={false}
-        scrollWheelZoom={true} 
+        scrollWheelZoom={true}
         style={{ height: "100%", width: "100%", zIndex: 0 }}
         ref={setMapInstance}
       >
-        <GoogleMapControls 
-          searchTopClass="top-16 sm:top-20" 
+        <GoogleMapControls
+          searchTopClass="top-16 sm:top-20"
           controlsBottomClass="bottom-20 sm:bottom-24"
           leftControls={
-            <button 
+            <button
               type="button"
               onClick={() => setShowHeatmap(!showHeatmap)}
-              className={`backdrop-blur-md flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-2xl font-bold transition-all duration-200 active:scale-95 shadow-lg border text-xs ${
-                showHeatmap 
-                  ? 'bg-orange-500 text-white border-orange-400' 
+              className={`backdrop-blur-md flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-2xl font-bold transition-all duration-200 active:scale-95 shadow-lg border text-xs ${showHeatmap
+                  ? 'bg-orange-500 text-white border-orange-400'
                   : 'bg-white/95 text-slate-700 border-slate-200 dark:bg-slate-900/95 dark:text-slate-200 dark:border-slate-800'
-              }`}
+                }`}
             >
               {showHeatmap ? <MapPin className="w-4 h-4 text-white" /> : <Layers className="w-4 h-4 text-orange-500" />}
               <span className="font-bold">{showHeatmap ? 'ดูแบบหมุด' : 'ดูพื้นที่เสี่ยง'}</span>
             </button>
           }
           extraControls={
-            <button 
+            <button
               type="button"
               onClick={() => setShowSafeModal(true)}
               className="bg-[#00B900] text-white shadow-lg shadow-green-500/30 flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-full font-bold transition-all duration-200 active:scale-95 border-2 border-green-500 text-xs"
@@ -356,7 +348,7 @@ export default function MapView({ onMarkerClick }: MapViewProps = {}) {
             </button>
           }
         />
-        
+
         {(() => {
           if (showHeatmap || !icons) return null;
 
@@ -394,9 +386,9 @@ export default function MapView({ onMarkerClick }: MapViewProps = {}) {
                 iconSize: [40, 40]
               });
               return (
-                <Marker 
-                  key={`cluster-${idx}`} 
-                  position={[c.latitude, c.longitude]} 
+                <Marker
+                  key={`cluster-${idx}`}
+                  position={[c.latitude, c.longitude]}
                   icon={countIcon}
                   eventHandlers={{
                     click: () => {
@@ -408,8 +400,8 @@ export default function MapView({ onMarkerClick }: MapViewProps = {}) {
                     <div className="font-sans">
                       <div className={`text-center ${clusterColor.replace('bg-', 'text-')} font-bold mb-2`}>🚨 มี {cluster.group.length} เคสในรัศมี 500 เมตร</div>
                       <div className="text-xs text-gray-600">
-                        <span className="font-bold">รหัส: </span> 
-                        {cluster.group.map(g => g.case_number ? `CAS-${g.case_number}` : (g.id ? `CAS-${String(g.id).substring(0,6)}` : 'ไม่ระบุ')).join(', ')}
+                        <span className="font-bold">รหัส: </span>
+                        {cluster.group.map(g => g.case_number ? `CAS-${g.case_number}` : (g.id ? `CAS-${String(g.id).substring(0, 6)}` : 'ไม่ระบุ')).join(', ')}
                       </div>
                     </div>
                   </Popup>
@@ -425,9 +417,9 @@ export default function MapView({ onMarkerClick }: MapViewProps = {}) {
             });
 
             return (
-              <Marker 
-                key={c.id} 
-                position={[c.latitude, c.longitude]} 
+              <Marker
+                key={c.id}
+                position={[c.latitude, c.longitude]}
                 icon={singleIcon}
                 eventHandlers={{
                   click: () => {
@@ -437,7 +429,7 @@ export default function MapView({ onMarkerClick }: MapViewProps = {}) {
               >
                 <Popup>
                   <div className="font-sans">
-                    <p className="font-bold mb-1">รหัสเคส: CAS-{c.case_number || String(c.id).substring(0,6)}</p>
+                    <p className="font-bold mb-1">รหัสเคส: CAS-{c.case_number || String(c.id).substring(0, 6)}</p>
                     <p className="text-sm">ประเภท: {c.type}</p>
                     <p className="text-sm">ความรุนแรง: {getSeverityText(c.severity)}</p>
                   </div>
@@ -452,7 +444,7 @@ export default function MapView({ onMarkerClick }: MapViewProps = {}) {
         )}
 
         {myLocation && (
-          <Marker 
+          <Marker
             key={`loc-${myLocation[0]}-${myLocation[1]}`}
             position={myLocation}
             icon={L.divIcon({ html: '<div class="bg-blue-500 w-4 h-4 rounded-full border-2 border-white shadow-md animate-pulse"></div>', className: '', iconSize: [16, 16] })}
@@ -470,7 +462,7 @@ export default function MapView({ onMarkerClick }: MapViewProps = {}) {
       {showSafeModal && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white dark:bg-[#0b1325] rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-gray-100 dark:border-gray-800 scale-100 animate-in zoom-in-95 duration-300 relative">
-            <button 
+            <button
               onClick={() => setShowSafeModal(false)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
             >
@@ -486,8 +478,8 @@ export default function MapView({ onMarkerClick }: MapViewProps = {}) {
             <form onSubmit={handleSafeSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">เบอร์ติดต่อ (10 หลัก)</label>
-                <input 
-                  type="tel" 
+                <input
+                  type="tel"
                   maxLength={10}
                   value={safePhone}
                   onChange={(e) => setSafePhone(e.target.value.replace(/\D/g, ''))}
@@ -497,16 +489,16 @@ export default function MapView({ onMarkerClick }: MapViewProps = {}) {
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">พื้นที่ปัจจุบัน</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={safeArea}
                   onChange={(e) => setSafeArea(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 focus:border-[#00B900] focus:ring-1 focus:ring-[#00B900] outline-none transition-all"
                   placeholder="เช่น ศูนย์อพยพวัดพระธรรมกาย หรือ บ้านญาติ"
                 />
               </div>
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={isSubmittingSafe}
                 className={`w-full py-3.5 rounded-xl text-white font-bold text-lg shadow-lg shadow-green-500/30 transition-all ${isSubmittingSafe ? 'bg-gray-400 opacity-70 cursor-not-allowed' : 'bg-[#00B900] hover:bg-[#009900]'}`}
               >

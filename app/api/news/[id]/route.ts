@@ -57,6 +57,17 @@ export async function PUT(
       
       if (error) throw error;
 
+      // Auto-trigger LINE Broadcast for urgent announcements when published
+      const isUrgent = (type === 'announcement' || type === 'ประกาศด่วน') && Boolean(published);
+      if (isUrgent) {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://oonjai-70-6yo4.vercel.app');
+        fetch(`${baseUrl}/api/line/broadcast`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, content, imageUrl })
+        }).catch(err => console.error('[Auto LINE Broadcast Error]', err));
+      }
+
       return NextResponse.json({ message: 'News updated successfully' });
     } catch (error: any) {
       console.error("🔥 SUPABASE NEWS WRITE ERROR:", error);

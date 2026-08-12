@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 import { supabase } from '@/lib/supabase';
-import { isActiveCase } from '@/lib/caseUtils';
 
 export default function HistoryPage() {
   const [activeCases, setActiveCases] = useState<any[]>([]);
@@ -26,19 +25,6 @@ export default function HistoryPage() {
           console.error('Error parsing my cases', e);
         }
 
-        const lastSos = localStorage.getItem('oonjai_last_sos');
-        if (lastSos) {
-          try { const p = JSON.parse(lastSos); if (p?.caseId) myCaseIds.push(String(p.caseId)); } catch(e){}
-        }
-
-        const lastReport = localStorage.getItem('oonjai_last_report');
-        if (lastReport) {
-          try { const p = JSON.parse(lastReport); if (p?.caseId) myCaseIds.push(String(p.caseId)); } catch(e){}
-        }
-
-        const activeCaseId = localStorage.getItem('oonjai_active_case_id');
-        if (activeCaseId) myCaseIds.push(String(activeCaseId));
-
         if (!myCaseIds || myCaseIds.length === 0) {
           setActiveCases([]);
           setPastCases([]);
@@ -46,9 +32,7 @@ export default function HistoryPage() {
           return;
         }
 
-        const numericCaseIds = Array.from(new Set(
-          myCaseIds.map(Number).filter(id => !isNaN(id) && id > 0)
-        ));
+        const numericCaseIds = myCaseIds.map(Number).filter(id => !isNaN(id));
 
         if (numericCaseIds.length === 0) {
           setActiveCases([]);
@@ -57,41 +41,33 @@ export default function HistoryPage() {
           return;
         }
 
-        const { data: idData } = await supabase
+        const { data: snapshot, error } = await supabase
           .from('cases')
           .select('*')
           .in('id', numericCaseIds)
           .order('created_at', { ascending: false });
 
-        const { data: numData } = await supabase
-          .from('cases')
-          .select('*')
-          .in('case_number', numericCaseIds)
-          .order('created_at', { ascending: false });
+        if (error) throw error;
 
-        const combinedMap = new Map<number, any>();
-        (idData || []).forEach(c => combinedMap.set(c.id, c));
-        (numData || []).forEach(c => combinedMap.set(c.id, c));
-
-        const snapshot = Array.from(combinedMap.values());
+        const activeStatuses = ['pending', 'in_progress', 'wait', 'accepted'];
 
         const active: any[] = [];
         const past: any[] = [];
 
         (snapshot || []).forEach(data => {
           const docId = String(data.id);
-          const rawNavId = data.case_number ? String(data.case_number) : docId;
           const caseItem = {
             id: data.case_number ? `CAS-${String(data.case_number).padStart(3, '0')}` : `CAS-${docId.substring(0, 5)}`,
-            rawId: rawNavId,
+            rawId: docId,
             type: data.type || 'ไม่ระบุ',
             status: data.status || 'pending',
-            time: data.updated_at ? new Date(data.updated_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : 
-                  (data.created_at ? new Date(data.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-'),
+            time: data.updated_at ? new Date(data.updated_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) :
+              (data.created_at ? new Date(data.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-'),
             timestamp: data.updated_at || data.created_at || 0
           };
 
-          if (isActiveCase(data.status)) {
+          const s = typeof caseItem.status === 'string' ? caseItem.status.toLowerCase() : String(caseItem.status);
+          if (activeStatuses.includes(s)) {
             active.push(caseItem);
           } else {
             past.push(caseItem);
@@ -152,8 +128,8 @@ export default function HistoryPage() {
               {activeCases.length > 0 ? (
                 <div className="max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar space-y-4">
                   {activeCases.map(c => (
-                    <Link 
-                      href={`/tracking/${c.rawId}`} 
+                    <Link
+                      href={`/tracking/${c.rawId}`}
                       key={c.id}
                       className="block bg-white dark:bg-[#151b2c] p-5 rounded-2xl shadow-sm border-2 border-orange-200 dark:border-orange-900/50 hover:border-orange-400 transition-colors relative overflow-hidden"
                     >
@@ -171,14 +147,13 @@ export default function HistoryPage() {
 
                       <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 relative z-10">
                         <span className="text-sm text-slate-500 dark:text-slate-400">สถานะการช่วยเหลือล่าสุด:</span>
-                        <span className={`px-4 py-2 rounded-xl text-sm font-bold text-center w-full sm:w-auto transition-colors duration-300 ${
-                          c.status === 'pending' || c.status === 'wait' ? 'bg-orange-100 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400 border border-orange-200 dark:border-orange-800/50' :
-                          c.status === 'in_progress' || c.status === 'accepted' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800/50' :
-                          'bg-green-100 text-green-600 dark:bg-green-500/20 dark:text-green-400 border border-green-200 dark:border-green-800/50'
-                        }`}>
-                          {c.status === 'pending' || c.status === 'wait' ? '⏳ รอดำเนินการ (รอทีมอาสา)' : 
-                           c.status === 'in_progress' || c.status === 'accepted' ? '🚨 กำลังเข้าช่วยเหลือ' : 
-                           '✅ ช่วยเหลือเสร็จสิ้นแล้ว'}
+                        <span className={`px-4 py-2 rounded-xl text-sm font-bold text-center w-full sm:w-auto transition-colors duration-300 ${c.status === 'pending' || c.status === 'wait' ? 'bg-orange-100 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400 border border-orange-200 dark:border-orange-800/50' :
+                            c.status === 'in_progress' || c.status === 'accepted' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800/50' :
+                              'bg-green-100 text-green-600 dark:bg-green-500/20 dark:text-green-400 border border-green-200 dark:border-green-800/50'
+                          }`}>
+                          {c.status === 'pending' || c.status === 'wait' ? '⏳ รอดำเนินการ (รอทีมอาสา)' :
+                            c.status === 'in_progress' || c.status === 'accepted' ? '🚨 กำลังเข้าช่วยเหลือ' :
+                              '✅ ช่วยเหลือเสร็จสิ้นแล้ว'}
                         </span>
                       </div>
                     </Link>
@@ -200,8 +175,8 @@ export default function HistoryPage() {
                 <>
                   <div className="max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar space-y-3">
                     {pastCases.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(c => (
-                      <Link 
-                        href={`/tracking/${c.rawId}`} 
+                      <Link
+                        href={`/tracking/${c.rawId}`}
                         key={c.id}
                         className="block bg-white dark:bg-[#0b1325] p-4 rounded-xl border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-[#151b2c] transition-colors opacity-80 hover:opacity-100"
                       >
@@ -211,13 +186,12 @@ export default function HistoryPage() {
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] text-gray-400">{c.id}</span>
-                          <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${
-                            ['resolved', 'completed'].includes(c.status)
-                              ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20' 
+                          <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${['resolved', 'completed'].includes(c.status)
+                              ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20'
                               : c.status === 'resolved'
-                              ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
-                              : 'bg-gray-100 text-gray-500 dark:bg-gray-800'
-                          }`}>
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
+                                : 'bg-gray-100 text-gray-500 dark:bg-gray-800'
+                            }`}>
                             {c.status === 'resolved' ? '✓ ปลอดภัยแล้ว' : c.status}
                           </span>
                         </div>
@@ -226,7 +200,7 @@ export default function HistoryPage() {
                   </div>
                   {pastCases.length > itemsPerPage && (
                     <div className="flex justify-center items-center gap-2 mt-6">
-                      <button 
+                      <button
                         onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                         disabled={currentPage === 1}
                         className="p-2 rounded-full border border-gray-200 dark:border-gray-700 text-gray-500 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800"
@@ -237,7 +211,7 @@ export default function HistoryPage() {
                       <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
                         หน้าที่ {currentPage} / {Math.ceil(pastCases.length / itemsPerPage)}
                       </span>
-                      <button 
+                      <button
                         onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(pastCases.length / itemsPerPage)))}
                         disabled={currentPage === Math.ceil(pastCases.length / itemsPerPage)}
                         className="p-2 rounded-full border border-gray-200 dark:border-gray-700 text-gray-500 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800"

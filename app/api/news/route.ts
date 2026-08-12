@@ -63,6 +63,17 @@ export async function POST(req: Request) {
       const { data, error } = await supabase.from('news').insert(newNews).select().single();
       if (error) throw error;
 
+      // Auto-trigger LINE Broadcast for urgent announcements
+      const isUrgent = (newNews.type === 'announcement' || newNews.type === 'ประกาศด่วน') && newNews.published;
+      if (isUrgent) {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://oonjai-70-6yo4.vercel.app');
+        fetch(`${baseUrl}/api/line/broadcast`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, content, imageUrl })
+        }).catch(err => console.error('[Auto LINE Broadcast Error]', err));
+      }
+
       return NextResponse.json(
         { id: data.id, message: 'News created successfully' },
         { status: 201 }

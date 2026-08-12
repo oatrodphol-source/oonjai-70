@@ -138,15 +138,14 @@ export const TopNavbar: React.FC = () => {
       if (!caseIds || caseIds.length === 0) return [];
       const numericIds = caseIds.map(Number).filter(id => !isNaN(id));
       if (numericIds.length === 0) return [];
-
-      const { data: idData } = await supabase.from('cases').select('*').in('id', numericIds);
-      const { data: numData } = await supabase.from('cases').select('*').in('case_number', numericIds);
-
-      const combinedMap = new Map();
-      (idData || []).forEach(c => combinedMap.set(String(c.id), c));
-      (numData || []).forEach(c => combinedMap.set(String(c.id), c));
-
-      return Array.from(combinedMap.values());
+      const { data, error } = await supabase
+        .from('cases')
+        .select('*')
+        .in('id', numericIds);
+      if (data && !error) {
+        return data;
+      }
+      return [];
     };
 
     const loadAndSubscribeCases = async () => {
@@ -177,9 +176,8 @@ export const TopNavbar: React.FC = () => {
           const updateCasesUI = (fetchedData: any[]) => {
             const casesMap = new Map();
             fetchedData.forEach(data => {
-              const navId = data.case_number ? String(data.case_number) : String(data.id);
-              casesMap.set(navId, {
-                id: navId,
+              casesMap.set(String(data.id), {
+                id: String(data.id),
                 status: data.status,
                 timestamp: data.updated_at || data.created_at || 0
               });
@@ -312,8 +310,8 @@ export const TopNavbar: React.FC = () => {
                       b.id === 0 ? (
                         <div key={b.id} className="p-6 text-center text-sm text-gray-500">{b.message}</div>
                       ) : (
-                        <button 
-                          key={b.id} 
+                        <button
+                          key={b.id}
                           onClick={() => { setSelectedAnnouncement(b); setShowNotifications(false); }}
                           className="w-full text-left p-4 border-b border-gray-100 dark:border-gray-800 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors flex items-start gap-3"
                         >
@@ -444,11 +442,11 @@ export const TopNavbar: React.FC = () => {
                 </div>
               </div>
             </div>
-            
+
             <div className="p-5 overflow-y-auto custom-scrollbar flex-1 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
               {selectedAnnouncement.content || 'ไม่มีรายละเอียดเนื้อหา'}
             </div>
-            
+
             <div className="p-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-800 flex justify-end">
               <button
                 onClick={() => setSelectedAnnouncement(null)}
