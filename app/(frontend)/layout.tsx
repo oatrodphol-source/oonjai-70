@@ -9,7 +9,8 @@ export default function FrontendLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-[#0b1325]">
+    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-[#0b1325] relative">
+      <ActiveCaseBanner />
       <TopNavbar />
       
       <main className="min-h-[calc(100dvh-80px)] pb-28 md:pb-8 flex flex-col items-center justify-start bg-slate-50 dark:bg-[#0b1325] relative z-0 w-full max-w-full overflow-x-hidden">
@@ -17,7 +18,6 @@ export default function FrontendLayout({
         <div className="w-full max-w-full flex-1 relative z-10 flex flex-col overflow-x-hidden">
           {children}
         </div>
-        <ActiveCaseBanner />
       </main>
       
       <BottomNav />
