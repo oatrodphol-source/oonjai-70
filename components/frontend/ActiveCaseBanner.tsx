@@ -83,9 +83,20 @@ export const ActiveCaseBanner = () => {
             setVolunteerPhone(vPhone || null);
             setVolunteerUnit(vUnit);
 
+            const isModalSeen = (cId: string) => {
+              try {
+                const seen = localStorage.getItem('oonjai_seen_accepted_cases');
+                if (seen) {
+                  const arr = JSON.parse(seen);
+                  return arr.includes(String(cId));
+                }
+              } catch (e) {}
+              return false;
+            };
+
             if (['pending', 'wait', 'accepted', 'in_progress'].includes(st)) {
               setIsBannerVisible(true);
-              if ((st === 'in_progress' || st === 'accepted' || vName) && dismissedModalCaseId !== cId) {
+              if ((st === 'in_progress' || st === 'accepted' || vName) && !isModalSeen(cId) && dismissedModalCaseId !== cId) {
                 setShowAcceptedModal(true);
               }
             } else {
@@ -113,7 +124,7 @@ export const ActiveCaseBanner = () => {
 
                     if (['pending', 'wait', 'accepted', 'in_progress'].includes(newSt)) {
                       setIsBannerVisible(true);
-                      if (newSt === 'in_progress' || newSt === 'accepted' || newVName) {
+                      if ((newSt === 'in_progress' || newSt === 'accepted' || newVName) && !isModalSeen(cId)) {
                         setShowAcceptedModal(true);
                         if (typeof window !== 'undefined' && window.navigator?.vibrate) {
                           window.navigator.vibrate([200, 100, 200, 100, 200]);
@@ -154,9 +165,21 @@ export const ActiveCaseBanner = () => {
     };
   }, [dismissedModalCaseId]);
 
-  if (!isBannerVisible || !activeCaseId) return null;
-
   const isTrackingPageForThisCase = pathname === `/tracking/${activeCaseId}`;
+
+  const markModalAsSeen = (cId: string | null) => {
+    if (!cId) return;
+    try {
+      const seen = localStorage.getItem('oonjai_seen_accepted_cases');
+      const arr = seen ? JSON.parse(seen) : [];
+      if (!arr.includes(String(cId))) {
+        arr.push(String(cId));
+        localStorage.setItem('oonjai_seen_accepted_cases', JSON.stringify(arr));
+      }
+    } catch (e) {}
+    setShowAcceptedModal(false);
+    setDismissedModalCaseId(cId);
+  };
 
   return (
     <>
@@ -166,8 +189,7 @@ export const ActiveCaseBanner = () => {
           <div className="bg-white dark:bg-[#0b1325] border-2 border-emerald-500 rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl scale-100 animate-in zoom-in-95 duration-300 relative overflow-hidden">
             <button
               onClick={() => {
-                setShowAcceptedModal(false);
-                setDismissedModalCaseId(activeCaseId);
+                markModalAsSeen(activeCaseId);
               }}
               className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white rounded-full transition-colors"
             >
@@ -221,13 +243,12 @@ export const ActiveCaseBanner = () => {
               
               <button
                 onClick={() => {
-                  setShowAcceptedModal(false);
-                  setDismissedModalCaseId(activeCaseId);
+                  markModalAsSeen(activeCaseId);
                   router.push(`/tracking/${activeCaseId}`);
                 }}
                 className="w-full flex items-center justify-center gap-2 bg-[#ff6600] hover:bg-orange-600 text-white py-3.5 px-4 rounded-xl font-bold text-sm transition-all shadow-md shadow-orange-500/20"
               >
-                ดูสถานะการช่วยเหลือ (#160) ➔
+                ดูสถานะการช่วยเหลือ (#{activeCaseId}) ➔
               </button>
             </div>
           </div>
