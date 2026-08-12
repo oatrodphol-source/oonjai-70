@@ -126,7 +126,7 @@ export default function HistoryPage() {
                 </h2>
               )}
               {activeCases.length > 0 ? (
-                <div className="max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar space-y-4">
+                <div className="space-y-4">
                   {activeCases.map(c => (
                     <Link
                       href={`/tracking/${c.rawId}`}
@@ -173,7 +173,7 @@ export default function HistoryPage() {
               </h2>
               {pastCases.length > 0 ? (
                 <>
-                  <div className="max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar space-y-3">
+                  <div className="space-y-3">
                     {pastCases.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(c => (
                       <Link
                         href={`/tracking/${c.rawId}`}
