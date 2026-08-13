@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Bell, Sun, Moon, User, History, PhoneCall, Inbox, AlertCircle } from 'lucide-react';
+import { Bell, Sun, Moon, User, History, PhoneCall, Inbox, AlertCircle, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
@@ -62,54 +62,15 @@ export const TopNavbar: React.FC = () => {
     };
 
     fetchNews();
-    const newsChannelName = `custom-navbar-news-${Date.now()}`;
+    const newsInterval = setInterval(fetchNews, 5000);
+
     const newsChannel = supabase
-      .channel(newsChannelName)
+      .channel('topnavbar-news-realtime')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'news' },
-        (payload: any) => {
-          setBroadcasts(prev => {
-            let updated = [...prev].filter(b => b.id !== 0);
-            const isAnnouncement = payload.new?.type === 'announcement';
-
-            if (payload.eventType === 'INSERT' && payload.new.published && isAnnouncement) {
-              updated.push({
-                id: payload.new.id,
-                title: payload.new.title,
-                content: payload.new.content,
-                created_at: payload.new.created_at,
-                message: payload.new.title,
-                time: new Date(payload.new.created_at).toLocaleString('th-TH')
-              });
-            } else if (payload.eventType === 'UPDATE') {
-              if (payload.new.published && isAnnouncement) {
-                const existing = updated.find(b => b.id === payload.new.id);
-                if (existing) {
-                  updated = updated.map(b => b.id === payload.new.id ? { ...b, title: payload.new.title, content: payload.new.content, message: payload.new.title } : b);
-                } else {
-                  updated.push({
-                    id: payload.new.id,
-                    title: payload.new.title,
-                    content: payload.new.content,
-                    created_at: payload.new.created_at,
-                    message: payload.new.title,
-                    time: new Date(payload.new.created_at).toLocaleString('th-TH')
-                  });
-                }
-              } else {
-                updated = updated.filter(b => b.id !== payload.new.id);
-              }
-            } else if (payload.eventType === 'DELETE') {
-              updated = updated.filter(b => b.id !== payload.old.id);
-            }
-
-            updated.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
-
-            if (updated.length > 3) updated = updated.slice(0, 3);
-            if (updated.length === 0) return [{ id: 0, message: "ยังไม่มีประกาศในขณะนี้", time: "" }];
-            return updated;
-          });
+        () => {
+          fetchNews();
         }
       )
       .subscribe();
@@ -127,6 +88,7 @@ export const TopNavbar: React.FC = () => {
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      clearInterval(newsInterval);
       supabase.removeChannel(newsChannel);
     };
   }, []);
@@ -438,34 +400,60 @@ export const TopNavbar: React.FC = () => {
         </div>
       </div>
 
-      {/* Announcement Detail Modal */}
+      {/* Announcement Detail Modal - Fit to All Devices */}
       {selectedAnnouncement && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in pointer-events-auto">
-          <div className="bg-white dark:bg-[#0b1325] rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-800 flex flex-col max-h-[90vh]">
-            <div className="p-5 flex justify-between items-start border-b border-gray-100 dark:border-gray-800 bg-red-50 dark:bg-red-900/10">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0 text-red-500">
-                  <AlertCircle className="w-5 h-5" />
+        <div 
+          className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 pointer-events-auto"
+          onClick={() => setSelectedAnnouncement(null)}
+        >
+          <div 
+            className="bg-white dark:bg-[#0b1325] rounded-3xl max-w-sm sm:max-w-lg w-full shadow-2xl overflow-hidden border border-red-200 dark:border-red-900/40 flex flex-col max-h-[75vh] sm:max-h-[80vh] my-auto relative scale-100 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header Accent */}
+            <div className="p-4 sm:p-5 flex justify-between items-start border-b border-red-100 dark:border-red-900/30 bg-red-50 dark:bg-red-950/40 shrink-0">
+              <div className="flex items-center gap-3 pr-2">
+                <div className="w-10 h-10 rounded-2xl bg-red-100 dark:bg-red-900/50 flex items-center justify-center shrink-0 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-800">
+                  <AlertCircle className="w-5 h-5 animate-pulse" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg text-gray-900 dark:text-white leading-tight">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded-md">
+                      📢 ประกาศด่วน
+                    </span>
+                    {selectedAnnouncement.created_at && (
+                      <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400">
+                        {new Date(selectedAnnouncement.created_at).toLocaleString('th-TH')}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="font-extrabold text-sm sm:text-base text-gray-900 dark:text-white leading-tight">
                     {selectedAnnouncement.title || 'ประกาศด่วน!'}
                   </h3>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    ประกาศเมื่อ: {selectedAnnouncement.created_at ? new Date(selectedAnnouncement.created_at).toLocaleString('th-TH') : '-'}
-                  </div>
                 </div>
               </div>
+
+              <button 
+                onClick={() => setSelectedAnnouncement(null)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <div className="p-5 overflow-y-auto custom-scrollbar flex-1 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+            {/* Scrollable Content Body */}
+            <div className="p-4 sm:p-5 overflow-y-auto custom-scrollbar flex-1 text-xs sm:text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
               {selectedAnnouncement.content || 'ไม่มีรายละเอียดเนื้อหา'}
             </div>
 
-            <div className="p-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-800 flex justify-end">
+            {/* Elevated Bottom Action Bar */}
+            <div className="p-3.5 sm:p-4 bg-gray-50 dark:bg-[#0b1325] border-t border-gray-100 dark:border-gray-800/60 flex items-center justify-between shrink-0">
+              <span className="text-[11px] font-semibold text-gray-400">
+                ศูนย์กู้ภัยอุ่นใจ OonJai
+              </span>
               <button
                 onClick={() => setSelectedAnnouncement(null)}
-                className="px-5 py-2.5 bg-[#ff6600] text-white rounded-xl text-sm font-bold hover:bg-[#e65c00] transition-colors shadow-sm"
+                className="px-5 py-2 sm:px-6 sm:py-2.5 bg-[#ff6600] hover:bg-[#e65c00] text-white rounded-2xl text-xs sm:text-sm font-extrabold transition-all shadow-md shadow-orange-500/20 active:scale-95 cursor-pointer"
               >
                 ปิดหน้าต่าง
               </button>
