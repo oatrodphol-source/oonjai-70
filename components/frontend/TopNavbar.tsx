@@ -403,12 +403,22 @@ export const TopNavbar: React.FC = () => {
       {/* Announcement Detail Modal - Fit to All Devices */}
       {selectedAnnouncement && (
         <div 
-          className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 pointer-events-auto"
-          onClick={() => setSelectedAnnouncement(null)}
+          className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 cursor-pointer select-none"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setSelectedAnnouncement(null);
+            }
+          }}
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              setSelectedAnnouncement(null);
+            }
+          }}
         >
           <div 
-            className="bg-white dark:bg-[#0b1325] rounded-3xl max-w-sm sm:max-w-lg w-full shadow-2xl overflow-hidden border border-red-200 dark:border-red-900/40 flex flex-col max-h-[75vh] sm:max-h-[80vh] my-auto relative scale-100 animate-in zoom-in-95 duration-200"
+            className="bg-white dark:bg-[#0b1325] rounded-3xl max-w-sm sm:max-w-lg w-full shadow-2xl overflow-hidden border border-red-200 dark:border-red-900/40 flex flex-col max-h-[75vh] sm:max-h-[80vh] my-auto relative scale-100 animate-in zoom-in-95 duration-200 cursor-default select-text"
             onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
           >
             {/* Header Accent */}
             <div className="p-4 sm:p-5 flex justify-between items-start border-b border-red-100 dark:border-red-900/30 bg-red-50 dark:bg-red-950/40 shrink-0">
