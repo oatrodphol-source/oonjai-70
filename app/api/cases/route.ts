@@ -183,7 +183,7 @@ export async function POST(req: Request) {
             const prompt = `Analyze this disaster image and provide strictly JSON output with exactly these keys: "situation_summary" (string), "recommended_action" (string), and "risk_level" (number 1-5). Return only JSON.`;
             
             const result = await ai.models.generateContent({
-              model: 'gemini-1.5-flash',
+              model: 'gemini-flash-latest',
               contents: [
                 prompt,
                 { inlineData: { data: base64Data, mimeType } }

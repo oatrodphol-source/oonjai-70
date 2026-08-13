@@ -86,7 +86,7 @@ export async function POST() {
 Output EXACTLY ONE 1-2 sentence short tactical recommendation in Thai for volunteers. Mention the exact number of pending cases (${pendingCount}) or critical level 5 cases (${s5Count}) so volunteers get 100% accurate info. Do NOT use any emojis, robot characters, or hashtags. Be direct, professional, and helpful.`;
 
         const result = await ai.models.generateContent({
-          model: 'gemini-1.5-flash',
+          model: 'gemini-flash-latest',
           contents: [prompt]
         });
 
