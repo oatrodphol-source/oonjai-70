@@ -100,11 +100,22 @@ export default function GoogleMapControls({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Skip search on item selection
+  const skipNextSearchRef = useRef(false);
+
   // Debounced Search API call (/api/places/autocomplete)
   useEffect(() => {
+    if (skipNextSearchRef.current) {
+      skipNextSearchRef.current = false;
+      setIsSearching(false);
+      setShowResults(false);
+      return;
+    }
+
     if (!query.trim() || query.length < 2) {
       setResults([]);
       setIsSearching(false);
+      setShowResults(false);
       return;
     }
 
@@ -132,6 +143,7 @@ export default function GoogleMapControls({
     let lng = item.lng;
     let name = item.main_text || item.description;
 
+    skipNextSearchRef.current = true;
     setQuery(name);
     setShowResults(false);
 
