@@ -108,16 +108,20 @@ export const Sidebar = ({ role = 'volunteer', userName = 'กำลังตร�
   return (
     <>
       {/* Mobile Header with Hamburger */}
-      <div className="md:hidden fixed top-0 left-0 w-full h-16 bg-[#0b1325] border-b border-[#ff6600]/20 flex items-center px-4 z-40">
-        <button 
-          onClick={() => setIsOpen(true)}
-          className="p-2 -ml-2 rounded-lg active:bg-white/10 text-white"
-        >
-          <Menu className="w-6 h-6" />
-        </button>
-        <h1 className="text-xl font-bold tracking-wide ml-4 text-white">
-          <span className="text-[#ff6600]">Oon</span>Jai
-        </h1>
+      <div className="md:hidden fixed top-0 left-0 w-full h-16 bg-[#0b1325] border-b border-[#ff6600]/20 flex items-center justify-between px-3 z-40">
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setIsOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#ff6600]/20 hover:bg-[#ff6600]/30 active:scale-95 border border-[#ff6600]/40 rounded-xl text-white font-extrabold text-xs transition-all shadow-md cursor-pointer"
+            title="กดเพื่อเปิดเมนูนำทาง"
+          >
+            <Menu className="w-5 h-5 text-[#ff6600]" />
+            <span className="text-[#ff6600] font-black text-xs uppercase tracking-wide">เมนู</span>
+          </button>
+          <h1 className="text-lg font-bold tracking-wide text-white ml-1">
+            <span className="text-[#ff6600]">Oon</span>Jai
+          </h1>
+        </div>
       </div>
 
       {/* Backdrop Overlay */}
