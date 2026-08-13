@@ -482,25 +482,25 @@ export const VolunteerTaskBoard = ({
         });
         
         return (
-          <div key={c.id || idx} className="bg-white dark:bg-[#151b2c] rounded-[24px] shadow-xl shadow-orange-500/5 border border-gray-100 dark:border-gray-800/60 p-5 md:p-6 mb-6 transition-all hover:shadow-2xl hover:shadow-orange-500/10">
+          <div key={c.id || idx} className="bg-white dark:bg-[#151b2c] rounded-2xl shadow-md border border-gray-100 dark:border-gray-800/60 p-3.5 sm:p-5 mb-4 transition-all hover:shadow-lg">
             
             {isBulk && (
-              <div className="bg-red-50 text-red-800 p-3 mb-4 rounded-xl font-bold border border-red-200 text-sm flex flex-col sm:flex-row sm:items-center gap-2">
+              <div className="bg-red-50 text-red-800 p-2.5 mb-3 rounded-xl font-bold border border-red-200 text-xs sm:text-sm flex flex-col sm:flex-row sm:items-center gap-2">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
                   <span>มีผู้ประสบภัย {groupItems.length} เคสในจุดนี้</span>
                 </div>
-                <div className="text-xs font-medium sm:ml-auto opacity-90 bg-red-100 px-2.5 py-1 rounded-lg text-red-900 border border-red-200">
+                <div className="text-[11px] font-medium sm:ml-auto opacity-90 bg-red-100 px-2 py-0.5 rounded-lg text-red-900 border border-red-200">
                   รหัส: {groupItems.map(g => g.displayId || 'ไม่ระบุ').join(', ')}
                 </div>
               </div>
             )}
 
             {/* Gig App Header */}
-            <div className="flex justify-between items-start mb-3">
+            <div className="flex justify-between items-start mb-2.5">
               <div className="flex items-center gap-2 relative">
                 <div className="flex items-center gap-2 relative">
-                  <span className={`px-3 py-1 text-xs font-bold rounded-full border ${getSeverityBadgeStyle(c.severity || 1)}`}>
+                  <span className={`px-2.5 py-0.5 text-xs font-bold rounded-full border ${getSeverityBadgeStyle(c.severity || 1)}`}>
                     {getSeverityText(c.severity || 1)}
                   </span>
                   {(currentUser as any)?.role === 'admin' && (
@@ -532,22 +532,22 @@ export const VolunteerTaskBoard = ({
                     </>
                   )}
                 </div>
-                <span className="font-bold text-gray-900 dark:text-white text-lg ml-1">{c.displayId}</span>
+                <span className="font-bold text-gray-900 dark:text-white text-base sm:text-lg ml-1">{c.displayId}</span>
               </div>
-              <div className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-                <Clock className="w-4 h-4" /> 
+              <div className="text-xs sm:text-sm text-gray-500 flex items-center gap-1 mt-0.5">
+                <Clock className="w-3.5 h-3.5" /> 
                 {c.created_at ? new Date(c.created_at).toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'}) : '-'}
               </div>
             </div>
 
             {/* Gig App Body */}
-            <div className="space-y-3 mb-4">
+            <div className="space-y-2.5 mb-3">
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-bold text-gray-900 dark:text-white text-xl">{c.type || 'ขอความช่วยเหลือฉุกเฉิน'}</h3>
+                  <h3 className="font-bold text-gray-900 dark:text-white text-base sm:text-lg">{c.type || 'ขอความช่วยเหลือฉุกเฉิน'}</h3>
                   <button 
                     onClick={() => setSelectedCase(c)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer hover:scale-105 active:scale-95"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer hover:scale-105 active:scale-95"
                     title="ดูคำแนะนำการกู้ภัยจาก AI"
                   >
                     ⚡ คำแนะนำ AI
@@ -555,55 +555,55 @@ export const VolunteerTaskBoard = ({
                 </div>
                 
                 {/* Compact Info Tags */}
-                <div className="flex flex-wrap items-center gap-2 mt-1">
-                  <span className="px-2.5 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-bold rounded-lg flex items-center gap-1 border border-blue-200 dark:border-blue-800/50">
+                <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                  <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-bold rounded-lg flex items-center gap-1 border border-blue-200 dark:border-blue-800/50">
                     <Users className="w-3.5 h-3.5" /> {c.people_count || 1} คน
                   </span>
                   {c.water_level && c.water_level !== '-' && (
-                    <span className="px-2.5 py-1 bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 text-xs font-bold rounded-lg flex items-center gap-1 border border-cyan-200 dark:border-cyan-800/50">
+                    <span className="px-2 py-0.5 bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 text-xs font-bold rounded-lg flex items-center gap-1 border border-cyan-200 dark:border-cyan-800/50">
                       🌊 น้ำ: {c.water_level}
                     </span>
                   )}
                   {c.bedridden > 0 && (
-                    <span className="px-2.5 py-1 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 text-xs font-bold rounded-lg flex items-center gap-1 border border-red-200 dark:border-red-800/50">
+                    <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 text-xs font-bold rounded-lg flex items-center gap-1 border border-red-200 dark:border-red-800/50">
                       🛏️ ติดเตียง
                     </span>
                   )}
                   {c.elderly > 0 && (
-                    <span className="px-2.5 py-1 bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400 text-xs font-bold rounded-lg flex items-center gap-1 border border-orange-200 dark:border-orange-800/50">
+                    <span className="px-2 py-0.5 bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400 text-xs font-bold rounded-lg flex items-center gap-1 border border-orange-200 dark:border-orange-800/50">
                       👴 เด็ก/ผู้สูงอายุ
                     </span>
                   )}
                 </div>
                 
-                {c.details && <div className="text-sm mt-2 p-3 bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-300 rounded-xl border border-gray-100 dark:border-gray-700">{c.details}</div>}
+                {c.details && <div className="text-xs sm:text-sm mt-1.5 p-2.5 bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-300 rounded-xl border border-gray-100 dark:border-gray-700">{c.details}</div>}
               </div>
 
-              {/* Location details fallback (optional general area) */}
+              {/* Location details fallback */}
               {c.address && c.address !== '-' && (
-                <div className="flex items-start gap-2 text-gray-600 dark:text-gray-400 text-sm mt-2">
-                  <MapPin className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                <div className="flex items-start gap-1.5 text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-1">
+                  <MapPin className="w-3.5 h-3.5 text-red-500 flex-shrink-0 mt-0.5" />
                   <div className="line-clamp-2">{c.address}</div>
                 </div>
               )}
 
-              {/* Large Call Button */}
+              {/* Compact Call Button */}
               {c.phone ? (
-                <a href={`tel:${c.phone}`} className="flex items-center justify-center w-full py-3 mt-3 text-base font-bold bg-green-500 hover:bg-green-600 text-white shadow-md shadow-green-500/20 rounded-xl gap-2 transition-colors border border-green-600">
-                  <Phone className="w-5 h-5" /> โทรหาผู้ประสบภัย
+                <a href={`tel:${c.phone}`} className="flex items-center justify-center w-full py-2 sm:py-2.5 mt-2 text-xs sm:text-sm font-extrabold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm rounded-xl gap-2 transition-colors border border-emerald-500 cursor-pointer">
+                  <Phone className="w-4 h-4" /> โทรหาผู้ประสบภัย
                 </a>
               ) : (
-                <div className="flex items-center justify-center w-full py-3 mt-3 text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 rounded-xl gap-2 border border-gray-200 dark:border-gray-700">
-                  <Phone className="w-4 h-4" /> ไม่มีเบอร์ติดต่อ
+                <div className="flex items-center justify-center w-full py-2 mt-2 text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 rounded-xl gap-2 border border-gray-200 dark:border-gray-700">
+                  <Phone className="w-3.5 h-3.5" /> ไม่มีเบอร์ติดต่อ
                 </div>
               )}
               
               {nearbyCases.length > 0 && (
-                <div className="mt-3 bg-amber-50 text-amber-800 p-2 rounded-lg border border-amber-200 text-sm flex items-start gap-2">
-                  <MapPin className="w-5 h-5 shrink-0 text-amber-600 mt-0.5" />
+                <div className="mt-2 bg-amber-50 text-amber-800 p-2 rounded-lg border border-amber-200 text-xs flex items-start gap-1.5">
+                  <MapPin className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
                   <div>
                     <span className="font-semibold">เคสใกล้เคียงรัศมี 500m ({nearbyCases.length} เคส)</span>
-                    <p className="text-xs opacity-80 mt-0.5">รวมรหัส: {nearbyCases.map(n => n.displayId || 'ไม่ระบุ').join(', ')}</p>
+                    <p className="text-[11px] opacity-80 mt-0.5">รวมรหัส: {nearbyCases.map(n => n.displayId || 'ไม่ระบุ').join(', ')}</p>
                   </div>
                 </div>
               )}
@@ -615,7 +615,7 @@ export const VolunteerTaskBoard = ({
                 <Button 
                   onClick={() => isBulk ? handleBulkAccept(groupItems.map(i => i.id)) : handleAcceptCase(c.id)}
                   disabled={updatingCaseId === c.id || (isBulk && updatingCaseId === 'bulk-' + groupItems.map(i=>i.id).join(','))}
-                  className="w-full h-auto py-4 sm:py-6 text-base sm:text-lg md:text-xl font-bold bg-[#10b981] hover:bg-[#059669] text-white shadow-lg rounded-xl disabled:opacity-50 disabled:cursor-not-allowed whitespace-normal leading-tight break-words"
+                  className="w-full h-auto py-2.5 sm:py-3.5 text-sm sm:text-base md:text-lg font-extrabold bg-[#10b981] hover:bg-[#059669] text-white shadow-md rounded-xl disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-normal leading-tight break-words"
                 >
                   {isBulk 
                     ? (updatingCaseId === 'bulk-' + groupItems.map(i=>i.id).join(',') ? "กำลังดำเนินการ..." : `รับเคสทั้งหมดในจุดนี้ (${groupItems.length} เคส)`)
@@ -624,61 +624,61 @@ export const VolunteerTaskBoard = ({
               )}
 
               {isResolvedStatus && (
-                <div className="w-full py-4 text-center text-lg font-bold text-green-600 bg-green-50 border border-green-200 rounded-xl">
+                <div className="w-full py-2.5 text-center text-sm sm:text-base font-bold text-green-600 bg-green-50 border border-green-200 rounded-xl">
                   {c.destination || 'ช่วยเหลือสำเร็จแล้ว'}
                 </div>
               )}
 
               {showActionButtons && (
-                <div className="space-y-4 animate-in fade-in">
+                <div className="space-y-3 animate-in fade-in">
                   <a 
                     href={`https://www.google.com/maps/dir/?api=1&destination=${c.latitude},${c.longitude}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center w-full h-auto py-4 sm:py-6 text-base sm:text-lg md:text-xl font-bold bg-[#3b82f6] hover:bg-[#2563eb] text-white shadow-lg rounded-xl gap-2 transition-colors whitespace-normal leading-tight break-words"
+                    className="flex items-center justify-center w-full h-auto py-2.5 sm:py-3.5 text-sm sm:text-base md:text-lg font-extrabold bg-blue-600 hover:bg-blue-500 text-white shadow-md rounded-xl gap-2 transition-colors cursor-pointer whitespace-normal leading-tight break-words"
                   >
-                    <MapPin className="w-6 h-6" /> นำทางด้วย GPS
+                    <MapPin className="w-5 h-5" /> นำทางด้วย GPS
                   </a>
                   
-                  <div className="flex items-center py-2">
+                  <div className="flex items-center py-1">
                     <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
-                    <span className="flex-shrink-0 mx-4 text-gray-400 text-sm font-medium">บันทึกผลการช่วยเหลือ</span>
+                    <span className="flex-shrink-0 mx-3 text-gray-400 text-xs font-medium">บันทึกผลการช่วยเหลือ</span>
                     <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
                   </div>
                   
                   <details className="group border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800/30 overflow-hidden">
-                    <summary className="cursor-pointer p-4 font-bold text-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors list-none flex justify-center items-center gap-2">
+                    <summary className="cursor-pointer py-2.5 px-3 font-bold text-xs sm:text-sm text-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors list-none flex justify-center items-center gap-2">
                       <span>บันทึกผลการช่วยเหลือ / ปิดเคส</span>
                       <span className="group-open:rotate-180 transition-transform">▼</span>
                     </summary>
-                    <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-4 bg-white dark:bg-[#151b2c]">
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="p-3 border-t border-gray-200 dark:border-gray-700 space-y-3 bg-white dark:bg-[#151b2c]">
+                      <div className="grid grid-cols-3 gap-2">
                         <Button 
                           variant="outline"
                           disabled={updatingCaseId === c.id}
-                          className="py-4 border-2 border-emerald-400 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:border-emerald-500 dark:text-emerald-300 dark:hover:bg-emerald-800/60 font-bold flex flex-col gap-1 h-auto rounded-xl disabled:opacity-50 transition-colors shadow-sm"
+                          className="py-2.5 px-1 border-2 border-emerald-400 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:border-emerald-500 dark:text-emerald-300 dark:hover:bg-emerald-800/60 font-bold flex flex-col items-center justify-center gap-0.5 h-auto rounded-xl disabled:opacity-50 transition-colors shadow-sm cursor-pointer"
                           onClick={() => handleUpdateStatus(c.id, 'ส่งเข้าศูนย์พักพิง')}
                         >
-                          <Home className="w-6 h-6 mb-1" />
-                          <span className="text-sm">ศูนย์พักพิง</span>
+                          <Home className="w-5 h-5 mb-0.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                          <span className="text-[11px] sm:text-xs font-extrabold whitespace-nowrap">ศูนย์พักพิง</span>
                         </Button>
                         <Button 
                           variant="outline"
                           disabled={updatingCaseId === c.id}
-                          className="py-4 border-2 border-orange-400 bg-orange-50 hover:bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:border-orange-500 dark:text-orange-300 dark:hover:bg-orange-800/60 font-bold flex flex-col gap-1 h-auto rounded-xl disabled:opacity-50 transition-colors shadow-sm"
+                          className="py-2.5 px-1 border-2 border-orange-400 bg-orange-50 hover:bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:border-orange-500 dark:text-orange-300 dark:hover:bg-orange-800/60 font-bold flex flex-col items-center justify-center gap-0.5 h-auto rounded-xl disabled:opacity-50 transition-colors shadow-sm cursor-pointer"
                           onClick={() => handleUpdateStatus(c.id, 'มอบถุงยังชีพ')}
                         >
-                          <Package className="w-6 h-6 mb-1" />
-                          <span className="text-sm">มอบถุงยังชีพ</span>
+                          <Package className="w-5 h-5 mb-0.5 shrink-0 text-orange-600 dark:text-orange-400" />
+                          <span className="text-[11px] sm:text-xs font-extrabold whitespace-nowrap">มอบถุงยังชีพ</span>
                         </Button>
                         <Button 
                           variant="outline"
                           disabled={updatingCaseId === c.id}
-                          className="py-4 border-2 border-red-400 bg-red-50 hover:bg-red-100 text-red-800 dark:bg-red-900/40 dark:border-red-500 dark:text-red-300 dark:hover:bg-red-800/60 font-bold flex flex-col gap-1 h-auto rounded-xl disabled:opacity-50 transition-colors shadow-sm"
+                          className="py-2.5 px-1 border-2 border-red-400 bg-red-50 hover:bg-red-100 text-red-800 dark:bg-red-900/40 dark:border-red-500 dark:text-red-300 dark:hover:bg-red-800/60 font-bold flex flex-col items-center justify-center gap-0.5 h-auto rounded-xl disabled:opacity-50 transition-colors shadow-sm cursor-pointer"
                           onClick={() => handleUpdateStatus(c.id, 'นำส่งโรงพยาบาล')}
                         >
-                          <Hospital className="w-6 h-6 mb-1" />
-                          <span className="text-sm">โรงพยาบาล</span>
+                          <Hospital className="w-5 h-5 mb-0.5 shrink-0 text-red-600 dark:text-red-400" />
+                          <span className="text-[11px] sm:text-xs font-extrabold whitespace-nowrap">โรงพยาบาล</span>
                         </Button>
                       </div>
 
