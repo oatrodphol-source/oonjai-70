@@ -227,7 +227,7 @@ export default function DashboardPage() {
 
   return (
     <>
-      <DashboardHeader title={isAdmin ? "แดชบอร์ดภาพรวม" : "แดชบอร์ดอาสาสมัคร"} />
+      <DashboardHeader title={isAdmin ? "แดชบอร์ดภาพรวม" : "แดชบอร์ดอาสา"} />
       
       <div className="space-y-6 max-w-7xl mx-auto py-6 pb-32 md:pb-10">
         {/* Volunteer AI Insight Card */}

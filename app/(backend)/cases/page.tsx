@@ -92,7 +92,7 @@ export default function CasesPage() {
 
   return (
     <>
-      <DashboardHeader title={role === 'admin' ? "จัดการเคสการช่วยเหลือ" : "กระดานงานอาสาสมัคร (Task Board)"} />
+      <DashboardHeader title={role === 'admin' ? "จัดการเคส" : "กระดานงานอาสา"} />
       
       <div className="min-h-[100dvh] bg-slate-50 dark:bg-[#0b1325] p-4 pb-36 md:pb-10 w-full max-w-[100vw] md:max-w-5xl mx-auto space-y-6 overflow-x-hidden overflow-y-auto">
 

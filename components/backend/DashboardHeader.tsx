@@ -55,7 +55,7 @@ export const DashboardHeader = ({ title = 'Dashboard' }: { title?: string }) => 
 
   return (
     <header className="h-16 sm:h-20 bg-white dark:bg-[#151b2c] border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 sm:px-8 sticky top-0 z-30 w-full max-w-[100vw]">
-      <h2 className="text-base sm:text-2xl font-bold text-gray-800 dark:text-white truncate max-w-[180px] xs:max-w-[240px] sm:max-w-none">
+      <h2 className="text-sm sm:text-xl font-extrabold text-gray-800 dark:text-white whitespace-nowrap shrink-1 min-w-0">
         {title}
       </h2>
       

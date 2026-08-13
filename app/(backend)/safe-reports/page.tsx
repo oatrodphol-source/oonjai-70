@@ -260,7 +260,7 @@ export default function SafeReportsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0f172a]">
-      <DashboardHeader title="จัดการรายชื่อผู้ปลอดภัย" />
+      <DashboardHeader title="จัดการผู้ปลอดภัย" />
       
       <main className="pt-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto pb-12 space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

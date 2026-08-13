@@ -182,7 +182,7 @@ export default function LineSettingsPage() {
 
   return (
     <>
-      <DashboardHeader title="จัดการ LINE SOS (LINE Settings)" />
+      <DashboardHeader title="จัดการ LINE" />
       <div className="w-full max-w-4xl mx-auto py-4 sm:py-6 pb-32 md:pb-10 space-y-6 px-3 sm:px-6 max-w-[100vw] overflow-x-hidden">
         
         {/* Connection Settings Card */}

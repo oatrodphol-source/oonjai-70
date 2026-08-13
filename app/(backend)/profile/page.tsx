@@ -139,7 +139,7 @@ export default function ProfilePage() {
 
   return (
     <>
-      <DashboardHeader title="ตั้งค่าบัญชี (Account Settings)" />
+      <DashboardHeader title="ตั้งค่าบัญชี" />
       <div className="w-full max-w-4xl mx-auto py-4 sm:py-6 pb-32 md:pb-10 space-y-6 px-3 sm:px-6 max-w-[100vw] overflow-x-hidden animate-in fade-in duration-300">
         
         <div className="flex items-center justify-between mb-2">

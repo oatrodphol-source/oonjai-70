@@ -213,7 +213,7 @@ export default function HistoryPage() {
 
   return (
     <>
-      <DashboardHeader title={`ประวัติการช่วยเหลือของ: ${volunteerName}`} />
+      <DashboardHeader title="ประวัติช่วยเหลือ" />
       <div className="max-w-7xl mx-auto py-6 pb-32 md:pb-10 space-y-6 px-4 sm:px-6">
         
         {/* Statistics Cards */}

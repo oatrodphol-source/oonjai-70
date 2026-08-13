@@ -216,7 +216,7 @@ export default function AiTriggerPage() {
 
   return (
     <>
-      <DashboardHeader title="ตั้งค่า AI Trigger & Triage" />
+      <DashboardHeader title="ตั้งค่า AI" />
       <div className="max-w-4xl mx-auto py-6 pb-32 md:pb-10 space-y-6">
         <div className="bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800 p-6 rounded-2xl">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">

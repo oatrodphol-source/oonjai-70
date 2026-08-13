@@ -187,7 +187,7 @@ export default function HeatmapPage() {
 
   return (
     <>
-      <DashboardHeader title="แผนที่ความร้อน (Heatmap)" />
+      <DashboardHeader title="แผนที่ความร้อน" />
       <main className="flex flex-col w-full h-[calc(100dvh-140px)] md:h-[calc(100dvh-80px)] overflow-hidden bg-slate-50 dark:bg-slate-900 pb-32 md:pb-10">
         
         {/* Top Tactical Command Header Bar */}

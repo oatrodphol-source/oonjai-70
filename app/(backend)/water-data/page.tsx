@@ -138,7 +138,7 @@ export default async function WaterDataPage() {
 
   return (
     <>
-      <DashboardHeader title="ศูนย์ข้อมูลภัยพิบัติและสภาพอากาศ" />
+      <DashboardHeader title="ข้อมูลภัยพิบัติ" />
       
       <div className="w-full max-w-[100vw] overflow-x-hidden pb-32 md:pb-10 mx-auto py-6 space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
