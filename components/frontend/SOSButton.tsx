@@ -225,33 +225,38 @@ export const SOSButton = () => {
               : 'bg-red-600 border-[#0b1325] shadow-[0_20px_50px_rgba(220,38,38,0.5)] hover:bg-red-500 text-white'
           }`}
         >
-          {isLoading && status !== 'success' && (
-            <>
-              <Navigation className="w-16 h-16 animate-pulse mb-2" />
-              <span className="text-xl font-bold tracking-wide">กำลังดำเนินการ...</span>
-            </>
-          )}
-
-          {status === 'success' && (
-            <>
-              <CheckCircle2 className="w-16 h-16 mb-2" />
-              <span className="text-xl font-bold tracking-wide">ส่งข้อมูลสำเร็จ!</span>
-            </>
-          )}
-
-          {status === 'error' && (
-            <>
-              <AlertCircle className="w-16 h-16 animate-bounce mb-2" />
-              <span className="text-xl font-bold tracking-wide">เกิดข้อผิดพลาด</span>
-            </>
-          )}
-
-          {status === 'idle' && (
+          {/* Button Content - Guaranteed Fail-safe Render across all states */}
+          {status === 'idle' && !isLoading && (
             <>
               <Bell className="w-24 h-24 mb-2 drop-shadow-lg" fill="currentColor" />
               <span className="text-5xl font-black tracking-widest drop-shadow-lg">SOS</span>
-              <span className="text-sm font-bold uppercase tracking-widest mt-2 opacity-90 drop-shadow-lg">Press for Help</span>
+              <span className="text-sm font-bold uppercase tracking-widest mt-2 opacity-90 drop-shadow-lg">PRESS FOR HELP</span>
             </>
+          )}
+
+          {(status === 'locating' || status === 'sending' || isLoading) && status !== 'success' && status !== 'error' && (
+            <div className="flex flex-col items-center justify-center animate-in fade-in duration-200">
+              <Navigation className="w-14 h-14 animate-spin mb-3 text-white" />
+              <span className="text-lg sm:text-xl font-extrabold tracking-wide">
+                {status === 'locating' ? 'กำลังดึงพิกัด GPS...' : 'กำลังส่งขอความช่วยเหลือ...'}
+              </span>
+              <span className="text-xs font-medium text-white/80 mt-1">กรุณารอสักครู่</span>
+            </div>
+          )}
+
+          {status === 'success' && (
+            <div className="flex flex-col items-center justify-center animate-in zoom-in duration-200">
+              <CheckCircle2 className="w-16 h-16 mb-2 text-white" />
+              <span className="text-xl font-extrabold tracking-wide">ส่งข้อมูลสำเร็จ!</span>
+            </div>
+          )}
+
+          {status === 'error' && !isLoading && (
+            <div className="flex flex-col items-center justify-center animate-in zoom-in duration-200">
+              <AlertCircle className="w-16 h-16 mb-2 text-white" />
+              <span className="text-lg font-extrabold tracking-wide">เกิดข้อผิดพลาด</span>
+              <span className="text-xs text-white/90 mt-1">กดเพื่อลองใหม่อีกครั้ง</span>
+            </div>
           )}
         </button>
       </div>
