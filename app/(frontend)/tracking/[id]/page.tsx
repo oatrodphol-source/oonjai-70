@@ -30,6 +30,8 @@ interface CaseData {
   volunteer_name?: string;
   assigned_volunteer_phone?: string;
   assigned_volunteer_unit?: string;
+  volunteer_province?: string;
+  province?: string;
   destination?: string;
   rating?: number;
 }
@@ -519,7 +521,9 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
                 <div className="min-w-0">
                   <div className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">เจ้าหน้าที่รับเคสแล้ว</div>
                   <div className="text-sm font-extrabold text-gray-900 dark:text-white truncate">{volunteerName}</div>
-                  <div className="text-[11px] text-gray-500 truncate">{volunteerUnit}</div>
+                  <div className="text-[11px] text-gray-500 truncate">
+                    {volunteerUnit} {caseData?.volunteer_province || caseData?.province ? `• (จ.${caseData?.volunteer_province || caseData?.province})` : ''}
+                  </div>
                 </div>
               </div>
 

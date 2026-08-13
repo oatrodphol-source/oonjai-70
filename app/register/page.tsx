@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { User, Building, Phone, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { THAI_PROVINCES } from '@/lib/constants';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -138,22 +139,41 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-white text-sm font-medium mb-1.5">เบอร์โทรศัพท์</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Phone className="h-5 w-5 text-gray-600" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+              <label className="block text-white text-sm font-medium mb-1.5">เบอร์โทรศัพท์ (10 หลัก)</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Phone className="h-5 w-5 text-gray-600" />
+                </div>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  placeholder="08XXXXXXXX"
+                  required
+                  maxLength={10}
+                  className="w-full pl-11 pr-4 py-3 rounded-xl border-none focus:ring-2 focus:ring-white bg-[#f4b685] text-gray-900 placeholder-gray-600 shadow-inner transition-all font-mono"
+                />
               </div>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                placeholder="08X-XXX-XXXX"
-                required
-                maxLength={10}
-                className="w-full pl-11 pr-4 py-3 rounded-xl border-none focus:ring-2 focus:ring-white bg-[#f4b685] text-gray-900 placeholder-gray-600 shadow-inner transition-all"
-              />
+            </div>
+            <div>
+              <label className="block text-white text-sm font-medium mb-1.5">จังหวัดประจำการ</label>
+              <div className="relative">
+                <select
+                  name="province"
+                  value={(formData as any).province || 'ปทุมธานี'}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, province: e.target.value }))}
+                  className="w-full px-4 py-3 rounded-xl border-none focus:ring-2 focus:ring-white bg-[#f4b685] text-gray-900 shadow-inner transition-all"
+                >
+                  {THAI_PROVINCES.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
