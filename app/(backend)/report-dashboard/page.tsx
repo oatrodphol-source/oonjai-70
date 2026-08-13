@@ -653,12 +653,54 @@ export default function ReportDashboardPage() {
               </div>
 
               <div className="flex flex-col sm:flex-row items-center gap-2 w-full min-w-0 pt-1">
-                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full sm:flex-1 border border-slate-700 rounded-lg px-3 py-2 bg-slate-900 text-white text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" />
-                <span className="hidden sm:block text-slate-400 shrink-0">-</span>
-                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full sm:flex-1 border border-slate-700 rounded-lg px-3 py-2 bg-slate-900 text-white text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" />
+                <div 
+                  onClick={(e) => {
+                    const input = e.currentTarget.querySelector('input[type="date"]') as HTMLInputElement;
+                    if (input) { try { input.showPicker(); } catch (err) {} }
+                  }}
+                  className="w-full sm:flex-1 relative flex items-center bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 cursor-pointer hover:border-orange-500 transition-colors shadow-inner"
+                  title="คลิกเพื่อเลือกวันที่เริ่มต้นจากปฏิทิน"
+                >
+                  <Calendar className="w-4 h-4 text-orange-400 mr-2 shrink-0 pointer-events-none" />
+                  <span className="text-xs text-slate-400 font-bold mr-2 shrink-0 pointer-events-none">จาก:</span>
+                  <input 
+                    type="date" 
+                    value={startDate} 
+                    onChange={(e) => setStartDate(e.target.value)} 
+                    onClick={(e) => { e.stopPropagation(); try { e.currentTarget.showPicker(); } catch (err) {} }}
+                    className="w-full bg-transparent text-white text-xs font-bold outline-none cursor-pointer [color-scheme:dark]" 
+                  />
+                </div>
+
+                <span className="hidden sm:block text-slate-400 shrink-0 font-bold">-</span>
+
+                <div 
+                  onClick={(e) => {
+                    const input = e.currentTarget.querySelector('input[type="date"]') as HTMLInputElement;
+                    if (input) { try { input.showPicker(); } catch (err) {} }
+                  }}
+                  className="w-full sm:flex-1 relative flex items-center bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 cursor-pointer hover:border-orange-500 transition-colors shadow-inner"
+                  title="คลิกเพื่อเลือกวันที่สิ้นสุดจากปฏิทิน"
+                >
+                  <Calendar className="w-4 h-4 text-orange-400 mr-2 shrink-0 pointer-events-none" />
+                  <span className="text-xs text-slate-400 font-bold mr-2 shrink-0 pointer-events-none">ถึง:</span>
+                  <input 
+                    type="date" 
+                    value={endDate} 
+                    onChange={(e) => setEndDate(e.target.value)} 
+                    onClick={(e) => { e.stopPropagation(); try { e.currentTarget.showPicker(); } catch (err) {} }}
+                    className="w-full bg-transparent text-white text-xs font-bold outline-none cursor-pointer [color-scheme:dark]" 
+                  />
+                </div>
+
                 {(startDate || endDate) && (
-                  <button onClick={() => { setStartDate(''); setEndDate(''); }} className="w-full sm:w-auto p-2 bg-rose-900/40 text-rose-300 border border-rose-700/50 hover:bg-rose-900/60 rounded-lg shrink-0 flex justify-center items-center">
+                  <button 
+                    onClick={() => { setStartDate(''); setEndDate(''); }} 
+                    className="w-full sm:w-auto px-3 py-2.5 bg-rose-900/40 text-rose-300 border border-rose-700/50 hover:bg-rose-900/60 rounded-xl shrink-0 flex justify-center items-center font-bold text-xs gap-1 transition-all active:scale-95 cursor-pointer"
+                    title="ล้างช่วงเวลา"
+                  >
                     <X className="w-4 h-4" />
+                    <span className="sm:hidden">ล้างวันที่</span>
                   </button>
                 )}
               </div>
