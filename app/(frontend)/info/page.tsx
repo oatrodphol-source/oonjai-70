@@ -1,11 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/Card';
-import { Phone, CheckCircle2, Clock, MapPin, Building2, ShieldPlus, Package, Search, ShieldCheck } from 'lucide-react';
+import { Phone, CheckCircle2, Clock, MapPin, Building2, ShieldPlus, Search, ShieldCheck, UserCheck, LayoutList, LayoutGrid, ChevronDown, ChevronUp } from 'lucide-react';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { supabase } from '@/lib/supabase';
-import { isPendingCase, isCompletedCase, isShelterDestination, isHospitalDestination, isSuppliesDestination } from '@/lib/caseUtils';
+import { isPendingCase, isCompletedCase, isShelterDestination, isHospitalDestination } from '@/lib/caseUtils';
 
 export default function InfoPage() {
   const [stats, setStats] = useState<{
@@ -27,8 +26,11 @@ export default function InfoPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [destinationFilter, setDestinationFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
+  const [viewMode, setViewMode] = useState<'compact' | 'cards'>('compact');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12;
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const itemsPerPage = 15;
 
   useEffect(() => {
     setCurrentPage(1);
@@ -37,13 +39,9 @@ export default function InfoPage() {
   const completedStatuses = ["resolved", "completed"];
 
   const resolvedCases = evacuees.filter(c => {
-    // 1. Check if status string implies completion
     const currentStatus = c.status || "";
     const hasCompletedStatus = completedStatuses.some(s => currentStatus.includes(s));
-
-    // 2. MUST have an assigned volunteer (Reject ghost cases)
     const hasVolunteer = Boolean(c.volunteer_id);
-
     return hasCompletedStatus && hasVolunteer;
   });
 
@@ -53,7 +51,7 @@ export default function InfoPage() {
       type: 'case',
       id: c.id,
       name: c.name,
-      destination: c.destination || 'ปลอดภัยแล้ว',
+      destination: c.destination || 'พื้นที่ปลอดภัยแล้ว',
       timestamp: c.timestamp,
       helper: c.volunteer_name === 'แจ้งด้วยตนเอง' ? 'แจ้งด้วยตนเอง' : `${c.volunteer_name || 'ไม่ระบุชื่อ'} (${c.assigned_volunteer_unit || 'ไม่ระบุหน่วยงาน'})`
     })),
@@ -63,7 +61,7 @@ export default function InfoPage() {
       name: s.name,
       destination: s.destination || 'พื้นที่ปลอดภัย',
       timestamp: s.timestamp ? new Date(s.timestamp).getTime() : 0,
-      helper: s.agency || 'แจ้งด้วยตนเอง' // Fallback to 'แจ้งด้วยตนเอง' for safe_reports
+      helper: s.agency || 'แจ้งด้วยตนเอง'
     }))
   ].sort((a, b) => b.timestamp - a.timestamp);
 
@@ -96,7 +94,7 @@ export default function InfoPage() {
           .from('safe_reports')
           .select('*')
           .order('timestamp', { ascending: false })
-          .limit(20);
+          .limit(30);
         if (error) throw error;
         setSafeList((data || []).map(d => ({ ...d, id: String(d.id) })));
       } catch (err) {
@@ -105,10 +103,8 @@ export default function InfoPage() {
     };
     fetchSafeReports();
     const channel = supabase.channel('realtime-info-safe')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'safe_reports' }, async (payload) => {
-        console.log('🔄 ข้อมูลผู้ปลอดภัยมีการเปลี่ยนแปลง:', payload.eventType);
-        // ดึงข้อมูลใหม่จาก DB ทันที (Refetch)
-        const { data } = await supabase.from('safe_reports').select('*').order('timestamp', { ascending: false }).limit(20);
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'safe_reports' }, async () => {
+        const { data } = await supabase.from('safe_reports').select('*').order('timestamp', { ascending: false }).limit(30);
         if (data) {
           setSafeList(data.map(d => ({ ...d, id: String(d.id) })));
         }
@@ -130,9 +126,7 @@ export default function InfoPage() {
     };
     fetchCases();
     const channel = supabase.channel('realtime-info-cases')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'cases' }, async (payload) => {
-        console.log('🔄 ข้อมูลสถิติเคสมีการเปลี่ยนแปลง:', payload.eventType);
-        // ดึงข้อมูลใหม่จาก DB ทันที (Refetch)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cases' }, async () => {
         const { data } = await supabase.from('cases').select('*');
         if (data) {
           setRawCases(data);
@@ -153,17 +147,9 @@ export default function InfoPage() {
       const docId = String(data.id);
       const status = data.status || '';
 
-      // pending
-      if (isPendingCase(status)) {
-        pendingCount++;
-      }
+      if (isPendingCase(status)) pendingCount++;
+      if (isCompletedCase(status)) completedCount++;
 
-      // success
-      if (isCompletedCase(status)) {
-        completedCount++;
-      }
-
-      // evacuation and hospital board
       if (isCompletedCase(status) && (data.destination || '').trim() !== '') {
         const dest = data.destination || '';
         if (isShelterDestination(dest)) shelterCount++;
@@ -208,248 +194,351 @@ export default function InfoPage() {
   }, [rawCases]);
 
   const emergencyNumbers = [
-    { name: 'เจ็บป่วยฉุกเฉิน', number: '1669', color: 'bg-red-100 text-red-600 dark:bg-red-900/30' },
-    { name: 'ปภ. (บรรเทาสาธารณภัย)', number: '1784', color: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30' },
-    { name: 'กฟภ. (แจ้งไฟฟ้าขัดข้อง)', number: '1129', color: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30' },
-    { name: 'เหตุด่วนเหตุร้าย', number: '191', color: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30' },
-    { name: 'ตำรวจทางหลวง', number: '1193', color: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30' },
-    { name: 'กรมทางหลวงชนบท', number: '1146', color: 'bg-green-100 text-green-600 dark:bg-green-900/30' },
+    { name: 'เจ็บป่วยฉุกเฉิน', number: '1669', color: 'bg-red-100 text-red-600 dark:bg-red-950/60 dark:text-red-400' },
+    { name: 'ปภ. (บรรเทาสาธารณภัย)', number: '1784', color: 'bg-orange-100 text-orange-600 dark:bg-orange-950/60 dark:text-orange-400' },
+    { name: 'กฟภ. (แจ้งไฟฟ้าขัดข้อง)', number: '1129', color: 'bg-purple-100 text-purple-600 dark:bg-purple-950/60 dark:text-purple-400' },
+    { name: 'เหตุด่วนเหตุร้าย', number: '191', color: 'bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400' },
+    { name: 'ตำรวจทางหลวง', number: '1193', color: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400' },
+    { name: 'กรมทางหลวงชนบท', number: '1146', color: 'bg-green-100 text-green-600 dark:bg-green-950/60 dark:text-green-400' },
   ];
+
+  // Helper function to render explicit destination badges with clear icons & colors
+  const renderDestinationBadge = (dest?: string) => {
+    const text = dest || 'พื้นที่ปลอดภัย';
+    const isHospital = text.includes('โรงพยาบาล') || text.includes('แพทย์');
+    const isShelter = text.includes('ศูนย์พักพิง');
+
+    if (isHospital) {
+      return (
+        <span className="inline-flex items-center gap-1 bg-red-100 dark:bg-red-950/80 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-800 text-[11px] font-black px-2.5 py-1 rounded-full whitespace-nowrap">
+          <ShieldPlus className="w-3.5 h-3.5" />
+          <span>โรงพยาบาล / หน่วยแพทย์</span>
+        </span>
+      );
+    } else if (isShelter) {
+      return (
+        <span className="inline-flex items-center gap-1 bg-blue-100 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400 border border-blue-300 dark:border-blue-800 text-[11px] font-black px-2.5 py-1 rounded-full whitespace-nowrap">
+          <Building2 className="w-3.5 h-3.5" />
+          <span>ศูนย์พักพิง</span>
+        </span>
+      );
+    } else {
+      return (
+        <span className="inline-flex items-center gap-1 bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 text-[11px] font-black px-2.5 py-1 rounded-full whitespace-nowrap">
+          <CheckCircle2 className="w-3.5 h-3.5" />
+          <span>{text}</span>
+        </span>
+      );
+    }
+  };
 
   if (loading) {
     return <LoadingSpinner />;
   }
 
   return (
-    <div className="w-full max-w-full overflow-x-hidden px-4 pb-32 pt-24 sm:px-6 mx-auto space-y-6">
+    <div className="w-full max-w-4xl overflow-x-hidden px-3 sm:px-6 pb-28 pt-20 sm:pt-24 mx-auto space-y-5">
 
-      {/* Header */}
+      {/* Header Banner */}
       <div>
-        <h2 className="text-2xl font-black text-gray-900 dark:text-white">ภาพรวมสถานการณ์</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">ข้อมูลแบบเรียลไทม์จากศูนย์อุ่นใจ</p>
+        <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-wide">
+          ภาพรวมสถานการณ์
+        </h2>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+          ข้อมูลการช่วยเหลือเรียลไทม์จากศูนย์กู้ภัยอุ่นใจ
+        </p>
       </div>
 
-      {/* Main Stats Grid */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 w-full">
-        <div className="w-full min-w-0 h-full bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800/50 p-3 sm:p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-sm overflow-hidden min-h-[100px] sm:min-h-[120px]">
-          <Clock className="w-8 h-8 text-orange-500 mb-2 hidden sm:block" />
-          <h3 className="text-2xl sm:text-3xl font-bold text-orange-600 dark:text-orange-500">{stats.pendingCount}</h3>
-          <p className="whitespace-normal break-words text-center text-xs sm:text-sm w-full leading-tight font-semibold text-orange-800 dark:text-orange-400 mt-1">รอการช่วยเหลือ</p>
+      {/* 4 Stat Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4 w-full">
+        <div className="bg-orange-50/80 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/40 p-3 sm:p-4 rounded-2xl flex flex-col items-center justify-center text-center shadow-sm">
+          <Clock className="w-6 h-6 text-orange-500 mb-1 hidden sm:block" />
+          <h3 className="text-2xl sm:text-3xl font-black text-orange-600 dark:text-orange-400">{stats.pendingCount}</h3>
+          <p className="text-xs font-extrabold text-orange-800 dark:text-orange-400 mt-0.5">รอการช่วยเหลือ</p>
         </div>
 
-        <div className="w-full min-w-0 h-full bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800/50 p-3 sm:p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-sm overflow-hidden min-h-[100px] sm:min-h-[120px]">
-          <CheckCircle2 className="w-8 h-8 text-green-500 mb-2 hidden sm:block" />
-          <h3 className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-500">{stats.completedCount}</h3>
-          <p className="whitespace-normal break-words text-center text-xs sm:text-sm w-full leading-tight font-semibold text-green-800 dark:text-green-400 mt-1">ช่วยเหลือสำเร็จ</p>
+        <div className="bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/40 p-3 sm:p-4 rounded-2xl flex flex-col items-center justify-center text-center shadow-sm">
+          <CheckCircle2 className="w-6 h-6 text-emerald-500 mb-1 hidden sm:block" />
+          <h3 className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400">{stats.completedCount}</h3>
+          <p className="text-xs font-extrabold text-emerald-800 dark:text-emerald-400 mt-0.5">ช่วยเหลือสำเร็จ</p>
         </div>
 
-        {/* Shelter */}
-        <div className="w-full min-w-0 h-full bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 p-3 sm:p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-sm overflow-hidden min-h-[100px] sm:min-h-[120px]">
-          <Building2 className="w-8 h-8 text-blue-500 mb-2 hidden sm:block" />
-          <h3 className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-500">{stats.shelterCount}</h3>
-          <p className="whitespace-normal break-words text-center text-xs sm:text-sm w-full leading-tight font-semibold text-blue-800 dark:text-blue-400 mt-1">ศูนย์พักพิง</p>
+        <div className="bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/40 p-3 sm:p-4 rounded-2xl flex flex-col items-center justify-center text-center shadow-sm">
+          <Building2 className="w-6 h-6 text-blue-500 mb-1 hidden sm:block" />
+          <h3 className="text-2xl sm:text-3xl font-black text-blue-600 dark:text-blue-400">{stats.shelterCount}</h3>
+          <p className="text-xs font-extrabold text-blue-800 dark:text-blue-400 mt-0.5">ศูนย์พักพิง</p>
         </div>
 
-        {/* Hospital */}
-        <div className="w-full min-w-0 h-full bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/50 p-3 sm:p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-sm overflow-hidden min-h-[100px] sm:min-h-[120px]">
-          <ShieldPlus className="w-8 h-8 text-red-500 mb-2 hidden sm:block" />
-          <h3 className="text-2xl sm:text-3xl font-bold text-red-600 dark:text-red-500">{stats.hospitalCount}</h3>
-          <p className="whitespace-normal break-words text-center text-xs sm:text-sm w-full leading-tight font-semibold text-red-800 dark:text-red-400 mt-1">โรงพยาบาล/หน่วยแพทย์</p>
+        <div className="bg-red-50/80 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 p-3 sm:p-4 rounded-2xl flex flex-col items-center justify-center text-center shadow-sm">
+          <ShieldPlus className="w-6 h-6 text-red-500 mb-1 hidden sm:block" />
+          <h3 className="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-400">{stats.hospitalCount}</h3>
+          <p className="text-xs font-extrabold text-red-800 dark:text-red-400 mt-0.5">โรงพยาบาล/แพทย์</p>
         </div>
       </div>
 
-      {/* Safe Persons Board */}
+      {/* Safe Persons Section */}
       <div className="pt-2">
-        <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-          <ShieldCheck className="w-5 h-5 text-emerald-500" />
-          ข้อมูลรายชื่อผู้ปลอดภัย
-        </h3>
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <h3 className="text-base sm:text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-emerald-500" />
+            รายชื่อผู้ปลอดภัย ({filteredSafePeople.length})
+          </h3>
 
-        {/* Search & Filters */}
-        <div className="flex flex-col gap-4 mb-6 bg-white dark:bg-[#151b2c] p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
-          <div className="flex flex-col sm:flex-row gap-3">
+          {/* View Mode Toggle Button */}
+          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+            <button
+              onClick={() => setViewMode('compact')}
+              className={`p-1.5 rounded-lg text-xs font-extrabold transition-all flex items-center gap-1 cursor-pointer ${
+                viewMode === 'compact'
+                  ? 'bg-white dark:bg-[#0b1325] text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+              }`}
+              title="มุมมองตารางกระชับ (ลดการเลื่อน)"
+            >
+              <LayoutList className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">ตาราง</span>
+            </button>
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`p-1.5 rounded-lg text-xs font-extrabold transition-all flex items-center gap-1 cursor-pointer ${
+                viewMode === 'cards'
+                  ? 'bg-white dark:bg-[#0b1325] text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+              }`}
+              title="มุมมองการ์ด"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">การ์ด</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Search & Filters Bar */}
+        <div className="flex flex-col gap-3 mb-4 bg-white dark:bg-[#0b1325] p-3.5 rounded-2xl border border-gray-200 dark:border-gray-800/80 shadow-sm">
+          <div className="flex flex-col sm:flex-row gap-2.5">
             <div className="flex-1 relative">
-              <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 placeholder="ค้นหาชื่อ หรือ รหัสอ้างอิง..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full h-12 pl-12 pr-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 text-sm focus:ring-2 focus:ring-green-500 outline-none dark:text-white dark:placeholder-gray-500 border border-gray-200 dark:border-gray-700 transition-all font-medium"
+                className="w-full h-10 pl-10 pr-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 text-xs sm:text-sm outline-none focus:border-[#ff6600] border border-gray-200 dark:border-gray-700 font-medium transition-colors"
               />
             </div>
-            <div className="w-full sm:w-72 shrink-0">
+            <div className="w-full sm:w-60 shrink-0">
               <select
                 value={sourceFilter}
                 onChange={(e) => setSourceFilter(e.target.value)}
-                className="w-full h-12 px-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 text-sm focus:ring-2 focus:ring-green-500 outline-none dark:text-white border border-gray-200 dark:border-gray-700 font-medium transition-all"
+                className="w-full h-10 px-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 text-xs sm:text-sm outline-none focus:border-[#ff6600] border border-gray-200 dark:border-gray-700 font-semibold transition-colors"
               >
                 <option value="all">แหล่งที่มา: ทั้งหมด</option>
-                <option value="case">แหล่งที่มา: รายชื่อล่าสุด (จากอาสา)</option>
-                <option value="external">แหล่งที่มา: รายชื่อภายนอก</option>
-                <option value="self">แหล่งที่มา: แจ้งด้วยตนเอง</option>
+                <option value="case">ล่าสุดจากทีมอาสา</option>
+                <option value="external">ข้อมูลจากภายนอก</option>
+                <option value="self">แจ้งด้วยตนเอง</option>
               </select>
             </div>
           </div>
 
-          <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-2 sm:pb-0 -mx-4 px-4 sm:mx-0 sm:px-0">
+          {/* Quick Destination Filter Chips */}
+          <div className="flex gap-1.5 overflow-x-auto custom-scrollbar pb-1">
             <button
               onClick={() => setDestinationFilter('all')}
-              className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all border ${destinationFilter === 'all'
-                  ? 'bg-green-100 border-green-200 text-green-700 dark:bg-green-900/30 dark:border-green-800/50 dark:text-green-400'
-                  : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800'
-                }`}
+              className={`px-3 py-1.5 rounded-full text-xs font-black whitespace-nowrap transition-all border cursor-pointer ${
+                destinationFilter === 'all'
+                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                  : 'bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'
+              }`}
             >
-              ทั้งหมด
+              ทั้งหมด ({filteredSafePeople.length})
             </button>
+
             <button
               onClick={() => setDestinationFilter('hospital')}
-              className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all border ${destinationFilter === 'hospital'
-                  ? 'bg-red-100 border-red-200 text-red-700 dark:bg-red-900/30 dark:border-red-800/50 dark:text-red-400'
-                  : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800'
-                }`}
+              className={`px-3 py-1.5 rounded-full text-xs font-black whitespace-nowrap transition-all border cursor-pointer flex items-center gap-1 ${
+                destinationFilter === 'hospital'
+                  ? 'bg-red-600 text-white border-red-600 shadow-sm'
+                  : 'bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'
+              }`}
             >
+              <ShieldPlus className="w-3.5 h-3.5 text-red-500" />
               โรงพยาบาล
             </button>
+
             <button
               onClick={() => setDestinationFilter('shelter')}
-              className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all border ${destinationFilter === 'shelter'
-                  ? 'bg-blue-100 border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-800/50 dark:text-blue-400'
-                  : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800'
-                }`}
+              className={`px-3 py-1.5 rounded-full text-xs font-black whitespace-nowrap transition-all border cursor-pointer flex items-center gap-1 ${
+                destinationFilter === 'shelter'
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                  : 'bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'
+              }`}
             >
+              <Building2 className="w-3.5 h-3.5 text-blue-500" />
               ศูนย์พักพิง
             </button>
+
             <button
               onClick={() => setDestinationFilter('supplies')}
-              className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all border ${destinationFilter === 'supplies'
-                  ? 'bg-orange-100 border-orange-200 text-orange-700 dark:bg-orange-900/30 dark:border-orange-800/50 dark:text-orange-400'
-                  : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800'
-                }`}
+              className={`px-3 py-1.5 rounded-full text-xs font-black whitespace-nowrap transition-all border cursor-pointer flex items-center gap-1 ${
+                destinationFilter === 'supplies'
+                  ? 'bg-orange-600 text-white border-orange-600 shadow-sm'
+                  : 'bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'
+              }`}
             >
               รับถุงยังชีพ
             </button>
           </div>
         </div>
 
-        {/* Cards Grid */}
+        {/* View Mode 1: Compact Table List (Reduces Scrolling on Mobile!) */}
         {paginatedSafePeople.length > 0 ? (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {paginatedSafePeople.map((person, idx) => (
-                <div key={`${person.type}-${person.id}-${idx}`} className="bg-white dark:bg-[#151b2c] border border-gray-100 dark:border-gray-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col gap-4">
-                  <div className="flex justify-between items-start gap-3">
-                    <div className="flex items-start gap-3 overflow-hidden">
-                      <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0 text-green-600 mt-1">
-                        <CheckCircle2 className="w-5 h-5" />
+          viewMode === 'compact' ? (
+            <div className="bg-white dark:bg-[#0b1325] border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
+              <div className="divide-y divide-gray-100 dark:divide-gray-800/60">
+                {paginatedSafePeople.map((person, idx) => {
+                  const personKey = `${person.type}-${person.id}-${idx}`;
+                  const isExpanded = expandedId === personKey;
+
+                  return (
+                    <div 
+                      key={personKey}
+                      className="p-3 sm:px-4 hover:bg-gray-50/80 dark:hover:bg-gray-800/30 transition-colors cursor-pointer"
+                      onClick={() => setExpandedId(isExpanded ? null : personKey)}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                            <UserCheck className="w-4 h-4" />
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-white truncate">
+                                {person.name}
+                              </h4>
+                              {person.type === 'external' && (
+                                <span className="bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 text-[9px] px-1.5 py-0.5 rounded font-black shrink-0">
+                                  ภายนอก
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-gray-400 block truncate">
+                              {new Date(person.timestamp).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Explicit Destination Badge */}
+                        <div className="shrink-0">
+                          {renderDestinationBadge(person.destination)}
+                        </div>
+
+                        <button className="text-gray-400 p-1 shrink-0">
+                          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        </button>
                       </div>
-                      <div className="min-w-0">
-                        <h4 className="font-bold text-gray-900 dark:text-white truncate">{person.name}</h4>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                          {new Date(person.timestamp).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
-                        </p>
-                      </div>
+
+                      {/* Expandable Helper Detail */}
+                      {isExpanded && (
+                        <div className="mt-2.5 pt-2 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-600 dark:text-gray-300 flex flex-col sm:flex-row sm:items-center justify-between gap-1 bg-gray-50/80 dark:bg-gray-800/40 p-2.5 rounded-xl">
+                          <span className="font-semibold text-gray-500 dark:text-gray-400">
+                            หน่วยงานผู้ช่วยเหลือ: <strong className="text-gray-900 dark:text-white">{person.helper}</strong>
+                          </span>
+                          <span className="text-gray-400 text-[10px]">
+                            รหัสรายการ: #{person.id}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    {person.type === 'external' && (
-                      <span className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 text-[10px] px-2 py-1 rounded-full font-bold whitespace-nowrap flex-shrink-0">
-                        ข้อมูลภายนอก
-                      </span>
-                    )}
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            /* View Mode 2: Card Grid */
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {paginatedSafePeople.map((person, idx) => (
+                <div key={`${person.type}-${person.id}-${idx}`} className="bg-white dark:bg-[#0b1325] border border-gray-200 dark:border-gray-800 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all flex flex-col justify-between gap-3">
+                  <div>
+                    <div className="flex justify-between items-start gap-2 mb-2">
+                      <h4 className="font-extrabold text-sm text-gray-900 dark:text-white truncate">
+                        {person.name}
+                      </h4>
+                      {person.type === 'external' && (
+                        <span className="bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 text-[9px] px-1.5 py-0.5 rounded font-black shrink-0">
+                          ภายนอก
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-gray-400 mb-2">
+                      {new Date(person.timestamp).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
+                    </p>
+                    {renderDestinationBadge(person.destination)}
                   </div>
 
-                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 text-sm space-y-2 mt-auto border border-gray-100 dark:border-gray-700/50">
-                    <div className="flex items-start gap-2">
-                      <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                      <span className="text-gray-700 dark:text-gray-300 text-sm leading-tight">
-                        <span className="font-semibold text-gray-500 dark:text-gray-400 mr-1">จุดหมาย:</span>
-                        {person.destination}
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <ShieldPlus className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                      <span className="text-gray-700 dark:text-gray-300 text-sm leading-tight">
-                        <span className="font-semibold text-gray-500 dark:text-gray-400 mr-1">ช่วยเหลือโดย:</span>
-                        {person.helper}
-                      </span>
-                    </div>
+                  <div className="pt-2 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-500 dark:text-gray-400">
+                    ช่วยเหลือโดย: <strong className="text-gray-800 dark:text-gray-200">{person.helper}</strong>
                   </div>
                 </div>
               ))}
             </div>
-
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 mt-8 pb-4">
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors bg-white dark:bg-[#151b2c] text-gray-700 dark:text-gray-300 shadow-sm"
-                >
-                  ก่อนหน้า
-                </button>
-
-                <div className="flex gap-1 overflow-x-auto max-w-[200px] sm:max-w-none no-scrollbar">
-                  {Array.from({ length: totalPages }).map((_, i) => {
-                    const page = i + 1;
-                    if (page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
-                      return (
-                        <button
-                          key={page}
-                          onClick={() => setCurrentPage(page)}
-                          className={`w-10 h-10 flex-shrink-0 rounded-lg text-sm font-bold transition-colors shadow-sm ${currentPage === page
-                              ? 'bg-green-600 text-white border border-green-600'
-                              : 'bg-white dark:bg-[#151b2c] border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300'
-                            }`}
-                        >
-                          {page}
-                        </button>
-                      );
-                    } else if (page === currentPage - 2 || page === currentPage + 2) {
-                      return <span key={page} className="px-2 text-gray-400 flex items-center">...</span>;
-                    }
-                    return null;
-                  })}
-                </div>
-
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors bg-white dark:bg-[#151b2c] text-gray-700 dark:text-gray-300 shadow-sm"
-                >
-                  ถัดไป
-                </button>
-              </div>
-            )}
-          </div>
+          )
         ) : (
-          <div className="bg-white dark:bg-[#151b2c] rounded-2xl border border-gray-100 dark:border-gray-800 p-12 text-center shadow-sm">
-            <ShieldPlus className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-            <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
-              {searchTerm || destinationFilter !== 'all' ? 'ไม่พบรายชื่อที่ตรงกับเงื่อนไข' : 'ยังไม่มีข้อมูลผู้ปลอดภัย'}
+          <div className="bg-white dark:bg-[#0b1325] rounded-2xl border border-gray-200 dark:border-gray-800 p-10 text-center shadow-sm">
+            <ShieldPlus className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+            <h4 className="text-sm font-extrabold text-gray-900 dark:text-white mb-1">
+              ไม่พบรายชื่อที่ตรงกับเงื่อนไข
             </h4>
-            <p className="text-gray-500 dark:text-gray-400 text-sm">
-              {searchTerm || destinationFilter !== 'all' ? 'ลองปรับเปลี่ยนคำค้นหาหรือตัวกรองดูอีกครั้ง' : 'ข้อมูลจะปรากฏขึ้นเมื่อมีการบันทึกการช่วยเหลือเสร็จสิ้น'}
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              ลองปรับเปลี่ยนคำค้นหาหรือตัวกรองดูอีกครั้ง
             </p>
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 mt-5">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-3.5 py-1.5 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-extrabold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors bg-white dark:bg-[#0b1325] text-gray-700 dark:text-gray-300 cursor-pointer"
+            >
+              ก่อนหน้า
+            </button>
+
+            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 px-2">
+              หน้า {currentPage} จาก {totalPages}
+            </span>
+
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-3.5 py-1.5 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-extrabold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors bg-white dark:bg-[#0b1325] text-gray-700 dark:text-gray-300 cursor-pointer"
+            >
+              ถัดไป
+            </button>
           </div>
         )}
       </div>
 
-      {/* Emergency Numbers Grid */}
+      {/* Emergency Phone Numbers Grid */}
       <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
-        <h3 className="font-bold text-gray-900 dark:text-white mb-4">เบอร์โทรฉุกเฉิน</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <h3 className="font-extrabold text-sm sm:text-base text-gray-900 dark:text-white mb-3">
+          เบอร์โทรสายด่วนฉุกเฉิน
+        </h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
           {emergencyNumbers.map((item, index) => (
             <a
               key={index}
               href={`tel:${item.number}`}
-              className="flex items-center gap-3 p-4 bg-white dark:bg-[#151b2c] border border-gray-50 dark:border-gray-800 rounded-2xl shadow-sm hover:shadow-md active:scale-95 active:bg-gray-50 dark:active:bg-gray-800 transition-all cursor-pointer"
+              className="flex items-center gap-2.5 p-3 bg-white dark:bg-[#0b1325] border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm hover:border-[#ff6600] active:scale-95 transition-all cursor-pointer"
             >
-              <div className={`w-10 h-10 ${item.color} rounded-full flex items-center justify-center flex-shrink-0`}>
-                <Phone className="w-5 h-5" />
+              <div className={`w-8 h-8 ${item.color} rounded-xl flex items-center justify-center shrink-0`}>
+                <Phone className="w-4 h-4" />
               </div>
-              <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{item.name}</p>
-                <p className="font-black text-gray-900 dark:text-white">{item.number}</p>
+              <div className="min-w-0">
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold truncate">{item.name}</p>
+                <p className="font-black text-xs sm:text-sm text-gray-900 dark:text-white">{item.number}</p>
               </div>
             </a>
           ))}
