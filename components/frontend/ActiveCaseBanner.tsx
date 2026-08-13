@@ -6,19 +6,28 @@ import { Truck, Clock, ChevronRight, X, PhoneCall, CheckCircle2, Home, Package, 
 import { supabase } from '@/lib/supabase';
 import { usePathname, useRouter } from 'next/navigation';
 
+interface CaseUpdateModalData {
+  caseId: string;
+  status: string;
+  destination: string | null;
+  volunteerName: string | null;
+  volunteerPhone: string | null;
+  volunteerUnit: string;
+  seenKey: string;
+}
+
 export const ActiveCaseBanner = () => {
   const pathname = usePathname();
   const router = useRouter();
+
+  // Banner State
   const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
   const [caseStatus, setCaseStatus] = useState<string>('pending');
-  const [caseDestination, setCaseDestination] = useState<string | null>(null);
   const [volunteerName, setVolunteerName] = useState<string | null>(null);
-  const [volunteerPhone, setVolunteerPhone] = useState<string | null>(null);
-  const [volunteerUnit, setVolunteerUnit] = useState<string | null>(null);
-  
-  const [showUpdateModal, setShowUpdateModal] = useState<boolean>(false);
-  const [modalSeenKey, setModalSeenKey] = useState<string | null>(null);
   const [isBannerVisible, setIsBannerVisible] = useState<boolean>(false);
+
+  // Dedicated Popup Modal State (Independent of Banner Polling)
+  const [activeUpdateModal, setActiveUpdateModal] = useState<CaseUpdateModalData | null>(null);
 
   useEffect(() => {
     let realtimeChannel: any = null;
@@ -63,6 +72,34 @@ export const ActiveCaseBanner = () => {
       }
     };
 
+    const triggerModalIfUnseen = (caseData: any) => {
+      const cId = caseData.case_number ? String(caseData.case_number).padStart(3, '0') : String(caseData.id);
+      const cSt = (caseData.status || 'pending').toLowerCase();
+      const cVName = caseData.volunteer_name || caseData.assigned_volunteer_name || caseData.rescuer_name;
+      const cDest = caseData.destination || '';
+      const cPhone = caseData.assigned_volunteer_phone || caseData.rescuer_phone;
+      const cUnit = caseData.assigned_volunteer_unit || 'อาสาสมัครศูนย์กู้ภัย';
+
+      if (cSt !== 'pending' && cSt !== 'wait') {
+        const updateKey = `case_${caseData.id}_${cSt}_${cDest}_${cVName || ''}`;
+        if (!isKeySeen(updateKey)) {
+          setActiveUpdateModal({
+            caseId: cId,
+            status: cSt,
+            destination: cDest || null,
+            volunteerName: cVName || null,
+            volunteerPhone: cPhone || null,
+            volunteerUnit: cUnit,
+            seenKey: updateKey,
+          });
+
+          if (typeof window !== 'undefined' && window.navigator?.vibrate) {
+            window.navigator.vibrate([200, 100, 200, 100, 200]);
+          }
+        }
+      }
+    };
+
     const checkActiveCases = async () => {
       const candidateIds = getCandidateIds();
 
@@ -81,22 +118,15 @@ export const ActiveCaseBanner = () => {
           .order('id', { ascending: false });
 
         if (data && data.length > 0 && !error) {
-          // Find active case for banner
+          // Banner state logic
           const activeCase = data.find(c => ['pending', 'wait', 'accepted', 'in_progress'].includes((c.status || '').toLowerCase())) || data[0];
           const activeCId = activeCase.case_number ? String(activeCase.case_number).padStart(3, '0') : String(activeCase.id);
           
           setActiveCaseId(activeCId);
           const st = (activeCase.status || 'pending').toLowerCase();
           setCaseStatus(st);
-          setCaseDestination(activeCase.destination || null);
-
           const vName = activeCase.volunteer_name || activeCase.assigned_volunteer_name || activeCase.rescuer_name;
-          const vPhone = activeCase.assigned_volunteer_phone || activeCase.rescuer_phone;
-          const vUnit = activeCase.assigned_volunteer_unit || 'อาสาสมัครศูนย์กู้ภัย';
-
           setVolunteerName(vName || null);
-          setVolunteerPhone(vPhone || null);
-          setVolunteerUnit(vUnit);
 
           if (['pending', 'wait', 'accepted', 'in_progress'].includes(st)) {
             setIsBannerVisible(true);
@@ -104,33 +134,9 @@ export const ActiveCaseBanner = () => {
             setIsBannerVisible(false);
           }
 
-          // Check modal trigger for any updated case
+          // Check if any case has unseen status update
           for (const c of data) {
-            const cId = c.case_number ? String(c.case_number).padStart(3, '0') : String(c.id);
-            const cSt = (c.status || 'pending').toLowerCase();
-            const cVName = c.volunteer_name || c.assigned_volunteer_name || c.rescuer_name;
-            const cDest = c.destination || '';
-            const cPhone = c.assigned_volunteer_phone || c.rescuer_phone;
-            const cUnit = c.assigned_volunteer_unit || 'อาสาสมัครศูนย์กู้ภัย';
-
-            if (cSt !== 'pending' && cSt !== 'wait') {
-              const updateKey = `case_${c.id}_${cSt}_${cDest}_${cVName || ''}`;
-              if (!isKeySeen(updateKey)) {
-                setActiveCaseId(cId);
-                setCaseStatus(cSt);
-                setCaseDestination(cDest);
-                setVolunteerName(cVName || null);
-                setVolunteerPhone(cPhone || null);
-                setVolunteerUnit(cUnit);
-                setModalSeenKey(updateKey);
-                setShowUpdateModal(true);
-
-                if (typeof window !== 'undefined' && window.navigator?.vibrate) {
-                  window.navigator.vibrate([200, 100, 200, 100, 200]);
-                }
-                break;
-              }
-            }
+            triggerModalIfUnseen(c);
           }
         }
       } catch (err) {
@@ -157,30 +163,7 @@ export const ActiveCaseBanner = () => {
             const isMyCase = candidateIds.some(id => String(id) === payloadIdStr || String(id) === payloadCaseNumStr);
 
             if (isMyCase) {
-              const newSt = (payload.new.status || 'pending').toLowerCase();
-              const newVName = payload.new.volunteer_name || payload.new.assigned_volunteer_name || payload.new.rescuer_name;
-              const newVPhone = payload.new.assigned_volunteer_phone || payload.new.rescuer_phone;
-              const newVUnit = payload.new.assigned_volunteer_unit || 'อาสาสมัครศูนย์กู้ภัย';
-              const newDest = payload.new.destination || '';
-
-              const updateKey = `case_${payload.new.id}_${newSt}_${newDest}_${newVName || ''}`;
-
-              if (!isKeySeen(updateKey)) {
-                setActiveCaseId(payloadCaseNumStr);
-                setCaseStatus(newSt);
-                setCaseDestination(newDest);
-                setVolunteerName(newVName || null);
-                setVolunteerPhone(newVPhone || null);
-                setVolunteerUnit(newVUnit);
-                setModalSeenKey(updateKey);
-                setShowUpdateModal(true);
-
-                if (typeof window !== 'undefined' && window.navigator?.vibrate) {
-                  window.navigator.vibrate([200, 100, 200, 100, 200]);
-                }
-              }
-
-              // Refresh banner state
+              triggerModalIfUnseen(payload.new);
               checkActiveCases();
             }
           }
@@ -211,40 +194,41 @@ export const ActiveCaseBanner = () => {
         }
       } catch (e) {}
     }
-    setShowUpdateModal(false);
+    setActiveUpdateModal(null);
   };
 
   // Helper for dynamic badge and titles
-  const getBadgeAndTitle = () => {
-    if (caseStatus === 'in_progress' || caseStatus === 'accepted') {
+  const getBadgeAndTitle = (modalData: CaseUpdateModalData) => {
+    const { status, destination } = modalData;
+    if (status === 'in_progress' || status === 'accepted') {
       return {
         badge: 'เจ้าหน้าที่รับเคสแล้ว!',
         title: 'มีอาสาสมัครเข้ามารับเคสของคุณแล้ว',
         icon: <Truck className="w-8 h-8" />
       };
     }
-    if (caseDestination?.includes('ศูนย์พักพิง') || caseStatus.includes('ศูนย์พักพิง')) {
+    if (destination?.includes('ศูนย์พักพิง') || status.includes('ศูนย์พักพิง')) {
       return {
         badge: 'นำส่งศูนย์พักพิงแล้ว!',
         title: 'เจ้าหน้าที่ได้นำส่งเข้าศูนย์พักพิงเรียบร้อยแล้ว',
         icon: <Home className="w-8 h-8 text-emerald-400" />
       };
     }
-    if (caseDestination?.includes('ถุงยังชีพ') || caseStatus.includes('ถุงยังชีพ')) {
+    if (destination?.includes('ถุงยังชีพ') || status.includes('ถุงยังชีพ')) {
       return {
         badge: 'มอบถุงยังชีพเรียบร้อย!',
         title: 'เจ้าหน้าที่ได้ส่งมอบถุงยังชีพให้คุณเรียบร้อยแล้ว',
         icon: <Package className="w-8 h-8 text-amber-400" />
       };
     }
-    if (caseDestination?.includes('โรงพยาบาล') || caseStatus.includes('โรงพยาบาล')) {
+    if (destination?.includes('โรงพยาบาล') || status.includes('โรงพยาบาล')) {
       return {
         badge: 'นำส่งโรงพยาบาลแล้ว!',
         title: 'เจ้าหน้าที่ได้นำส่งโรงพยาบาลเรียบร้อยแล้ว',
         icon: <Hospital className="w-8 h-8 text-red-400" />
       };
     }
-    if (caseStatus === 'completed' || caseStatus === 'resolved') {
+    if (status === 'completed' || status === 'resolved') {
       return {
         badge: 'ช่วยเหลือสำเร็จ!',
         title: 'เคสขอความช่วยเหลือของคุณเสร็จสิ้นเรียบร้อยแล้ว',
@@ -258,79 +242,81 @@ export const ActiveCaseBanner = () => {
     };
   };
 
-  const modalContent = getBadgeAndTitle();
-
   return (
     <>
       {/* 🔔 1. HIGH-PRIORITY POPUP MODAL (z-[999999] Frontmost Layer across all pages) */}
-      {showUpdateModal && (
-        <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-300 pointer-events-auto">
-          <div className="bg-white dark:bg-[#0b1325] border-2 border-emerald-500 rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl scale-100 animate-in zoom-in-95 duration-200 relative overflow-hidden">
-            <button
-              onClick={() => markUpdateAsSeen(modalSeenKey)}
-              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white rounded-full transition-colors cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
+      {activeUpdateModal && (() => {
+        const modalContent = getBadgeAndTitle(activeUpdateModal);
+        return (
+          <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-300 pointer-events-auto">
+            <div className="bg-white dark:bg-[#0b1325] border-2 border-emerald-500 rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl scale-100 animate-in zoom-in-95 duration-200 relative overflow-hidden">
+              <button
+                onClick={() => markUpdateAsSeen(activeUpdateModal.seenKey)}
+                className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white rounded-full transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
 
-            <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-bounce">
-              {modalContent.icon}
-            </div>
-
-            <span className="inline-block px-3 py-1 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 text-xs font-extrabold rounded-full mb-2">
-              {modalContent.badge}
-            </span>
-
-            <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2">
-              {modalContent.title}
-            </h3>
-
-            <div className="bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-4 mb-5 text-left space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">ผู้รับผิดชอบ:</span>
-                <span className="text-sm font-bold text-gray-900 dark:text-white">
-                  {volunteerName || 'เจ้าหน้าที่ทีมกู้ภัย'}
-                </span>
+              <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-bounce">
+                {modalContent.icon}
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">หน่วยงาน:</span>
-                <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  {volunteerUnit}
-                </span>
-              </div>
-              {volunteerPhone && (volunteerPhone !== 'ไม่ระบุเบอร์โทร') && (
-                <div className="flex items-center justify-between pt-1 border-t border-emerald-200/60 dark:border-emerald-800/60">
-                  <span className="text-xs text-gray-500">เบอร์ติดต่อ:</span>
-                  <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
-                    📞 {volunteerPhone}
+
+              <span className="inline-block px-3 py-1 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 text-xs font-extrabold rounded-full mb-2">
+                {modalContent.badge}
+              </span>
+
+              <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2">
+                {modalContent.title}
+              </h3>
+
+              <div className="bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-4 mb-5 text-left space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-500">ผู้รับผิดชอบ:</span>
+                  <span className="text-sm font-bold text-gray-900 dark:text-white">
+                    {activeUpdateModal.volunteerName || 'เจ้าหน้าที่ทีมกู้ภัย'}
                   </span>
                 </div>
-              )}
-            </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-500">หน่วยงาน:</span>
+                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    {activeUpdateModal.volunteerUnit}
+                  </span>
+                </div>
+                {activeUpdateModal.volunteerPhone && (activeUpdateModal.volunteerPhone !== 'ไม่ระบุเบอร์โทร') && (
+                  <div className="flex items-center justify-between pt-1 border-t border-emerald-200/60 dark:border-emerald-800/60">
+                    <span className="text-xs text-gray-500">เบอร์ติดต่อ:</span>
+                    <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+                      📞 {activeUpdateModal.volunteerPhone}
+                    </span>
+                  </div>
+                )}
+              </div>
 
-            <div className="space-y-2">
-              {volunteerPhone && (volunteerPhone !== 'ไม่ระบุเบอร์โทร') && (
-                <a
-                  href={`tel:${volunteerPhone}`}
-                  className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white py-3.5 px-4 rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-600/30 cursor-pointer"
+              <div className="space-y-2">
+                {activeUpdateModal.volunteerPhone && (activeUpdateModal.volunteerPhone !== 'ไม่ระบุเบอร์โทร') && (
+                  <a
+                    href={`tel:${activeUpdateModal.volunteerPhone}`}
+                    className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white py-3.5 px-4 rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-600/30 cursor-pointer"
+                  >
+                    📞 โทรติดต่อเจ้าหน้าที่ทันที
+                  </a>
+                )}
+                
+                <button
+                  onClick={() => {
+                    const cId = activeUpdateModal.caseId;
+                    markUpdateAsSeen(activeUpdateModal.seenKey);
+                    router.push(`/tracking/${cId}`);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 bg-[#ff6600] hover:bg-orange-600 text-white py-3.5 px-4 rounded-xl font-bold text-sm transition-all shadow-md shadow-orange-500/20 cursor-pointer"
                 >
-                  📞 โทรติดต่อเจ้าหน้าที่ทันที
-                </a>
-              )}
-              
-              <button
-                onClick={() => {
-                  markUpdateAsSeen(modalSeenKey);
-                  router.push(`/tracking/${activeCaseId}`);
-                }}
-                className="w-full flex items-center justify-center gap-2 bg-[#ff6600] hover:bg-orange-600 text-white py-3.5 px-4 rounded-xl font-bold text-sm transition-all shadow-md shadow-orange-500/20 cursor-pointer"
-              >
-                รับทราบ / ดูสถานะติดตาม (#{activeCaseId}) ➔
-              </button>
+                  รับทราบ / ดูสถานะติดตาม (#{activeUpdateModal.caseId}) ➔
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* 🚨 2. PERSISTENT FLOATING BANNER */}
       {!isTrackingPageForThisCase && (caseStatus === 'in_progress' || caseStatus === 'accepted' || volunteerName) && (
