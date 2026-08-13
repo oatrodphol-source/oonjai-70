@@ -332,7 +332,7 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
   const EtaIcon = eta.IconComponent;
 
   return (
-    <div className="p-3 sm:p-6 w-full max-w-lg mx-auto pb-44 sm:pb-48 relative min-h-screen">
+    <div className="p-3 sm:p-6 w-full max-w-lg mx-auto pb-48 sm:pb-52 relative min-h-screen">
       {/* Header Bar */}
       <div className="flex items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
@@ -674,9 +674,9 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
         </Card>
       )}
 
-      {/* Floating Bottom Actions (Share, Cancel, Map) - Safe Elevation Above Bottom Navbar */}
-      <div className="fixed bottom-[74px] sm:bottom-[82px] left-0 right-0 z-30 px-3 sm:px-6 w-full max-w-lg mx-auto pointer-events-auto">
-        <div className="flex flex-row gap-1.5 sm:gap-2 shadow-2xl rounded-2xl bg-white/95 dark:bg-[#0b1325]/95 backdrop-blur-md p-2 border border-gray-200 dark:border-gray-800">
+      {/* Floating Bottom Actions (Share, Cancel, Map) - Elevated to bottom-[94px] to completely clear red SOS button */}
+      <div className="fixed bottom-[94px] sm:bottom-[102px] left-0 right-0 z-30 px-3 sm:px-6 w-full max-w-lg mx-auto pointer-events-auto">
+        <div className="flex flex-row gap-1.5 sm:gap-2 shadow-2xl rounded-2xl bg-white/95 dark:bg-[#0b1325]/95 backdrop-blur-md p-2 border border-gray-200 dark:border-gray-800/80">
           <button
             onClick={handleShare}
             className="flex-1 min-w-0 px-2 py-2.5 sm:py-3 text-xs sm:text-sm font-extrabold rounded-xl text-center leading-tight flex items-center justify-center gap-1.5 bg-[#00B900] hover:bg-[#009900] active:scale-95 text-white transition-all shadow-sm cursor-pointer"
