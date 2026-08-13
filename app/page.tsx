@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { ShieldAlert, Users, ArrowRight, LogIn, MapPin, PhoneCall, ShieldCheck, MessageCircle } from 'lucide-react';
+import { ShieldAlert, Users, ArrowRight, LogIn, MapPin, MessageCircle, GraduationCap, Award, Code2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 export default function Home() {
@@ -42,8 +42,8 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Hero Section - Compact 1-Viewport Layout */}
-      <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-4xl mx-auto px-4 sm:px-6 text-center pt-6 sm:pt-12 pb-8 sm:pb-12">
+      {/* Hero Section - Perfectly Proportioned 3 Buttons across Mobile, Tablet, Desktop */}
+      <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-4xl mx-auto px-4 sm:px-6 text-center pt-6 sm:pt-12 pb-10 sm:pb-16">
         {/* Status Badge */}
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#ff6600]/15 border border-[#ff6600]/30 text-[#ff6600] text-xs font-extrabold mb-5 shadow-sm">
           <span className="w-2 h-2 rounded-full bg-[#ff6600] animate-ping"></span>
@@ -59,36 +59,36 @@ export default function Home() {
         </h1>
         
         {/* Subtitle */}
-        <p className="text-xs sm:text-base text-gray-300 mb-6 sm:mb-8 max-w-xl leading-relaxed font-medium">
+        <p className="text-xs sm:text-base text-gray-300 mb-8 max-w-xl leading-relaxed font-medium">
           แพลตฟอร์มศูนย์กลางเชื่อมต่อผู้ประสบภัยและหน่วยกู้ภัย
           แจ้งเหตุรวดเร็ว พร้อมระบบคัดกรองความเสี่ยงด้วย AI
         </p>
         
-        {/* Primary Action Buttons Container */}
-        <div className="flex flex-col sm:flex-row w-full sm:w-auto items-center justify-center gap-3 max-w-md mx-auto">
-          {/* SOS Button */}
+        {/* Primary Action Buttons Container - Perfectly Fitted & Uniform Height */}
+        <div className="flex flex-col sm:flex-row w-full sm:w-auto items-center justify-center gap-3 sm:gap-4 max-w-full sm:max-w-3xl mx-auto px-2">
+          {/* 1. SOS Button */}
           <Link href="/sos" className="w-full sm:w-auto">
-            <button className="w-full sm:w-auto px-6 py-3.5 bg-[#ff6600] hover:bg-[#e65c00] active:scale-98 text-white font-extrabold text-sm sm:text-base rounded-2xl shadow-lg shadow-orange-500/30 flex items-center justify-center gap-2 transition-all border border-orange-400/30 cursor-pointer">
-              <ShieldAlert className="w-5 h-5" />
+            <button className="w-full sm:w-auto min-w-[200px] h-13 sm:h-14 px-5 bg-[#ff6600] hover:bg-[#e65c00] active:scale-98 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition-all border border-orange-400/30 cursor-pointer whitespace-nowrap">
+              <ShieldAlert className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
               <span>แจ้งเหตุฉุกเฉินทันที</span>
             </button>
           </Link>
 
-          {/* Embedded LINE Official Help Link Button */}
+          {/* 2. Embedded LINE Official Help Button */}
           <a
             href={lineOfficialUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full sm:w-auto px-6 py-3.5 bg-[#00B900] hover:bg-[#009900] active:scale-98 text-white font-extrabold text-sm sm:text-base rounded-2xl shadow-lg shadow-green-500/30 flex items-center justify-center gap-2 transition-all cursor-pointer border border-green-400/30"
+            className="w-full sm:w-auto min-w-[220px] h-13 sm:h-14 px-5 bg-[#00B900] hover:bg-[#009900] active:scale-98 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-lg shadow-green-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer border border-green-400/30 whitespace-nowrap"
           >
-            <MessageCircle className="w-5 h-5" />
+            <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
             <span>ขอความช่วยเหลือผ่าน LINE</span>
           </a>
 
-          {/* Map Link Button */}
+          {/* 3. Map Link Button */}
           <Link href="/map" className="w-full sm:w-auto">
-            <button className="w-full sm:w-auto px-5 py-3.5 bg-white/10 hover:bg-white/20 active:scale-98 text-white font-bold text-sm sm:text-base rounded-2xl border border-white/20 flex items-center justify-center gap-2 transition-all cursor-pointer">
-              <MapPin className="w-5 h-5 text-[#ff6600]" />
+            <button className="w-full sm:w-auto min-w-[160px] h-13 sm:h-14 px-5 bg-white/10 hover:bg-white/20 active:scale-98 text-white font-extrabold text-xs sm:text-sm rounded-2xl border border-white/20 flex items-center justify-center gap-2 transition-all cursor-pointer whitespace-nowrap">
+              <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#ff6600] shrink-0" />
               <span>พื้นที่เสี่ยงภัย</span>
             </button>
           </Link>
@@ -152,6 +152,43 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* 🎓 Academic Project & Team Credits Footer */}
+      <footer className="relative z-10 border-t border-white/10 bg-[#070d1a] py-8 px-4 text-center">
+        <div className="max-w-4xl mx-auto space-y-4">
+          
+          {/* Major & Faculty Badge */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-extrabold">
+            <GraduationCap className="w-4 h-4 text-blue-400" />
+            <span>คณะวิศวกรรมศาสตร์ สาขาวิศวกรรมคอมพิวเตอร์และระบบไอโอที</span>
+          </div>
+
+          {/* Creators List */}
+          <div>
+            <p className="text-xs text-gray-400 font-semibold mb-2.5">
+              โปรเจกต์นี้ได้รับการพัฒนาและจัดทำโดย
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-2 text-xs sm:text-sm font-extrabold text-white">
+              <span className="bg-white/5 border border-white/10 px-3.5 py-1.5 rounded-xl shadow-sm">
+                นายณัฐติพงษ์ รอดผล
+              </span>
+              <span className="bg-white/5 border border-white/10 px-3.5 py-1.5 rounded-xl shadow-sm">
+                นายปัญญา นิธิธนิโยปกรณ์
+              </span>
+              <span className="bg-white/5 border border-white/10 px-3.5 py-1.5 rounded-xl shadow-sm">
+                นายนิติภูมิ ส่งผลบุญถาวร
+              </span>
+            </div>
+          </div>
+
+          {/* System Name & Copyright Notice */}
+          <p className="text-[11px] text-gray-500 pt-2 border-t border-white/5 font-medium">
+            ระบบอุ่นใจ (OonJai Disaster Relief & Rescue Management System) • สงวนลิขสิทธิ์ © 2026
+          </p>
+
+        </div>
+      </footer>
+
     </main>
   );
 }
