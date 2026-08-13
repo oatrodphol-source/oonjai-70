@@ -150,13 +150,14 @@ export default async function WaterDataPage() {
                 <CloudRain className="text-blue-500 w-6 h-6" />
                 <h2 className="text-lg font-bold text-gray-900 dark:text-white">แผนที่เรดาร์สภาพอากาศ (Windy)</h2>
               </div>
-              <div className="flex-1 w-full bg-slate-50 dark:bg-slate-900/50 rounded-xl overflow-hidden relative h-[450px] sm:h-[750px]">
+              <div className="w-full bg-slate-50 dark:bg-slate-900/50 rounded-xl overflow-hidden relative min-h-[480px] sm:min-h-[750px] h-[480px] sm:h-[750px]">
                 <iframe 
                   width="100%" 
                   height="100%" 
                   src="https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=%C2%B0C&metricWind=km/h&zoom=6&overlay=rain&product=ecmwf&level=surface&lat=13.75&lon=100.5" 
                   frameBorder="0" 
-                  className="rounded-xl shadow-md border border-gray-200 dark:border-gray-800 absolute inset-0 w-full h-full"
+                  className="rounded-xl shadow-md border border-gray-200 dark:border-gray-800 w-full h-full min-h-[480px] sm:min-h-[750px]"
+                  style={{ width: '100%', height: '100%', minHeight: '480px' }}
                   title="Windy Weather Map"
                 />
               </div>
