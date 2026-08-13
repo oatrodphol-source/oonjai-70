@@ -103,12 +103,14 @@ export const ActiveCaseBanner = () => {
     const checkActiveCases = async () => {
       const candidateIds = getCandidateIds();
 
-      if (candidateIds.length === 0) {
+      const numericIds = candidateIds
+        .map(id => Number(id))
+        .filter(id => !isNaN(id) && Number.isInteger(id) && id > 0);
+
+      if (numericIds.length === 0) {
         setIsBannerVisible(false);
         return;
       }
-
-      const numericIds = candidateIds.map(id => isNaN(Number(id)) ? id : Number(id));
 
       try {
         const { data, error } = await supabase

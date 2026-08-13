@@ -136,7 +136,7 @@ export const TopNavbar: React.FC = () => {
 
     const fetchCasesStatus = async (caseIds: string[]) => {
       if (!caseIds || caseIds.length === 0) return [];
-      const numericIds = caseIds.map(Number).filter(id => !isNaN(id));
+      const numericIds = caseIds.map(Number).filter(id => !isNaN(id) && Number.isInteger(id) && id > 0);
       if (numericIds.length === 0) return [];
       const { data, error } = await supabase
         .from('cases')
