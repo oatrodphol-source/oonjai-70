@@ -497,35 +497,39 @@ export const VolunteerTaskBoard = ({
             {/* Gig App Header */}
             <div className="flex justify-between items-start mb-3">
               <div className="flex items-center gap-2 relative">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 relative">
                   <span className={`px-3 py-1 text-xs font-bold rounded-full border ${getSeverityBadgeStyle(c.severity || 1)}`}>
                     {getSeverityText(c.severity || 1)}
                   </span>
-                  <button 
-                    onClick={() => setEditingSeverity(editingSeverity === c.id ? null : c.id)}
-                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1"
-                    title="แก้ไขระดับความรุนแรง"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-                {editingSeverity === c.id && (
-                  <div className="absolute top-full left-0 mt-1 z-50 bg-white dark:bg-[#151b2c] shadow-2xl border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden whitespace-nowrap min-w-[240px] animate-in zoom-in-95 duration-200">
-                    <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800 text-xs font-bold text-gray-500">
-                      ปรับระดับความรุนแรง (Override)
-                    </div>
-                    {[5,4,3,2,1].map(lvl => (
+                  {(currentUser as any)?.role === 'admin' && (
+                    <>
                       <button 
-                        key={lvl} 
-                        className="block w-full text-left px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-gray-800/50 flex items-center gap-3 border-b border-gray-50 dark:border-gray-800/50 last:border-0 transition-colors"
-                        onClick={() => handleUpdateSeverity(c.id, lvl)}
+                        onClick={() => setEditingSeverity(editingSeverity === c.id ? null : c.id)}
+                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1"
+                        title="แก้ไขระดับความรุนแรง (Admin Only)"
                       >
-                        <span className={`w-3 h-3 rounded-full ${getSeverityColor(lvl).split(' ')[0]}`}></span>
-                        <span className="text-gray-700 dark:text-gray-300 font-medium">{getSeverityText(lvl)}</span>
+                        <Pencil className="w-3.5 h-3.5" />
                       </button>
-                    ))}
-                  </div>
-                )}
+                      {editingSeverity === c.id && (
+                        <div className="absolute top-full left-0 mt-1 z-50 bg-white dark:bg-[#151b2c] shadow-2xl border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden whitespace-nowrap min-w-[240px] animate-in zoom-in-95 duration-200">
+                          <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800 text-xs font-bold text-gray-500">
+                            ปรับระดับความรุนแรง (Override)
+                          </div>
+                          {[5,4,3,2,1].map(lvl => (
+                            <button 
+                              key={lvl} 
+                              className="block w-full text-left px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-gray-800/50 flex items-center gap-3 border-b border-gray-50 dark:border-gray-800/50 last:border-0 transition-colors"
+                              onClick={() => handleUpdateSeverity(c.id, lvl)}
+                            >
+                              <span className={`w-3 h-3 rounded-full ${getSeverityColor(lvl).split(' ')[0]}`}></span>
+                              <span className="text-gray-700 dark:text-gray-300 font-medium">{getSeverityText(lvl)}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
                 <span className="font-bold text-gray-900 dark:text-white text-lg ml-1">{c.displayId}</span>
               </div>
               <div className="text-sm text-gray-500 flex items-center gap-1 mt-1">

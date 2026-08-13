@@ -135,12 +135,12 @@ export default function CasesPage() {
             ))}
           </div>
 
-          {/* 🚑 Dynamic Volunteer & Priority Filter Bar for Admin */}
+          {/* Dynamic Volunteer & Priority Filter Bar for Admin */}
           {role === 'admin' && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800 animate-in fade-in duration-200">
               <div>
                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                  🚑 กรองตามทีมอาสาสมัคร (Supabase)
+                  กรองตามทีมอาสาสมัคร
                 </label>
                 <select
                   value={searchVolunteerName}
@@ -158,7 +158,7 @@ export default function CasesPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                  🎯 ระดับความรุนแรง
+                  ระดับความรุนแรง
                 </label>
                 <select 
                   className="w-full border border-slate-300 dark:border-slate-700 p-2 text-xs rounded-lg dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 font-medium" 
@@ -176,7 +176,7 @@ export default function CasesPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                  📍 จุดหมายที่นำส่ง
+                  จุดหมายที่นำส่ง
                 </label>
                 <select 
                   className="w-full border border-slate-300 dark:border-slate-700 p-2 text-xs rounded-lg dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 font-medium" 
