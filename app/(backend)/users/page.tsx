@@ -62,7 +62,7 @@ export default function UsersPage() {
   return (
     <>
       <DashboardHeader title="จัดการผู้ใช้งาน (Admin)" />
-      <div className="w-full px-4 lg:px-8 pb-32 md:pb-10 mx-auto py-6 space-y-6 max-w-7xl">
+      <div className="w-full px-2.5 sm:px-6 lg:px-8 pb-20 md:pb-10 mx-auto py-3 sm:py-6 space-y-4 sm:space-y-6 max-w-7xl">
         {/* Users Table */}
         <UserTable
           onEdit={handleEditUser}

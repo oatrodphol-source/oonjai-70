@@ -245,25 +245,27 @@ export const UserTable: React.FC<UserTableProps> = ({
   const totalPages = Math.ceil(total / rowsPerPage);
 
   return (
-    <Card className="overflow-hidden border border-slate-200 dark:border-slate-800 shadow-md">
-      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
-        {/* Header with title and actions */}
+    <Card className="overflow-hidden border border-slate-200 dark:border-slate-800 shadow-lg bg-white dark:bg-[#0f172a]">
+      <div className="p-3.5 sm:p-6 space-y-4 sm:space-y-6">
+        {/* Header with Title and Add Button */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-gray-800">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-lg sm:text-xl font-extrabold text-gray-900 dark:text-white">
+              <h2 className="text-lg sm:text-xl font-extrabold text-gray-900 dark:text-white tracking-tight">
                 รายชื่อผู้ใช้งานในระบบ
               </h2>
-              <span className="px-2.5 py-0.5 text-xs font-bold bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300 rounded-full">
+              <span className="px-2.5 py-0.5 text-xs font-extrabold bg-orange-100 text-orange-700 dark:bg-orange-950/80 dark:text-orange-300 rounded-full">
                 {total} รายการ
               </span>
             </div>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">จัดการข้อมูลผู้ดูแลระบบ อาสาสมัคร และสิทธิ์ใช้งาน</p>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              จัดการข้อมูลผู้ดูแลระบบ อาสาสมัคร และสิทธิ์การเข้าถึงระบบ
+            </p>
           </div>
           {onCreate && (
             <Button
               onClick={onCreate}
-              className="bg-[#e65c00] hover:bg-[#cc5200] text-white px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 font-bold text-sm w-full sm:w-auto shadow-sm active:scale-95 transition-all"
+              className="bg-[#e65c00] hover:bg-[#cc5200] text-white px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 font-bold text-sm w-full sm:w-auto shadow-md active:scale-95 transition-all"
             >
               <Plus size={18} />
               เพิ่มผู้ใช้งานใหม่
@@ -271,8 +273,9 @@ export const UserTable: React.FC<UserTableProps> = ({
           )}
         </div>
 
-        {/* Controls Bar */}
-        <div className="space-y-2 sm:space-y-3">
+        {/* Controls Section */}
+        <div className="space-y-3">
+          {/* Search Box */}
           <div className="w-full">
             <Input
               type="text"
@@ -282,65 +285,88 @@ export const UserTable: React.FC<UserTableProps> = ({
                 setSearch(e.target.value);
                 setCurrentPage(0);
               }}
-              className="w-full text-sm rounded-xl py-2.5"
+              className="w-full text-xs sm:text-sm rounded-xl py-2.5 bg-gray-50 dark:bg-slate-800/80 border-gray-200 dark:border-slate-700"
             />
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-7 gap-2">
-            <div className="col-span-1 lg:col-span-3">
-              <select
-                value={role}
-                onChange={(e) => {
-                  setRole(e.target.value);
-                  setCurrentPage(0);
-                }}
-                className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-800 dark:text-white text-gray-900 bg-white font-medium outline-none focus:ring-2 focus:ring-orange-500"
+          {/* Role Filter Tabs & Status Filter */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            {/* Role Filter Tabs */}
+            <div className="flex items-center bg-gray-100 dark:bg-slate-800/90 p-1 rounded-xl gap-1 overflow-x-auto hide-scrollbar">
+              <button
+                onClick={() => { setRole(''); setCurrentPage(0); }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all whitespace-nowrap flex-1 sm:flex-none text-center ${
+                  role === '' 
+                    ? 'bg-white dark:bg-slate-900 text-orange-600 dark:text-orange-400 shadow-sm' 
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
               >
-                <option value="">-- ทุกสิทธิ์การใช้งาน --</option>
-                <option value="admin">Admin (ผู้ดูแลระบบ)</option>
-                <option value="volunteer">Volunteer (อาสาสมัคร)</option>
-              </select>
+                ทั้งหมด
+              </button>
+              <button
+                onClick={() => { setRole('admin'); setCurrentPage(0); }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all whitespace-nowrap flex-1 sm:flex-none text-center flex items-center justify-center gap-1 ${
+                  role === 'admin' 
+                    ? 'bg-white dark:bg-slate-900 text-red-600 dark:text-red-400 shadow-sm' 
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                <Shield size={13} /> Admin
+              </button>
+              <button
+                onClick={() => { setRole('volunteer'); setCurrentPage(0); }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all whitespace-nowrap flex-1 sm:flex-none text-center flex items-center justify-center gap-1 ${
+                  role === 'volunteer' 
+                    ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm' 
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                <UserCheck size={13} /> อาสาสมัคร
+              </button>
             </div>
-            <div className="col-span-1 lg:col-span-3">
+
+            {/* Status Filter & Rows per page */}
+            <div className="flex items-center gap-2">
               <select
                 value={statusFilter}
                 onChange={(e) => {
                   setStatusFilter(e.target.value);
                   setCurrentPage(0);
                 }}
-                className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-800 dark:text-white text-gray-900 bg-white font-medium outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full sm:w-auto px-3 py-1.5 text-xs sm:text-sm border border-gray-300 dark:border-slate-700 rounded-xl dark:bg-slate-800 dark:text-white text-gray-900 bg-white font-medium outline-none focus:ring-2 focus:ring-orange-500"
               >
-                <option value="">-- ทุกสถานะบัญชี --</option>
+                <option value="">ทุกสถานะบัญชี</option>
                 <option value="active">เปิดใช้งาน (Active)</option>
                 <option value="inactive">ปิดใช้งาน (Inactive)</option>
                 <option value="deleted">ถูกลบ (Deleted)</option>
               </select>
-            </div>
-            <div className="col-span-2 lg:col-span-1 flex items-center justify-end gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-              <span className="whitespace-nowrap">แสดง:</span>
-              <select
-                value={rowsPerPage}
-                onChange={(e) => {
-                  setRowsPerPage(Number(e.target.value));
-                  setCurrentPage(0);
-                }}
-                className="px-2 py-1.5 text-xs border border-gray-300 dark:border-gray-700 rounded-lg dark:bg-gray-800 dark:text-white font-bold"
-              >
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={100}>ทั้งหมด</option>
-              </select>
+
+              <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 shrink-0">
+                <span className="hidden sm:inline">แสดง:</span>
+                <select
+                  value={rowsPerPage}
+                  onChange={(e) => {
+                    setRowsPerPage(Number(e.target.value));
+                    setCurrentPage(0);
+                  }}
+                  className="px-2 py-1.5 text-xs border border-gray-300 dark:border-slate-700 rounded-xl dark:bg-slate-800 dark:text-white font-bold"
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>ทั้งหมด</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Mobile View (Sleek Modern Cards for Phone Screens) */}
+        {/* Mobile Cards View (< lg breakpoint) */}
         <div className="block lg:hidden space-y-3">
           {loading ? (
-            <div className="p-8 text-center text-gray-500 animate-pulse">กำลังโหลดข้อมูลผู้ใช้งาน...</div>
+            <div className="p-8 text-center text-gray-500 animate-pulse text-sm">กำลังโหลดข้อมูลผู้ใช้งาน...</div>
           ) : users.length === 0 ? (
-            <div className="p-8 text-center text-gray-500 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700 text-sm">
+            <div className="p-8 text-center text-gray-500 bg-gray-50 dark:bg-slate-800/40 rounded-2xl border border-gray-200 dark:border-slate-800 text-sm">
               ไม่พบข้อมูลผู้ใช้งานตามเงื่อนไขที่ค้นหา
             </div>
           ) : (
@@ -349,20 +375,20 @@ export const UserTable: React.FC<UserTableProps> = ({
               .map((user) => (
               <div 
                 key={user.userId} 
-                className="bg-white dark:bg-[#151b2c] p-3.5 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-all space-y-3"
+                className="bg-gray-50/50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-gray-200/80 dark:border-slate-700/60 shadow-sm hover:shadow transition-all space-y-3"
               >
                 {/* Header Row */}
                 <div className="flex justify-between items-start gap-2">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
                       user.role === 'admin' 
-                        ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' 
-                        : 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                        ? 'bg-red-100 text-red-700 dark:bg-red-950/80 dark:text-red-300' 
+                        : 'bg-blue-100 text-blue-700 dark:bg-blue-950/80 dark:text-blue-300'
                     }`}>
-                      {user.role === 'admin' ? <Shield size={18} /> : <UserCheck size={18} />}
+                      {user.role === 'admin' ? <Shield size={17} /> : <UserCheck size={17} />}
                     </div>
                     <div className="min-w-0">
-                      <h3 className="font-bold text-gray-900 dark:text-white text-base truncate leading-tight">
+                      <h3 className="font-bold text-gray-900 dark:text-white text-sm sm:text-base truncate leading-tight">
                         {user.name || user.username}
                       </h3>
                       <p className="text-xs text-gray-500 dark:text-gray-400 font-mono truncate">
@@ -371,13 +397,13 @@ export const UserTable: React.FC<UserTableProps> = ({
                     </div>
                   </div>
 
-                  <span className={`px-2.5 py-1 rounded-full text-[11px] font-extrabold shrink-0 ${getRoleColor(user.role)}`}>
+                  <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold shrink-0 ${getRoleColor(user.role)}`}>
                     {user.role === 'admin' ? 'ผู้ดูแลระบบ' : (user.role === 'volunteer' || user.role === 'rescue') ? 'อาสาสมัคร' : 'ผู้ใช้ทั่วไป'}
                   </span>
                 </div>
                 
                 {/* Details Section */}
-                <div className="bg-gray-50 dark:bg-gray-800/40 p-2.5 rounded-xl space-y-1.5 text-xs border border-gray-100 dark:border-gray-800">
+                <div className="bg-white dark:bg-slate-900/80 p-2.5 rounded-xl space-y-1.5 text-xs border border-gray-200/60 dark:border-slate-800">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-500 dark:text-gray-400">เบอร์โทรศัพท์:</span>
                     {user.phone ? (
@@ -394,7 +420,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                       {user.agency && (
                         <div className="flex justify-between items-center">
                           <span className="text-gray-500 dark:text-gray-400">สังกัด/หน่วย:</span>
-                          <span className="font-semibold text-gray-800 dark:text-gray-200 truncate max-w-[180px]">{user.agency}</span>
+                          <span className="font-semibold text-gray-800 dark:text-gray-200 truncate max-w-[170px]">{user.agency}</span>
                         </div>
                       )}
                       {user.province && (
@@ -403,7 +429,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                           <span className="font-semibold text-orange-600 dark:text-orange-400">จ.{user.province}</span>
                         </div>
                       )}
-                      <div className="flex justify-between items-center pt-1 border-t border-gray-200/60 dark:border-gray-700/60">
+                      <div className="flex justify-between items-center pt-1 border-t border-gray-100 dark:border-slate-800">
                         <span className="text-gray-500 dark:text-gray-400">สถานะปฏิบัติงาน (Live):</span>
                         <button
                           onClick={() => toggleOnlineStatus(user)}
@@ -474,78 +500,68 @@ export const UserTable: React.FC<UserTableProps> = ({
           )}
         </div>
 
-        {/* Desktop View (Table) */}
-        <div className="hidden lg:block w-full overflow-x-auto overflow-y-auto max-h-[60vh] custom-scrollbar rounded-lg border border-slate-200 dark:border-slate-700 relative">
+        {/* Desktop View Table (>= lg breakpoint) */}
+        <div className="hidden lg:block w-full overflow-x-auto overflow-y-auto max-h-[60vh] custom-scrollbar rounded-xl border border-slate-200 dark:border-slate-700 relative">
           <table className="w-full min-w-[800px] text-left text-sm whitespace-nowrap">
-            <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
+            <thead className="bg-gray-50 dark:bg-slate-800/90 border-b border-gray-200 dark:border-slate-700 sticky top-0 z-10">
               <tr>
-                <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-white">
-                  ไอดี
-                  <div className="text-xs text-gray-500">userId</div>
+                <th className="px-4 py-3 text-left font-bold text-gray-900 dark:text-white">
+                  ไอดี <span className="text-xs text-gray-400 font-normal">userId</span>
                 </th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-white">
-                  ชื่อผู้ใช้งาน
-                  <div className="text-xs text-gray-500">username</div>
+                <th className="px-4 py-3 text-left font-bold text-gray-900 dark:text-white">
+                  ชื่อผู้ใช้งาน <span className="text-xs text-gray-400 font-normal">username</span>
                 </th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-white">
-                  ชื่อ-นามสกุล
-                  <div className="text-xs text-gray-500">name</div>
+                <th className="px-4 py-3 text-left font-bold text-gray-900 dark:text-white">
+                  ชื่อ-นามสกุล <span className="text-xs text-gray-400 font-normal">name</span>
                 </th>
-
-                <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-white">
-                  เบอร์โทรศัพท์
-                  <div className="text-xs text-gray-500">phone</div>
+                <th className="px-4 py-3 text-left font-bold text-gray-900 dark:text-white">
+                  เบอร์โทรศัพท์ <span className="text-xs text-gray-400 font-normal">phone</span>
                 </th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-white">
-                  สิทธิ์การใช้งาน
-                  <div className="text-xs text-gray-500">role</div>
+                <th className="px-4 py-3 text-left font-bold text-gray-900 dark:text-white">
+                  สิทธิ์การใช้งาน <span className="text-xs text-gray-400 font-normal">role</span>
                 </th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-white">
-                  สถานะบัญชี
-                  <div className="text-xs text-gray-500">status</div>
+                <th className="px-4 py-3 text-left font-bold text-gray-900 dark:text-white">
+                  สถานะบัญชี <span className="text-xs text-gray-400 font-normal">status</span>
                 </th>
-                <th className="px-4 py-3 text-center font-semibold text-gray-900 dark:text-white">
-                  สถานะ (Live)
-                  <div className="text-xs text-gray-500">is_online</div>
+                <th className="px-4 py-3 text-center font-bold text-gray-900 dark:text-white">
+                  สถานะ Live <span className="text-xs text-gray-400 font-normal">is_online</span>
                 </th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-white">
-                  สร้างเมื่อ
-                  <div className="text-xs text-gray-500">created_at</div>
+                <th className="px-4 py-3 text-left font-bold text-gray-900 dark:text-white">
+                  สร้างเมื่อ <span className="text-xs text-gray-400 font-normal">created_at</span>
                 </th>
-                <th className="px-4 py-3 text-center font-semibold text-gray-900 dark:text-white">
+                <th className="px-4 py-3 text-center font-bold text-gray-900 dark:text-white">
                   การกระทำ
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
-                    กำลังโหลด...
+                  <td colSpan={9} className="px-4 py-8 text-center text-gray-500 animate-pulse">
+                    กำลังโหลดข้อมูลผู้ใช้งาน...
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
-                    ไม่พบข้อมูลผู้ใช้งาน
+                  <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                    ไม่พบข้อมูลผู้ใช้งานตามเงื่อนไขที่ค้นหา
                   </td>
                 </tr>
               ) : (
                 (users || [])
                   .slice(currentPage * rowsPerPage, (currentPage + 1) * rowsPerPage)
                   .map((user) => (
-                  <tr key={user.userId} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                  <tr key={user.userId} className="hover:bg-gray-50/80 dark:hover:bg-slate-800/50 transition-colors">
+                    <td className="px-4 py-3 text-gray-900 dark:text-gray-100 font-mono font-semibold">
+                      #{user.userId}
+                    </td>
+                    <td className="px-4 py-3 text-gray-900 dark:text-gray-100 font-mono font-bold">
+                      @{user.username}
+                    </td>
                     <td className="px-4 py-3 text-gray-900 dark:text-gray-100 font-medium">
-                      {user.userId}
-                    </td>
-                    <td className="px-4 py-3 text-gray-900 dark:text-gray-100">
-                      {user.username}
-                    </td>
-                    <td className="px-4 py-3 text-gray-900 dark:text-gray-100">
                       {user.name || '-'}
                     </td>
-
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 font-medium">
                       {user.phone || '-'}
                     </td>
                     <td className="px-4 py-3">
@@ -564,18 +580,18 @@ export const UserTable: React.FC<UserTableProps> = ({
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => toggleAccountStatus(user)}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 dark:focus:ring-offset-slate-900 ${
+                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 ${
                               (user.status || 'active') === 'active' ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
                             }`}
                             title={(user.status || 'active') === 'active' ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
                           >
                             <span
-                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                (user.status || 'active') === 'active' ? 'translate-x-6' : 'translate-x-1'
+                              className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                                (user.status || 'active') === 'active' ? 'translate-x-4' : 'translate-x-1'
                               }`}
                             />
                           </button>
-                          <span className={`text-sm font-medium ${(user.status || 'active') === 'active' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                          <span className={`text-xs font-bold ${(user.status || 'active') === 'active' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400'}`}>
                             {(user.status || 'active') === 'active' ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
                           </span>
                         </div>
@@ -585,48 +601,48 @@ export const UserTable: React.FC<UserTableProps> = ({
                       {(user.role === 'volunteer' || user.role === 'rescue') ? (
                         <button
                           onClick={() => toggleOnlineStatus(user)}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 dark:focus:ring-offset-slate-900 ${
-                            user.is_online ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+                            user.is_online ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
                           }`}
                           title={user.is_online ? 'พร้อมปฏิบัติงาน' : 'ออฟไลน์'}
                         >
                           <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                              user.is_online ? 'translate-x-6' : 'translate-x-1'
+                            className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                              user.is_online ? 'translate-x-4' : 'translate-x-1'
                             }`}
                           />
                         </button>
                       ) : (
-                        <span className="text-gray-400 dark:text-gray-600">-</span>
+                        <span className="text-gray-400 dark:text-gray-600 font-medium">-</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs">
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs font-mono">
                       {new Date(user.created_at).toLocaleDateString('th-TH')}
                     </td>
-                    <td className="px-4 py-3 flex items-center justify-center gap-2">
+                    <td className="px-4 py-3 flex items-center justify-center gap-1.5">
                       {user.status === 'deleted' ? (
                         <Button
                           onClick={() => restoreAccount(user)}
-                          className="px-3 py-1.5 text-sm bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50 rounded-lg transition-colors"
+                          className="px-3 py-1 text-xs font-bold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 rounded-xl transition-colors"
                         >
                           กู้คืนบัญชี
                         </Button>
                       ) : (
                         <>
-                          <Button
+                          <button
                             onClick={() => onEdit(user)}
-                            className="p-2 text-orange-600 hover:bg-orange-100 dark:hover:bg-orange-900 rounded"
+                            className="p-1.5 text-orange-600 hover:bg-orange-100 dark:hover:bg-orange-950/60 rounded-xl transition-colors"
                             title="แก้ไข"
                           >
-                            <Edit2 size={18} />
-                          </Button>
-                          <Button
+                            <Edit2 size={16} />
+                          </button>
+                          <button
                             onClick={() => onDelete(user)}
-                            className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900 rounded"
+                            className="p-1.5 text-red-600 hover:bg-red-100 dark:hover:bg-red-950/60 rounded-xl transition-colors"
                             title="ลบ"
                           >
-                            <Trash2 size={18} />
-                          </Button>
+                            <Trash2 size={16} />
+                          </button>
                         </>
                       )}
                     </td>
@@ -637,43 +653,48 @@ export const UserTable: React.FC<UserTableProps> = ({
           </table>
         </div>
 
-        {/* Pagination */}
-        <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">
+        {/* Pagination Section */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-gray-100 dark:border-slate-800 text-xs text-gray-600 dark:text-gray-400">
+          <div>
             แสดง {users.length === 0 ? 0 : currentPage * rowsPerPage + 1} ถึง{' '}
-            {Math.min((currentPage + 1) * rowsPerPage, total)} จาก {total} รายการ
+            {Math.min((currentPage + 1) * rowsPerPage, total)} จากทั้งหมด {total} รายการ
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex items-center gap-1.5 w-full sm:w-auto justify-between sm:justify-end">
             <Button
               onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
               disabled={currentPage === 0}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 dark:text-white"
+              className="px-3 py-1.5 text-xs font-bold border border-gray-300 dark:border-slate-700 rounded-xl disabled:opacity-40 dark:text-white"
             >
               ก่อนหน้า
             </Button>
 
-            {/* Page numbers */}
-            <div className="flex gap-1">
-              {Array.from({ length: totalPages }, (_, i) => i).map((page) => (
-                <Button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`px-3 py-2 rounded-lg ${
-                    currentPage === page
-                      ? 'bg-blue-600 text-white'
-                      : 'border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white'
-                  }`}
-                >
-                  {page + 1}
-                </Button>
-              ))}
+            {/* Compact page indicator for mobile / full list for desktop */}
+            <div className="flex items-center gap-1">
+              <span className="sm:hidden font-mono font-bold text-gray-800 dark:text-gray-200">
+                {currentPage + 1} / {totalPages || 1}
+              </span>
+              <div className="hidden sm:flex gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i).slice(0, 7).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${
+                      currentPage === page
+                        ? 'bg-[#e65c00] text-white shadow-sm'
+                        : 'border border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-700 dark:text-gray-300'
+                    }`}
+                  >
+                    {page + 1}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <Button
               onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
               disabled={currentPage >= totalPages - 1}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 dark:text-white"
+              className="px-3 py-1.5 text-xs font-bold border border-gray-300 dark:border-slate-700 rounded-xl disabled:opacity-40 dark:text-white"
             >
               ถัดไป
             </Button>
