@@ -253,20 +253,20 @@ export const CaseTable = ({
     let matchCaseId = true;
     let matchVolunteer = true;
     
-    if (statusFilter === 'completed' || statusFilter === 'resolved') {
-      if (destinationFilter !== 'all') {
-        if (destinationFilter === 'ศูนย์พักพิง') matchDestination = isShelterDestination(c.destination);
-        else if (destinationFilter === 'นำส่งโรงพยาบาล' || destinationFilter === 'โรงพยาบาล/หน่วยแพทย์') matchDestination = isHospitalDestination(c.destination);
-        else if (destinationFilter === 'มอบถุงยังชีพ' || destinationFilter === 'ถุงยังชีพ') matchDestination = isSuppliesDestination(c.destination);
-        else matchDestination = c.destination === destinationFilter;
-      }
-      if (searchCaseId) {
-        matchCaseId = Boolean(c.id && String(c.id).toLowerCase().includes(String(searchCaseId).toLowerCase()));
-      }
-      if (searchVolunteerName) {
-        const vName = String(c.volunteer_name || c.assigned_volunteer_name || '');
-        matchVolunteer = vName.toLowerCase().includes(String(searchVolunteerName).toLowerCase());
-      }
+    if (searchVolunteerName) {
+      const vName = String(c.volunteer_name || c.assigned_volunteer_name || c.volunteer_agency || '');
+      matchVolunteer = vName.toLowerCase().includes(String(searchVolunteerName).toLowerCase());
+    }
+
+    if (destinationFilter !== 'all') {
+      if (destinationFilter === 'ศูนย์พักพิง') matchDestination = isShelterDestination(c.destination);
+      else if (destinationFilter === 'นำส่งโรงพยาบาล' || destinationFilter === 'โรงพยาบาล/หน่วยแพทย์') matchDestination = isHospitalDestination(c.destination);
+      else if (destinationFilter === 'มอบถุงยังชีพ' || destinationFilter === 'ถุงยังชีพ') matchDestination = isSuppliesDestination(c.destination);
+      else matchDestination = c.destination === destinationFilter;
+    }
+
+    if (searchCaseId) {
+      matchCaseId = Boolean(c.id && String(c.id).toLowerCase().includes(String(searchCaseId).toLowerCase()));
     }
 
     const searchLower = String(searchQuery || '').toLowerCase();
