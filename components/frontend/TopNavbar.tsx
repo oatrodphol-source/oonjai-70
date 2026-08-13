@@ -284,15 +284,24 @@ export const TopNavbar: React.FC = () => {
         </Link>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-3 sm:gap-4">
-          <button onClick={toggleTheme} className="text-white hover:text-[#ff6600] transition-colors p-2 rounded-full min-w-[48px] min-h-[48px] flex items-center justify-center">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button onClick={toggleTheme} className="text-white hover:text-[#ff6600] transition-colors p-2 rounded-full min-w-[44px] min-h-[44px] sm:min-w-[48px] sm:min-h-[48px] flex items-center justify-center cursor-pointer" title="เปลี่ยนธีม (Theme)">
             {isDark ? <Sun size={22} /> : <Moon size={22} />}
           </button>
+
+          <Link
+            href="/history"
+            className="text-white hover:text-[#ff6600] hover:scale-110 transition-all p-2 rounded-full min-w-[44px] min-h-[44px] sm:min-w-[48px] sm:min-h-[48px] flex items-center justify-center relative cursor-pointer"
+            title="ประวัติขอความช่วยเหลือ (History)"
+          >
+            <History size={22} strokeWidth={2} />
+          </Link>
 
           <div className="relative" ref={notifRef}>
             <button
               onClick={() => { setShowNotifications(!showNotifications); setShowProfile(false); }}
-              className="text-[#ff6600] hover:scale-110 transition-transform relative p-2 min-w-[48px] min-h-[48px] flex items-center justify-center"
+              className="text-[#ff6600] hover:scale-110 transition-transform relative p-2 min-w-[44px] min-h-[44px] sm:min-w-[48px] sm:min-h-[48px] flex items-center justify-center cursor-pointer"
+              title="การแจ้งเตือน (Notifications)"
             >
               <Bell size={22} strokeWidth={2} />
               {(visibleNotifications.some(c => ['pending', 'in_progress', 'wait', 'accepted'].includes(typeof c.status === 'string' ? c.status.toLowerCase() : String(c.status))) || (broadcasts.length > 0 && broadcasts[0].id !== 0)) && (
