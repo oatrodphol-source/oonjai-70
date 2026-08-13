@@ -61,11 +61,11 @@ export const CaseTable = ({
   const getSeverityColor = (severity: number) => {
     switch (severity) {
       case 5: return 'bg-red-500 text-white';
-      case 4: return 'bg-orange-600 text-white';
-      case 3: return 'bg-orange-500 text-white';
-      case 2: return 'bg-yellow-500 text-white';
-      case 1: return 'bg-green-500 text-white';
-      default: return 'bg-gray-500 text-white';
+      case 4: return 'bg-orange-500 text-white';
+      case 3: return 'bg-yellow-500 text-slate-900 font-extrabold';
+      case 2: return 'bg-blue-500 text-white';
+      case 1: return 'bg-emerald-500 text-white';
+      default: return 'bg-emerald-500 text-white';
     }
   };
 
