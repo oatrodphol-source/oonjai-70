@@ -31,36 +31,45 @@ export async function POST(request: Request) {
         // 4. เลือกตาราง
         const collectionName = role === 'admin' ? 'admins' : 'volunteers';
 
-        // 5. เตรียมข้อมูล
+        // 5. เตรียมข้อมูลตรงตาม Schema ของแต่ละตาราง
         const insertData: any = {
             username,
             password_hash: hashedPassword, 
             name,
-            phone,
-            agency: agency || null,
-            address: address || null,
-            province: province || null,
-            skills_equipment: skills_equipment || null,
-            id_card_number: id_card_number || null,
-            latitude: latitude ? Number(latitude) : null,
-            longitude: longitude ? Number(longitude) : null,
+            phone: phone || null,
             role,
             created_at: new Date().toISOString()
         };
 
+        // หากเป็นอาสาสมัคร ถึงจะใส่ข้อมูลศูนย์กู้ภัย/พิกัด/อุปกรณ์
+        if (role !== 'admin') {
+            if (agency) insertData.agency = agency;
+            if (address) insertData.address = address;
+            if (province) insertData.province = province;
+            if (skills_equipment) insertData.skills_equipment = skills_equipment;
+            if (latitude) insertData.latitude = Number(latitude);
+            if (longitude) insertData.longitude = Number(longitude);
+        }
+
         // 6. บันทึกลง Supabase
         let { error } = await supabase.from(collectionName).insert([insertData]);
 
-        if (error && (error.message?.includes('latitude') || error.message?.includes('longitude'))) {
+        if (error && (error.message?.includes('schema cache') || error.message?.includes('column'))) {
+            // Fallback retry without optional extra fields
             delete insertData.latitude;
             delete insertData.longitude;
+            delete insertData.skills_equipment;
+            delete insertData.address;
+            delete insertData.province;
+            delete insertData.agency;
+            delete insertData.id_card_number;
             const retry = await supabase.from(collectionName).insert([insertData]);
             error = retry.error;
         }
 
         if (error) {
              console.error("Supabase Insert Error:", error);
-             throw error;
+             return NextResponse.json({ error: error.message || 'Supabase Insert Error' }, { status: 500 });
         }
 
         return NextResponse.json({ success: true, message: 'สร้างผู้ใช้งานสำเร็จ' }, { status: 201 });
@@ -75,7 +84,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
     try {
         const body = await request.json();
-        const { id, password, name, phone, agency, role, username, status, address, province, skills_equipment, id_card_number, latitude, longitude } = body;
+        const { id, password, name, phone, agency, role, username, status, address, province, skills_equipment, latitude, longitude } = body;
 
         if (!id || !role) {
             return NextResponse.json({ error: 'กรุณาระบุไอดีและสิทธิ์ (Role)' }, { status: 400 });
@@ -88,16 +97,18 @@ export async function PUT(request: Request) {
         };
 
         if (name !== undefined) updateData.name = name;
-        if (phone !== undefined) updateData.phone = phone;
-        if (agency !== undefined) updateData.agency = agency || null;
-        if (address !== undefined) updateData.address = address || null;
-        if (province !== undefined) updateData.province = province || null;
-        if (skills_equipment !== undefined) updateData.skills_equipment = skills_equipment || null;
-        if (id_card_number !== undefined) updateData.id_card_number = id_card_number || null;
-        if (latitude !== undefined) updateData.latitude = latitude ? Number(latitude) : null;
-        if (longitude !== undefined) updateData.longitude = longitude ? Number(longitude) : null;
+        if (phone !== undefined) updateData.phone = phone || null;
         if (username !== undefined) updateData.username = username;
         if (status !== undefined) updateData.status = status;
+
+        if (role !== 'admin') {
+            if (agency !== undefined) updateData.agency = agency || null;
+            if (address !== undefined) updateData.address = address || null;
+            if (province !== undefined) updateData.province = province || null;
+            if (skills_equipment !== undefined) updateData.skills_equipment = skills_equipment || null;
+            if (latitude !== undefined) updateData.latitude = latitude ? Number(latitude) : null;
+            if (longitude !== undefined) updateData.longitude = longitude ? Number(longitude) : null;
+        }
 
         if (password) {
             const salt = await bcrypt.genSalt(10);
@@ -106,9 +117,14 @@ export async function PUT(request: Request) {
 
         let { error } = await supabase.from(collectionName).update(updateData).eq('id', id);
 
-        if (error && (error.message?.includes('latitude') || error.message?.includes('longitude'))) {
+        if (error && (error.message?.includes('schema cache') || error.message?.includes('column'))) {
             delete updateData.latitude;
             delete updateData.longitude;
+            delete updateData.skills_equipment;
+            delete updateData.address;
+            delete updateData.province;
+            delete updateData.agency;
+            delete updateData.id_card_number;
             const retry = await supabase.from(collectionName).update(updateData).eq('id', id);
             error = retry.error;
         }

@@ -84,15 +84,17 @@ export default function UsersPage() {
       </div>
 
       {showAddUser && (
-        <div className="fixed inset-0 bg-black/50 z-[3000] flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-6 w-full max-w-2xl relative max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[3000] flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-6 w-full max-w-xl relative max-h-[90vh] overflow-y-auto shadow-2xl my-auto border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-150">
             <button 
               onClick={() => setShowAddUser(false)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-gray-100 dark:bg-slate-800 p-1.5 rounded-full transition-colors"
             >
-              <X size={20} />
+              <X size={18} />
             </button>
-            <h3 className="text-lg font-bold mb-4 dark:text-white">สร้างผู้ใช้งานใหม่</h3>
+            <h3 className="text-base sm:text-lg font-extrabold mb-4 text-slate-900 dark:text-white flex items-center gap-2">
+              ➕ สร้างผู้ใช้งานใหม่
+            </h3>
             <UnifiedUserForm 
               isEditing={false}
               isAdminAccess={true}
@@ -106,15 +108,17 @@ export default function UsersPage() {
       )}
 
       {editingUser && (
-        <div className="fixed inset-0 bg-black/50 z-[3000] flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-6 w-full max-w-2xl relative max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[3000] flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-6 w-full max-w-xl relative max-h-[90vh] overflow-y-auto shadow-2xl my-auto border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-150">
             <button 
               onClick={() => setEditingUser(null)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-gray-100 dark:bg-slate-800 p-1.5 rounded-full transition-colors"
             >
-              <X size={20} />
+              <X size={18} />
             </button>
-            <h3 className="text-lg font-bold mb-4 dark:text-white">แก้ไขข้อมูลผู้ใช้งาน</h3>
+            <h3 className="text-base sm:text-lg font-extrabold mb-4 text-slate-900 dark:text-white flex items-center gap-2">
+              ✏️ แก้ไขข้อมูลผู้ใช้งาน
+            </h3>
             <UnifiedUserForm 
               initialData={editingUser}
               isEditing={true}
