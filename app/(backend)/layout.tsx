@@ -17,7 +17,7 @@ export default async function BackendLayout({
       <Sidebar role={role} userName={userName} />
       <div className="flex-1 ml-0 md:ml-64 flex flex-col min-h-screen pb-20 md:pb-0 pt-16 md:pt-0">
         <GlobalStatusBlocker>
-          <main className="flex-1 p-4 md:p-8 overflow-x-hidden">
+          <main className="flex-1 p-2.5 sm:p-4 md:p-8 overflow-x-hidden w-full max-w-full">
             {children}
           </main>
         </GlobalStatusBlocker>

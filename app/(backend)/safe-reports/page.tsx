@@ -386,7 +386,7 @@ export default function SafeReportsPage() {
           </div>
 
           {/* Desktop View (Table) */}
-          <div className="hidden lg:block overflow-x-auto">
+          <div className="hidden lg:block overflow-x-hidden">
             <table className="w-full text-left table-fixed">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">

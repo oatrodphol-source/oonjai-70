@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
-import { Edit2, Trash2, Eye, EyeOff, Plus } from 'lucide-react';
+import { Edit2, Trash2, Eye, EyeOff, Plus, Megaphone, Newspaper } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 
@@ -189,11 +189,11 @@ export const NewsManagement: React.FC<NewsManagementProps> = ({
                   </div>
                   {item.type === 'announcement' ? (
                     <span className="bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400 text-xs px-2.5 py-1 rounded-full font-bold flex items-center gap-1 shrink-0">
-                      🚨 ประกาศด่วน
+                      <Megaphone size={12} /> ประกาศด่วน
                     </span>
                   ) : (
-                    <span className="bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 text-xs px-2.5 py-1 rounded-full font-medium shrink-0">
-                      📰 ข่าวสารทั่วไป
+                    <span className="bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 text-xs px-2.5 py-1 rounded-full font-medium flex items-center gap-1 shrink-0">
+                      <Newspaper size={12} /> ข่าวสารทั่วไป
                     </span>
                   )}
                 </div>
@@ -242,8 +242,8 @@ export const NewsManagement: React.FC<NewsManagementProps> = ({
         </div>
 
         {/* Desktop View (Table) */}
-        <div className="hidden lg:block w-full overflow-x-auto hide-scrollbar rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
-          <table className="table-fixed w-full min-w-[900px] text-left text-sm whitespace-nowrap">
+        <div className="hidden lg:block w-full overflow-x-hidden hide-scrollbar rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
+          <table className="table-fixed w-full text-left text-sm whitespace-nowrap">
             <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
               <tr>
                 <th className="px-4 py-3.5 text-left font-semibold text-slate-700 dark:text-slate-300 w-[6%]">
