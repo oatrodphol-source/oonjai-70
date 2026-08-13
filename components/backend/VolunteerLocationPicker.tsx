@@ -20,12 +20,17 @@ export default function VolunteerLocationPicker({
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isOpenDropdown, setIsOpenDropdown] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
 
   // Auto-search using multi-provider autocomplete API
   const handleSearch = async (queryText?: string) => {
     const text = queryText !== undefined ? queryText : searchQuery;
-    if (!text.trim() || text.trim().length < 2) return;
+    if (!text.trim() || text.trim().length < 2) {
+      setSearchResults([]);
+      setIsOpenDropdown(false);
+      return;
+    }
     
     setIsSearching(true);
     try {
@@ -34,6 +39,7 @@ export default function VolunteerLocationPicker({
       const data = await res.json();
       const predictions = data.predictions || [];
       setSearchResults(predictions);
+      setIsOpenDropdown(predictions.length > 0);
       
       if (predictions.length === 0) {
         toast.error('ไม่พบสถานที่ที่ค้นหา ลองพิมพ์ชื่ออำเภอหรือจังหวัดเพิ่มเติม');
@@ -47,10 +53,15 @@ export default function VolunteerLocationPicker({
   };
 
   const handleSelectResult = async (item: any) => {
+    setSearchResults([]);
+    setIsOpenDropdown(false);
     setIsSearching(true);
+
     let lat = item.lat;
     let lng = item.lng;
     let fullAddr = item.description || `${item.main_text} ${item.secondary_text}`.trim();
+
+    setSearchQuery(item.main_text || fullAddr);
 
     // If Google place without lat/lng, fetch place details
     if ((!lat || !lng) && item.place_id) {
@@ -97,7 +108,6 @@ export default function VolunteerLocationPicker({
       province: detectedProv || undefined,
     });
 
-    setSearchResults([]);
     setIsSearching(false);
     toast.success('ปักหมุดสถานที่สำเร็จ!');
   };
@@ -170,12 +180,14 @@ export default function VolunteerLocationPicker({
             <input
               type="text"
               value={searchQuery}
+              onFocus={() => { if (searchResults.length > 0) setIsOpenDropdown(true); }}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 if (e.target.value.trim().length >= 2) {
                   handleSearch(e.target.value);
                 } else {
                   setSearchResults([]);
+                  setIsOpenDropdown(false);
                 }
               }}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(); } }}
@@ -196,14 +208,14 @@ export default function VolunteerLocationPicker({
         </div>
 
         {/* Search Results Dropdown List */}
-        {searchResults.length > 0 && (
+        {isOpenDropdown && searchResults.length > 0 && (
           <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl max-h-56 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700 z-50">
             {searchResults.map((item, idx) => (
               <button
                 key={idx}
                 type="button"
-                onClick={() => handleSelectResult(item)}
-                className="w-full text-left p-3 text-xs text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-950/60 transition-colors flex items-start gap-2.5"
+                onMouseDown={(e) => { e.preventDefault(); handleSelectResult(item); }}
+                className="w-full text-left p-3 text-xs text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-950/60 transition-colors flex items-start gap-2.5 cursor-pointer"
               >
                 <MapPin size={15} className="text-red-500 shrink-0 mt-0.5" />
                 <div className="min-w-0 flex-1">
