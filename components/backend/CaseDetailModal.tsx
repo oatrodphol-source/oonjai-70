@@ -42,7 +42,10 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({ isOpen, onClos
     if (isAdmin) {
       const fetchVolunteers = async () => {
         try {
-          const { data, error } = await supabase.from('volunteers').select('id, name, phone, agency').order('name');
+          const { data, error } = await supabase
+            .from('volunteers')
+            .select('id, name, phone, agency, province, address, skills_equipment, latitude, longitude')
+            .order('name');
           if (!error && data) {
             setVolunteersList(data);
           }
@@ -53,6 +56,59 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({ isOpen, onClos
       fetchVolunteers();
     }
   }, [isAdmin]);
+
+  // AI Smart Match Algorithm
+  const calculateDistance = (lat1?: number, lon1?: number, lat2?: number, lon2?: number) => {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+    const R = 6371;
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  const getAiRecommendedVolunteer = () => {
+    if (!volunteersList.length || !caseData) return null;
+
+    const caseLat = caseData.latitude;
+    const caseLng = caseData.longitude;
+    const caseDetails = ((caseData.details || '') + (caseData.water_level || '')).toLowerCase();
+    const isWaterCase = caseDetails.includes('น้ำ') || caseDetails.includes('ท่วม') || caseDetails.includes('เรือ');
+    const isMedicalCase = caseDetails.includes('ป่วย') || caseDetails.includes('ติดเตียง') || caseDetails.includes('พยาบาล');
+
+    const scoredVols = volunteersList.map((vol) => {
+      let score = 50;
+      let distanceKm: number | null = null;
+
+      if (caseLat && caseLng && vol.latitude && vol.longitude) {
+        distanceKm = calculateDistance(caseLat, caseLng, vol.latitude, vol.longitude);
+        if (distanceKm !== null) {
+          if (distanceKm < 5) score += 35;
+          else if (distanceKm < 15) score += 20;
+          else if (distanceKm < 30) score += 10;
+        }
+      }
+
+      const volSkills = (vol.skills_equipment || '').toLowerCase();
+      if (isWaterCase && (volSkills.includes('เรือ') || volSkills.includes('ดำน้ำ'))) {
+        score += 25;
+      }
+      if (isMedicalCase && (volSkills.includes('พยาบาล') || volSkills.includes('als') || volSkills.includes('ปฐมพยาบาล'))) {
+        score += 25;
+      }
+
+      return { ...vol, score: Math.min(score, 99), distanceKm };
+    });
+
+    scoredVols.sort((a, b) => b.score - a.score);
+    return scoredVols[0] || null;
+  };
+
+  const aiRecommendedVol = getAiRecommendedVolunteer();
 
   useEffect(() => {
     if (caseData) {
@@ -327,6 +383,40 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({ isOpen, onClos
                     </select>
                   </div>
                   
+                  {/* 🤖 AI SMART VOLUNTEER MATCH RECOMMENDATION BANNER */}
+                  {aiRecommendedVol && (
+                    <div className="bg-slate-900 border border-blue-500/40 rounded-xl p-3 text-white space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-blue-400">
+                          <span>🤖</span> AI แนะนำอาสาที่เหมาะสมที่สุด:
+                        </div>
+                        <span className="bg-blue-600/80 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+                          ความเหมาะสม {aiRecommendedVol.score}%
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between bg-black/40 p-2.5 rounded-lg border border-slate-700/50">
+                        <div className="min-w-0 pr-2">
+                          <p className="font-bold text-xs text-white truncate">{aiRecommendedVol.name} ({aiRecommendedVol.agency || 'อาสากู้ภัย'})</p>
+                          <p className="text-[11px] text-blue-200">
+                            📍 ห่าง {aiRecommendedVol.distanceKm !== null ? `${aiRecommendedVol.distanceKm.toFixed(1)} กม.` : 'ไม่ระบุพิกัด'} • จ.{aiRecommendedVol.province || 'ไม่ระบุ'}
+                          </p>
+                          {aiRecommendedVol.skills_equipment && (
+                            <p className="text-[10px] text-amber-300 font-medium truncate">
+                              🛠️ {aiRecommendedVol.skills_equipment}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setEditVolunteerId(aiRecommendedVol.id)}
+                          className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition-all shrink-0 shadow-sm"
+                        >
+                          เลือกอาสาสมัคร
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">อาสาสมัคร / ทีมช่วยเหลือ (Re-assign Volunteer)</label>
                     <select 

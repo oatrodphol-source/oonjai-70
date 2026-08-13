@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { User, Phone, Briefcase, Lock, UserCog, Save, Loader2, AtSign, MapPin, Globe, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { THAI_PROVINCES } from '@/lib/constants';
+import VolunteerLocationPicker from './VolunteerLocationPicker';
 
 interface UnifiedUserFormProps {
   initialData?: any;
@@ -197,18 +198,21 @@ export default function UnifiedUserForm({
               </select>
             </div>
 
-            {/* Address */}
-            <div className="space-y-2 md:col-span-2">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                <MapPin size={16} /> ที่อยู่ / พื้นที่ประจำการหลัก
-              </label>
-              <textarea
-                name="address"
-                rows={2}
-                value={formData.address}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all dark:bg-gray-700 dark:text-white resize-none"
-                placeholder="ระบุที่อยู่ / ศูนย์ประสานงาน / พื้นที่ประจำการ"
+            {/* Address & Location Picker */}
+            <div className="md:col-span-2">
+              <VolunteerLocationPicker
+                address={formData.address}
+                latitude={(formData as any).latitude}
+                longitude={(formData as any).longitude}
+                onChangeLocation={({ address, latitude, longitude, province }) => {
+                  setFormData((prev: any) => ({
+                    ...prev,
+                    address,
+                    ...(latitude ? { latitude } : {}),
+                    ...(longitude ? { longitude } : {}),
+                    ...(province ? { province } : {}),
+                  }));
+                }}
               />
             </div>
 

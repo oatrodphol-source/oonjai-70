@@ -14,6 +14,8 @@ export interface User {
   province?: string;
   skills_equipment?: string;
   id_card_number?: string;
+  latitude?: number;
+  longitude?: number;
   role: Role | string;
   status: 'active' | 'inactive' | 'suspended' | string;
   is_online?: boolean;
@@ -31,6 +33,8 @@ export interface Volunteer {
   province?: string;
   skills_equipment?: string;
   id_card_number?: string;
+  latitude?: number;
+  longitude?: number;
   role: string;
   status: string;
   is_online?: boolean;

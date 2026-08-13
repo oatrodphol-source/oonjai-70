@@ -8,7 +8,7 @@ import bcrypt from 'bcryptjs';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { username, password, name, phone, agency, role, address, province, skills_equipment, id_card_number } = body;
+        const { username, password, name, phone, agency, role, address, province, skills_equipment, id_card_number, latitude, longitude } = body;
 
         // 1. ตรวจสอบข้อมูลเบื้องต้น
         if (!username || !password || !name || !role) {
@@ -42,6 +42,8 @@ export async function POST(request: Request) {
             province: province || null,
             skills_equipment: skills_equipment || null,
             id_card_number: id_card_number || null,
+            latitude: latitude ? Number(latitude) : null,
+            longitude: longitude ? Number(longitude) : null,
             role,
             created_at: new Date().toISOString()
         };
@@ -66,7 +68,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
     try {
         const body = await request.json();
-        const { id, password, name, phone, agency, role, username, status, address, province, skills_equipment, id_card_number } = body;
+        const { id, password, name, phone, agency, role, username, status, address, province, skills_equipment, id_card_number, latitude, longitude } = body;
 
         if (!id || !role) {
             return NextResponse.json({ error: 'กรุณาระบุไอดีและสิทธิ์ (Role)' }, { status: 400 });
@@ -85,6 +87,8 @@ export async function PUT(request: Request) {
         if (province !== undefined) updateData.province = province || null;
         if (skills_equipment !== undefined) updateData.skills_equipment = skills_equipment || null;
         if (id_card_number !== undefined) updateData.id_card_number = id_card_number || null;
+        if (latitude !== undefined) updateData.latitude = latitude ? Number(latitude) : null;
+        if (longitude !== undefined) updateData.longitude = longitude ? Number(longitude) : null;
         if (username !== undefined) updateData.username = username;
         if (status !== undefined) updateData.status = status;
 
