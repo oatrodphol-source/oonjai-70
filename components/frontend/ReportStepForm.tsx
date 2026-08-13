@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { Camera, MapPin, AlertTriangle, CheckCircle2, Image as ImageIcon, Upload, Trash2 } from 'lucide-react';
+import { Camera, MapPin, AlertTriangle, CheckCircle2, Image as ImageIcon, Upload, Trash2, Brain, ShieldAlert, Loader2, Info, FileText, User, Phone, Users, Clock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { getSeveritySolidColor } from '@/lib/utils';
@@ -44,6 +44,8 @@ export const ReportStepForm = () => {
   const [triagePhase, setTriagePhase] = useState(1);
   const [calculatedSeverity, setCalculatedSeverity] = useState(1);
   const [visionFeedback, setVisionFeedback] = useState('');
+  const [aiProgress, setAiProgress] = useState(15);
+  const [aiStepText, setAiStepText] = useState('กำลังวิเคราะห์พิกัดสถานที่และระดับน้ำ...');
   
   const [isLiff, setIsLiff] = useState(false);
   const [liffProfile, setLiffProfile] = useState<{ displayName?: string; pictureUrl?: string; userId?: string } | null>(null);
@@ -244,6 +246,21 @@ export const ReportStepForm = () => {
     setCalculatedSeverity(severity);
     setShowTriageModal(true);
     setTriagePhase(1);
+    setAiProgress(15);
+    setAiStepText('กำลังประเมินพิกัดและระดับน้ำ...');
+
+    const timerInterval = setInterval(() => {
+      setAiProgress((prev) => {
+        if (prev >= 85) return prev;
+        const next = prev + 15;
+        if (next > 35 && next < 65) {
+          setAiStepText('กำลังประเมินภาพถ่ายด้วย AI Vision...');
+        } else if (next >= 65) {
+          setAiStepText('กำลังสรุประดับความเสี่ยงฉุกเฉิน...');
+        }
+        return next;
+      });
+    }, 500);
 
     // If an image was uploaded, perform real Gemini AI Vision analysis
     if (formData.image_file) {
@@ -252,10 +269,15 @@ export const ReportStepForm = () => {
         analyzeData.append('image', formData.image_file);
         analyzeData.append('prompt', `ช่วยวิเคราะห์ความรุนแรงของภัยพิบัติ ระดับน้ำ ผู้ประสบภัย และกลุ่มเปราะบาง จากรูปภาพนี้ร่วมกับข้อมูล: น้ำ=${formData.waterLevel}, มีผู้ป่วยติดเตียง=${formData.bedridden ? 'มี' : 'ไม่มี'}, เด็ก/ผู้สูงอายุ=${formData.elderly ? 'มี' : 'ไม่มี'}`);
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4500);
+
         const aiRes = await fetch('/api/analyze', {
           method: 'POST',
-          body: analyzeData
+          body: analyzeData,
+          signal: controller.signal
         });
+        clearTimeout(timeoutId);
 
         if (aiRes.ok) {
           const aiJson = await aiRes.json();
@@ -272,7 +294,7 @@ export const ReportStepForm = () => {
             setCalculatedSeverity(finalLevel);
             setAiAnalysisResult(parsed);
 
-            const feedbackText = `🤖 AI Vision (${parsed.ai_score || 0}/100): ${parsed.situation_summary || 'วิเคราะห์สำเร็จ'} ${parsed.detected_keywords ? `[${parsed.detected_keywords.join(', ')}]` : ''}`;
+            const feedbackText = `ผลประเมินภาพถ่าย (คะแนนความเสี่ยง: ${parsed.ai_score || 0}/100): ${parsed.situation_summary || 'วิเคราะห์สำเร็จ'}`;
             setVisionFeedback(feedbackText);
           }
         }
@@ -281,8 +303,12 @@ export const ReportStepForm = () => {
       }
     }
 
-    // Move to results phase
-    setTriagePhase(2);
+    clearInterval(timerInterval);
+    setAiProgress(100);
+    setAiStepText('วิเคราะห์ความเสี่ยงเสร็จสิ้น!');
+    setTimeout(() => {
+      setTriagePhase(2);
+    }, 350);
   };
 
   const getLocation = () => {
@@ -349,9 +375,11 @@ export const ReportStepForm = () => {
     if (!validatePhone(formData.phone)) {
       setPhoneError('เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลักเท่านั้น');
       setStep(1);
+      setShowTriageModal(false);
       return;
     }
   
+    setTriagePhase(3);
     setIsSubmitting(true);
 
     try {
@@ -830,87 +858,148 @@ export const ReportStepForm = () => {
         </div>
       )}
 
-      {/* AI Triage Modal */}
+      {/* AI Triage & Confirmation Modal */}
       {showTriageModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white dark:bg-[#0b1325] rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl border border-orange-100 dark:border-orange-900/30 scale-100 animate-in zoom-in-95 duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-300 pointer-events-auto">
+          <div className="bg-white dark:bg-[#0b1325] rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl border border-orange-200 dark:border-orange-900/40 scale-100 animate-in zoom-in-95 duration-300 relative overflow-hidden">
             
-            {triagePhase === 1 ? (
-              <div className="flex flex-col items-center py-8">
-                <div className="relative w-24 h-24 mb-6">
-                  <div className="absolute inset-0 border-4 border-orange-200 dark:border-orange-900/50 rounded-full animate-ping opacity-75"></div>
+            {/* PHASE 1: AI Vision & Triage Progress Analysis */}
+            {triagePhase === 1 && (
+              <div className="flex flex-col items-center py-6">
+                <div className="relative w-20 h-20 mb-5 flex items-center justify-center">
+                  <div className="absolute inset-0 border-4 border-orange-200 dark:border-orange-950/60 rounded-full animate-ping opacity-60"></div>
                   <div className="absolute inset-0 border-4 border-[#ff6600] rounded-full border-t-transparent animate-spin"></div>
-                  <div className="absolute inset-0 flex items-center justify-center text-3xl">🤖</div>
+                  <Brain className="w-9 h-9 text-[#ff6600] animate-pulse" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">กำลังประเมินสถานการณ์...</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">AI Triage กำลังวิเคราะห์ข้อมูลและรูปภาพ</p>
+
+                <h3 className="text-xl font-black text-gray-900 dark:text-white mb-1 tracking-tight">
+                  กำลังประเมินความเสี่ยง...
+                </h3>
+                <p className="text-xs font-semibold text-[#ff6600] mb-4 h-5 flex items-center justify-center">
+                  {aiStepText}
+                </p>
+
+                <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2.5 overflow-hidden mb-2 border border-gray-200 dark:border-gray-700/60">
+                  <div 
+                    className="bg-[#ff6600] h-full transition-all duration-300 rounded-full"
+                    style={{ width: `${aiProgress}%` }}
+                  ></div>
+                </div>
+
+                <span className="text-[11px] font-semibold text-gray-400">
+                  ประมวลผลด้วย AI Triage System (ประมาณ 3-5 วินาที)
+                </span>
               </div>
-            ) : (
-              <div className="flex flex-col items-center py-4">
-                <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle2 className="w-8 h-8" />
+            )}
+
+            {/* PHASE 2: Formal Details Summary & Confirmation Screen */}
+            {triagePhase === 2 && (
+              <div className="flex flex-col items-center py-2">
+                <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <CheckCircle2 className="w-7 h-7" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">วิเคราะห์เสร็จสิ้น</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">ระบบจัดให้คุณอยู่ใน</p>
+
+                <h3 className="text-xl font-black text-gray-900 dark:text-white mb-1">
+                  วิเคราะห์ความเสี่ยงเสร็จสิ้น
+                </h3>
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-3">
+                  ระบบจัดระดับความรุนแรงของสถานการณ์
+                </p>
                 
-                <div className={`px-4 py-2 rounded-full font-bold text-white mb-2 ${getSeveritySolidColor(calculatedSeverity)} shadow-lg`}>
+                <div className={`px-4 py-2.5 rounded-2xl font-black text-xs sm:text-sm text-white mb-3 ${getSeveritySolidColor(calculatedSeverity)} shadow-md tracking-wide w-full text-center`}>
                   {getSeverityText(calculatedSeverity)}
                 </div>
-                
+
                 {visionFeedback && (
-                  <p className="text-sm text-gray-500 mb-2 text-center px-4 leading-relaxed bg-gray-50 dark:bg-gray-800/50 py-2 rounded-xl w-full border border-gray-100 dark:border-gray-800">
-                    {visionFeedback}
-                  </p>
+                  <div className="w-full bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 mb-3 text-xs text-slate-700 dark:text-slate-300 text-left leading-relaxed flex items-start gap-2">
+                    <Info className="w-4 h-4 text-[#ff6600] shrink-0 mt-0.5" />
+                    <span>{visionFeedback}</span>
+                  </div>
                 )}
 
-                <div className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 rounded-xl p-3 mb-6 text-left text-sm space-y-2">
-                  <p className="font-semibold text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700 pb-1 mb-2">สรุปข้อมูลที่จะส่ง:</p>
-                  
-                  <div className="flex justify-between items-start">
-                    <span className="text-slate-500 dark:text-slate-400 min-w-[70px]">ชื่อ:</span>
-                    <span className="text-slate-900 dark:text-slate-100 text-right">{formData.name || '-'}</span>
-                  </div>
-                  
-                  <div className="flex justify-between items-start">
-                    <span className="text-slate-500 dark:text-slate-400 min-w-[70px]">เบอร์โทร:</span>
-                    <span className="text-slate-900 dark:text-slate-100 text-right">{formData.phone || '-'}</span>
-                  </div>
-
-                  <div className="flex justify-between items-start">
-                    <span className="text-slate-500 dark:text-slate-400 min-w-[70px]">จำนวนคน:</span>
-                    <span className="text-slate-900 dark:text-slate-100 text-right">{formData.peopleCount || 1} คน</span>
-                  </div>
-
-                  <div className="flex justify-between items-start">
-                    <span className="text-slate-500 dark:text-slate-400 min-w-[70px]">รายละเอียด:</span>
-                    <span className="text-slate-900 dark:text-slate-100 text-right break-words max-w-[180px] line-clamp-2">
-                      {formData.details || '-'}
+                <div className="w-full bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 mb-4 text-left text-xs space-y-2">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-1.5 mb-1">
+                    <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                      <FileText className="w-4 h-4 text-[#ff6600]" /> สรุปข้อมูลขอความช่วยเหลือ
                     </span>
                   </div>
+                  
+                  <div className="flex justify-between items-start">
+                    <span className="text-slate-500 dark:text-slate-400">ชื่อผู้แจ้ง:</span>
+                    <span className="text-slate-900 dark:text-slate-100 font-bold text-right truncate max-w-[170px]">
+                      {formData.name || '-'}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between items-start">
+                    <span className="text-slate-500 dark:text-slate-400">เบอร์ติดต่อ:</span>
+                    <span className="text-slate-900 dark:text-slate-100 font-bold text-right">
+                      {formData.phone || '-'}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-start">
+                    <span className="text-slate-500 dark:text-slate-400">จำนวนผู้ประสบภัย:</span>
+                    <span className="text-slate-900 dark:text-slate-100 font-bold text-right">
+                      {formData.peopleCount || 1} คน
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-start">
+                    <span className="text-slate-500 dark:text-slate-400">ระดับน้ำ:</span>
+                    <span className="text-slate-900 dark:text-slate-100 font-bold text-right">
+                      {formData.waterLevel || 'ไม่ระบุ'}
+                    </span>
+                  </div>
+
+                  {formData.details && (
+                    <div className="flex justify-between items-start pt-1 border-t border-slate-200/60 dark:border-slate-800/60">
+                      <span className="text-slate-500 dark:text-slate-400">รายละเอียด:</span>
+                      <span className="text-slate-900 dark:text-slate-100 text-right break-words max-w-[170px] line-clamp-2">
+                        {formData.details}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <Button 
                   type="button"
                   variant="primary" 
-                  className="flex-1 min-w-fit px-4 py-3 text-[13px] sm:text-sm font-semibold rounded-xl text-center leading-tight break-words w-full shadow-lg shadow-red-500/30 bg-red-600 hover:bg-red-700 text-white animate-pulse"
-                  onClick={() => {
-                    setShowTriageModal(false);
-                    handleSubmit();
-                  }}
+                  className="w-full py-3.5 text-sm font-extrabold rounded-2xl shadow-lg shadow-red-600/30 bg-red-600 hover:bg-red-700 text-white flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98 border border-red-500"
+                  onClick={() => handleSubmit()}
                   isLoading={isSubmitting}
                   disabled={isSubmitting}
                 >
-                  🚨 ยืนยันการแจ้งเหตุ
+                  <ShieldAlert className="w-5 h-5" />
+                  ยืนยันการแจ้งเหตุฉุกเฉิน ➔
                 </Button>
                 
                 <button 
                   type="button" 
-                  className="mt-4 text-sm font-medium text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                  className="mt-3 text-xs font-semibold text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors cursor-pointer"
                   onClick={() => setShowTriageModal(false)}
                   disabled={isSubmitting}
                 >
                   ยกเลิก / แก้ไขข้อมูล
                 </button>
+              </div>
+            )}
+
+            {/* PHASE 3: Seamless Submission Loading Transition Screen */}
+            {triagePhase === 3 && (
+              <div className="flex flex-col items-center py-6">
+                <div className="w-16 h-16 bg-orange-100 dark:bg-orange-950/80 text-[#ff6600] rounded-2xl flex items-center justify-center mb-4 border border-orange-500/30 shadow-inner animate-pulse">
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                </div>
+                <h3 className="text-xl font-black text-gray-900 dark:text-white mb-1">
+                  กำลังส่งเรื่องเข้าศูนย์กู้ภัย...
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 text-center max-w-xs mb-5 leading-relaxed">
+                  ระบบกำลังบันทึกข้อมูลและนำคุณไปยังหน้าติดตามสถานะการช่วยเหลือ
+                </p>
+                <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2 overflow-hidden border border-gray-200 dark:border-gray-700">
+                  <div className="bg-[#ff6600] h-full animate-pulse w-full"></div>
+                </div>
               </div>
             )}
             
