@@ -94,6 +94,24 @@ export default function UnifiedUserForm({
     <form onSubmit={handleSubmit} className="space-y-6 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
+        {/* Role (Placed at the TOP so admin can select role first) */}
+        <div className="space-y-2 col-span-1 md:col-span-2 bg-blue-50/60 dark:bg-blue-950/40 p-3.5 rounded-xl border border-blue-200 dark:border-blue-800/60">
+          <label className="text-sm font-bold text-blue-900 dark:text-blue-200 flex items-center gap-2">
+            <UserCog size={18} className="text-blue-600 dark:text-blue-400" /> ระดับสิทธิ์ (Role) <span className="text-red-500">*</span>
+          </label>
+          <select
+            name="role"
+            required
+            disabled={!isAdminAccess || isProfile}
+            value={formData.role}
+            onChange={handleChange}
+            className={`w-full px-4 py-2.5 border border-blue-300 dark:border-blue-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all font-semibold text-sm dark:text-white ${(!isAdminAccess || isProfile) ? 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed opacity-70' : 'bg-white dark:bg-gray-800'}`}
+          >
+            <option value="volunteer">Volunteer (อาสาสมัคร/กู้ภัย)</option>
+            <option value="admin">Admin (ผู้ดูแลระบบ)</option>
+          </select>
+        </div>
+
         {/* Name */}
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
@@ -143,24 +161,6 @@ export default function UnifiedUserForm({
             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all dark:bg-gray-700 dark:text-white font-mono"
             placeholder="08XXXXXXXX (10 หลัก)"
           />
-        </div>
-
-        {/* Role */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-            <UserCog size={16} /> ระดับสิทธิ์ <span className="text-red-500">*</span>
-          </label>
-          <select
-            name="role"
-            required
-            disabled={!isAdminAccess || isProfile}
-            value={formData.role}
-            onChange={handleChange}
-            className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all dark:text-white ${(!isAdminAccess || isProfile) ? 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed opacity-70' : 'bg-white dark:bg-gray-700'}`}
-          >
-            <option value="volunteer">Volunteer (อาสาสมัคร/กู้ภัย)</option>
-            <option value="admin">Admin (ผู้ดูแลระบบ)</option>
-          </select>
         </div>
 
         {/* 🌟 VOLUNTEER SPECIFIC FIELDS (Hidden when Role === 'admin') */}
