@@ -245,20 +245,25 @@ export const UserTable: React.FC<UserTableProps> = ({
   const totalPages = Math.ceil(total / rowsPerPage);
 
   return (
-    <Card>
-      <div className="p-6 space-y-6">
+    <Card className="overflow-hidden border border-slate-200 dark:border-slate-800 shadow-md">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header with title and actions */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-gray-800">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-              รายชื่อผู้ใช้งานในระบบ
-            </h2>
-            <p className="text-sm text-gray-500 mt-1">จัดการข้อมูลผู้ดูแลระบบ อาสาสมัคร และผู้ใช้งานทั้งหมด</p>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg sm:text-xl font-extrabold text-gray-900 dark:text-white">
+                รายชื่อผู้ใช้งานในระบบ
+              </h2>
+              <span className="px-2.5 py-0.5 text-xs font-bold bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300 rounded-full">
+                {total} รายการ
+              </span>
+            </div>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">จัดการข้อมูลผู้ดูแลระบบ อาสาสมัคร และสิทธิ์ใช้งาน</p>
           </div>
           {onCreate && (
             <Button
               onClick={onCreate}
-              className="bg-[#e65c00] text-white hover:bg-[#cc5200] px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 font-medium w-full md:w-auto shadow-sm"
+              className="bg-[#e65c00] hover:bg-[#cc5200] text-white px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 font-bold text-sm w-full sm:w-auto shadow-sm active:scale-95 transition-all"
             >
               <Plus size={18} />
               เพิ่มผู้ใช้งานใหม่
@@ -266,152 +271,200 @@ export const UserTable: React.FC<UserTableProps> = ({
           )}
         </div>
 
-        {/* Controls */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-          <div className="md:col-span-4">
+        {/* Controls Bar */}
+        <div className="space-y-2 sm:space-y-3">
+          <div className="w-full">
             <Input
               type="text"
-              placeholder="ค้นหาชื่อผู้ใช้ หรือเบอร์โทร..."
+              placeholder="🔍 ค้นหาชื่อผู้ใช้, ชื่อ-นามสกุล, สังกัด หรือเบอร์โทร..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
                 setCurrentPage(0);
               }}
-              className="w-full"
+              className="w-full text-sm rounded-xl py-2.5"
             />
           </div>
-          <div className="md:col-span-3">
-            <select
-              value={role}
-              onChange={(e) => {
-                setRole(e.target.value);
-                setCurrentPage(0);
-              }}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-gray-900 bg-white"
-            >
-              <option value="">ทุกสิทธิ์การใช้งาน</option>
-              <option value="admin">Admin</option>
-              <option value="volunteer">Volunteer (อาสาสมัคร)</option>
-            </select>
-          </div>
-          <div className="md:col-span-3">
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setCurrentPage(0);
-              }}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-gray-900 bg-white"
-            >
-              <option value="">ทุกสถานะบัญชี</option>
-              <option value="active">เปิดใช้งาน (Active)</option>
-              <option value="inactive">ปิดใช้งาน (Inactive)</option>
-              <option value="deleted">ถูกลบ (Deleted)</option>
-            </select>
-          </div>
-          <div className="md:col-span-2 flex items-center justify-end gap-2">
-            <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
-              แสดง:
-            </span>
-            <select
-              value={rowsPerPage}
-              onChange={(e) => {
-                setRowsPerPage(Number(e.target.value));
-                setCurrentPage(0);
-              }}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-gray-900"
-            >
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>ทั้งหมด</option>
-            </select>
+
+          <div className="grid grid-cols-2 lg:grid-cols-7 gap-2">
+            <div className="col-span-1 lg:col-span-3">
+              <select
+                value={role}
+                onChange={(e) => {
+                  setRole(e.target.value);
+                  setCurrentPage(0);
+                }}
+                className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-800 dark:text-white text-gray-900 bg-white font-medium outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="">-- ทุกสิทธิ์การใช้งาน --</option>
+                <option value="admin">Admin (ผู้ดูแลระบบ)</option>
+                <option value="volunteer">Volunteer (อาสาสมัคร)</option>
+              </select>
+            </div>
+            <div className="col-span-1 lg:col-span-3">
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setCurrentPage(0);
+                }}
+                className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-800 dark:text-white text-gray-900 bg-white font-medium outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="">-- ทุกสถานะบัญชี --</option>
+                <option value="active">🟢 เปิดใช้งาน (Active)</option>
+                <option value="inactive">🔴 ปิดใช้งาน (Inactive)</option>
+                <option value="deleted">🗑️ ถูกลบ (Deleted)</option>
+              </select>
+            </div>
+            <div className="col-span-2 lg:col-span-1 flex items-center justify-end gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+              <span className="whitespace-nowrap">แสดง:</span>
+              <select
+                value={rowsPerPage}
+                onChange={(e) => {
+                  setRowsPerPage(Number(e.target.value));
+                  setCurrentPage(0);
+                }}
+                className="px-2 py-1.5 text-xs border border-gray-300 dark:border-gray-700 rounded-lg dark:bg-gray-800 dark:text-white font-bold"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>ทั้งหมด</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        {/* Mobile View (Cards) */}
-        <div className="block lg:hidden space-y-4">
+        {/* Mobile View (Sleek Modern Cards for Phone Screens) */}
+        <div className="block lg:hidden space-y-3">
           {loading ? (
-            <div className="p-8 text-center text-gray-500">กำลังโหลด...</div>
+            <div className="p-8 text-center text-gray-500 animate-pulse">กำลังโหลดข้อมูลผู้ใช้งาน...</div>
           ) : users.length === 0 ? (
-            <div className="p-8 text-center text-gray-500 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">ไม่พบข้อมูลผู้ใช้งาน</div>
+            <div className="p-8 text-center text-gray-500 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700 text-sm">
+              ไม่พบข้อมูลผู้ใช้งานตามเงื่อนไขที่ค้นหา
+            </div>
           ) : (
             (users || [])
               .slice(currentPage * rowsPerPage, (currentPage + 1) * rowsPerPage)
               .map((user) => (
-              <div key={user.userId} className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-bold text-gray-900 dark:text-white text-lg">{user.username}</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{user.name || '-'}</p>
+              <div 
+                key={user.userId} 
+                className="bg-white dark:bg-[#151b2c] p-3.5 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-all space-y-3"
+              >
+                {/* Header Row */}
+                <div className="flex justify-between items-start gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
+                      user.role === 'admin' 
+                        ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' 
+                        : 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                    }`}>
+                      {user.role === 'admin' ? '🛡️' : '🚑'}
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-gray-900 dark:text-white text-base truncate leading-tight">
+                        {user.name || user.username}
+                      </h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 font-mono truncate">
+                        @{user.username}
+                      </p>
+                    </div>
                   </div>
-                  <Badge className={getRoleColor(user.role)}>
+
+                  <span className={`px-2.5 py-1 rounded-full text-[11px] font-extrabold shrink-0 ${getRoleColor(user.role)}`}>
                     {user.role === 'admin' ? 'ผู้ดูแลระบบ' : (user.role === 'volunteer' || user.role === 'rescue') ? 'อาสาสมัคร' : 'ผู้ใช้ทั่วไป'}
-                  </Badge>
+                  </span>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <p className="text-gray-500 dark:text-gray-400 text-xs">เบอร์โทรศัพท์</p>
-                    <p className="text-gray-900 dark:text-white font-medium">{user.phone || '-'}</p>
+                {/* Details Section */}
+                <div className="bg-gray-50 dark:bg-gray-800/40 p-2.5 rounded-xl space-y-1.5 text-xs border border-gray-100 dark:border-gray-800">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-500 dark:text-gray-400">เบอร์โทรศัพท์:</span>
+                    {user.phone ? (
+                      <a href={`tel:${user.phone}`} className="font-bold text-blue-600 dark:text-blue-400 hover:underline">
+                        📞 {user.phone}
+                      </a>
+                    ) : (
+                      <span className="text-gray-400 font-medium">-</span>
+                    )}
                   </div>
-                  <div>
-                    <p className="text-gray-500 dark:text-gray-400 text-xs">สถานะ (Live)</p>
-                    <div className="mt-1">
-                      {(user.role === 'volunteer' || user.role === 'rescue') ? (
+
+                  {(user.role === 'volunteer' || user.role === 'rescue') && (
+                    <>
+                      {user.agency && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-500 dark:text-gray-400">สังกัด/หน่วย:</span>
+                          <span className="font-semibold text-gray-800 dark:text-gray-200 truncate max-w-[180px]">{user.agency}</span>
+                        </div>
+                      )}
+                      {user.province && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-500 dark:text-gray-400">จังหวัดประจำการ:</span>
+                          <span className="font-semibold text-orange-600 dark:text-orange-400">จ.{user.province}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center pt-1 border-t border-gray-200/60 dark:border-gray-700/60">
+                        <span className="text-gray-500 dark:text-gray-400">สถานะปฏิบัติงาน (Live):</span>
                         <button
                           onClick={() => toggleOnlineStatus(user)}
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold flex items-center gap-1 transition-all ${
+                            user.is_online 
+                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700' 
+                              : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700'
+                          }`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${user.is_online ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`} />
+                          {user.is_online ? 'พร้อมปฏิบัติงาน (Live)' : 'ออฟไลน์'}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Footer Controls */}
+                <div className="flex items-center justify-between pt-1">
+                  <div className="flex items-center gap-2">
+                    {user.status === 'deleted' ? (
+                      <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-bold rounded-lg">ถูกลบ (Soft Delete)</span>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => toggleAccountStatus(user)}
                           className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                            user.is_online ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
+                            (user.status || 'active') === 'active' ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
                           }`}
                         >
                           <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-                            user.is_online ? 'translate-x-5' : 'translate-x-1'
+                            (user.status || 'active') === 'active' ? 'translate-x-5' : 'translate-x-1'
                           }`} />
                         </button>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
-                  <div className="flex items-center gap-2">
-                    {user.status === 'deleted' ? (
-                      <Badge className="bg-red-100 text-red-800">ถูกลบ (Soft Delete)</Badge>
-                    ) : (
-                      <button
-                        onClick={() => toggleAccountStatus(user)}
-                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                          (user.status || 'active') === 'active' ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
-                        }`}
-                      >
-                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-                          (user.status || 'active') === 'active' ? 'translate-x-5' : 'translate-x-1'
-                        }`} />
-                      </button>
-                    )}
-                    {user.status !== 'deleted' && (
-                      <span className={`text-xs font-medium ${(user.status || 'active') === 'active' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
-                        {(user.status || 'active') === 'active' ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
-                      </span>
+                        <span className={`text-xs font-bold ${(user.status || 'active') === 'active' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400'}`}>
+                          {(user.status || 'active') === 'active' ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+                        </span>
+                      </div>
                     )}
                   </div>
                   
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-1.5">
                     {user.status === 'deleted' ? (
-                      <Button onClick={() => restoreAccount(user)} className="px-3 py-1 text-xs bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-lg">
+                      <Button onClick={() => restoreAccount(user)} className="px-3 py-1 text-xs font-bold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 rounded-xl">
                         กู้คืนบัญชี
                       </Button>
                     ) : (
                       <>
-                        <Button onClick={() => onEdit(user)} className="p-1.5 text-orange-600 hover:bg-orange-100 dark:hover:bg-orange-900 rounded">
-                          <Edit2 size={16} />
-                        </Button>
-                        <Button onClick={() => onDelete(user)} className="p-1.5 text-red-600 hover:bg-red-100 dark:hover:bg-red-900 rounded">
+                        <button 
+                          onClick={() => onEdit(user)} 
+                          className="px-3 py-1.5 text-xs font-bold bg-orange-50 hover:bg-orange-100 text-orange-600 dark:bg-orange-950/60 dark:text-orange-400 rounded-xl flex items-center gap-1 border border-orange-200 dark:border-orange-800 transition-colors"
+                        >
+                          <Edit2 size={13} /> Edit
+                        </button>
+                        <button 
+                          onClick={() => onDelete(user)} 
+                          className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/60 rounded-xl transition-colors"
+                          title="ลบผู้ใช้งาน"
+                        >
                           <Trash2 size={16} />
-                        </Button>
+                        </button>
                       </>
                     )}
                   </div>

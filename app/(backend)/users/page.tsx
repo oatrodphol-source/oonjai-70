@@ -84,11 +84,13 @@ export default function UsersPage() {
       </div>
 
       {showAddUser && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[3000] flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-6 w-full max-w-xl relative max-h-[90vh] overflow-y-auto shadow-2xl my-auto border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[3000] flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-2xl p-4 sm:p-6 w-full max-w-xl relative max-h-[92vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl border-t sm:border border-slate-200 dark:border-slate-800 animate-in slide-in-from-bottom-5 sm:zoom-in-95 duration-200">
+            {/* Mobile Handle Bar */}
+            <div className="w-12 h-1 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-3 sm:hidden" />
             <button 
               onClick={() => setShowAddUser(false)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-gray-100 dark:bg-slate-800 p-1.5 rounded-full transition-colors"
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-gray-100 dark:bg-slate-800 p-2 rounded-full transition-colors"
             >
               <X size={18} />
             </button>
@@ -108,11 +110,13 @@ export default function UsersPage() {
       )}
 
       {editingUser && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[3000] flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-6 w-full max-w-xl relative max-h-[90vh] overflow-y-auto shadow-2xl my-auto border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[3000] flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-2xl p-4 sm:p-6 w-full max-w-xl relative max-h-[92vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl border-t sm:border border-slate-200 dark:border-slate-800 animate-in slide-in-from-bottom-5 sm:zoom-in-95 duration-200">
+            {/* Mobile Handle Bar */}
+            <div className="w-12 h-1 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-3 sm:hidden" />
             <button 
               onClick={() => setEditingUser(null)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-gray-100 dark:bg-slate-800 p-1.5 rounded-full transition-colors"
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-gray-100 dark:bg-slate-800 p-2 rounded-full transition-colors"
             >
               <X size={18} />
             </button>
