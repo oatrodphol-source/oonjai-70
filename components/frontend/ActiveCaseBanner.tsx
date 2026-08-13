@@ -21,9 +21,9 @@ export const ActiveCaseBanner = () => {
   const [isBannerVisible, setIsBannerVisible] = useState<boolean>(false);
 
   useEffect(() => {
-    let unsubChannels: (() => void)[] = [];
-    
-    const checkActiveCases = async () => {
+    let realtimeChannel: any = null;
+
+    const getCandidateIds = (): string[] => {
       let candidateIds: string[] = [];
 
       const activeId = typeof window !== 'undefined' ? localStorage.getItem('oonjai_active_case_id') : null;
@@ -50,11 +50,24 @@ export const ActiveCaseBanner = () => {
         }
       });
 
-      candidateIds = Array.from(new Set(candidateIds)).filter(Boolean);
+      return Array.from(new Set(candidateIds)).filter(Boolean);
+    };
+
+    const isKeySeen = (key: string) => {
+      try {
+        const seen = localStorage.getItem('oonjai_seen_case_updates');
+        const seenArr = seen ? JSON.parse(seen) : [];
+        return seenArr.includes(key);
+      } catch (e) {
+        return false;
+      }
+    };
+
+    const checkActiveCases = async () => {
+      const candidateIds = getCandidateIds();
 
       if (candidateIds.length === 0) {
         setIsBannerVisible(false);
-        setShowUpdateModal(false);
         return;
       }
 
@@ -92,18 +105,6 @@ export const ActiveCaseBanner = () => {
           }
 
           // Check modal trigger for any updated case
-          const isKeySeen = (key: string) => {
-            try {
-              const seen = localStorage.getItem('oonjai_seen_case_updates');
-              const legacySeen = localStorage.getItem('oonjai_seen_accepted_cases');
-              const seenArr = seen ? JSON.parse(seen) : [];
-              const legacyArr = legacySeen ? JSON.parse(legacySeen) : [];
-              return seenArr.includes(key) || legacyArr.includes(key);
-            } catch (e) {
-              return false;
-            }
-          };
-
           for (const c of data) {
             const cId = c.case_number ? String(c.case_number).padStart(3, '0') : String(c.id);
             const cSt = (c.status || 'pending').toLowerCase();
@@ -131,64 +132,69 @@ export const ActiveCaseBanner = () => {
               }
             }
           }
-
-          // Subscribe to Supabase Realtime updates for all candidate cases
-          unsubChannels.forEach(fn => fn());
-          unsubChannels = [];
-
-          data.forEach(c => {
-            const uniqueChannelName = `victim-case-update-${c.id}-${Date.now()}-${Math.floor(Math.random()*10000)}`;
-            const channel = supabase
-              .channel(uniqueChannelName)
-              .on(
-                'postgres_changes',
-                { event: 'UPDATE', schema: 'public', table: 'cases', filter: `id=eq.${c.id}` },
-                (payload) => {
-                  if (payload.new) {
-                    const newSt = (payload.new.status || 'pending').toLowerCase();
-                    const newVName = payload.new.volunteer_name || payload.new.assigned_volunteer_name || payload.new.rescuer_name;
-                    const newVPhone = payload.new.assigned_volunteer_phone || payload.new.rescuer_phone;
-                    const newVUnit = payload.new.assigned_volunteer_unit || 'อาสาสมัครศูนย์กู้ภัย';
-                    const newDest = payload.new.destination || '';
-                    const cId = payload.new.case_number ? String(payload.new.case_number).padStart(3, '0') : String(payload.new.id);
-
-                    const updateKey = `case_${payload.new.id}_${newSt}_${newDest}_${newVName || ''}`;
-
-                    if (!isKeySeen(updateKey)) {
-                      setActiveCaseId(cId);
-                      setCaseStatus(newSt);
-                      setCaseDestination(newDest);
-                      setVolunteerName(newVName || null);
-                      setVolunteerPhone(newVPhone || null);
-                      setVolunteerUnit(newVUnit);
-                      setModalSeenKey(updateKey);
-                      setShowUpdateModal(true);
-
-                      if (typeof window !== 'undefined' && window.navigator?.vibrate) {
-                        window.navigator.vibrate([200, 100, 200, 100, 200]);
-                      }
-                    }
-                  }
-                }
-              )
-              .subscribe();
-
-            unsubChannels.push(() => supabase.removeChannel(channel));
-          });
         }
       } catch (err) {
         console.error("Failed to fetch global case updates:", err);
       }
     };
 
+    // Initial check
     checkActiveCases();
+
+    // Persistent Supabase Realtime Listener across all victim cases
+    const channelName = `victim-global-updates-${Date.now()}-${Math.floor(Math.random()*10000)}`;
+    realtimeChannel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'cases' },
+        (payload) => {
+          if (payload.new) {
+            const candidateIds = getCandidateIds();
+            const payloadIdStr = String(payload.new.id);
+            const payloadCaseNumStr = payload.new.case_number ? String(payload.new.case_number).padStart(3, '0') : payloadIdStr;
+
+            const isMyCase = candidateIds.some(id => String(id) === payloadIdStr || String(id) === payloadCaseNumStr);
+
+            if (isMyCase) {
+              const newSt = (payload.new.status || 'pending').toLowerCase();
+              const newVName = payload.new.volunteer_name || payload.new.assigned_volunteer_name || payload.new.rescuer_name;
+              const newVPhone = payload.new.assigned_volunteer_phone || payload.new.rescuer_phone;
+              const newVUnit = payload.new.assigned_volunteer_unit || 'อาสาสมัครศูนย์กู้ภัย';
+              const newDest = payload.new.destination || '';
+
+              const updateKey = `case_${payload.new.id}_${newSt}_${newDest}_${newVName || ''}`;
+
+              if (!isKeySeen(updateKey)) {
+                setActiveCaseId(payloadCaseNumStr);
+                setCaseStatus(newSt);
+                setCaseDestination(newDest);
+                setVolunteerName(newVName || null);
+                setVolunteerPhone(newVPhone || null);
+                setVolunteerUnit(newVUnit);
+                setModalSeenKey(updateKey);
+                setShowUpdateModal(true);
+
+                if (typeof window !== 'undefined' && window.navigator?.vibrate) {
+                  window.navigator.vibrate([200, 100, 200, 100, 200]);
+                }
+              }
+
+              // Refresh banner state
+              checkActiveCases();
+            }
+          }
+        }
+      )
+      .subscribe();
+
     window.addEventListener('localCasesUpdated', checkActiveCases);
-    const interval = setInterval(checkActiveCases, 8000);
+    const interval = setInterval(checkActiveCases, 6000);
 
     return () => {
       window.removeEventListener('localCasesUpdated', checkActiveCases);
       clearInterval(interval);
-      unsubChannels.forEach(fn => fn());
+      if (realtimeChannel) supabase.removeChannel(realtimeChannel);
     };
   }, []);
 
