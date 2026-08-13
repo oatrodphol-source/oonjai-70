@@ -323,8 +323,65 @@ export default function LineSettingsPage() {
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto w-full custom-scrollbar">
-                <table className="w-full text-left border-collapse text-xs sm:text-sm min-w-[600px]">
+              {/* 1. Mobile Card List View (Zero Horizontal Scroll on Mobile Screens) */}
+              <div className="space-y-3 block md:hidden w-full min-w-0">
+                {paginatedUsers.map((user) => (
+                  <div key={user.id} className="p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/60 space-y-2.5 w-full min-w-0">
+                    <div className="flex items-center justify-between gap-2 w-full min-w-0">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {user.picture ? (
+                          <img src={user.picture} alt={user.name} className="w-9 h-9 rounded-full object-cover border border-emerald-400 shrink-0" />
+                        ) : (
+                          <div className="w-9 h-9 rounded-full bg-[#00B900]/20 text-[#00B900] flex items-center justify-center font-bold text-xs shrink-0">
+                            LINE
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm truncate">{user.name}</p>
+                          <p className="font-mono text-[10px] text-slate-500 truncate">ID: {user.id ? `${user.id.substring(0, 14)}...` : '-'}</p>
+                        </div>
+                      </div>
+                      
+                      {user.latestCase ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 shrink-0">
+                          เคส #{user.latestCase.id}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 shrink-0">ยังไม่มีเคส</span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-slate-700/40 text-[11px] w-full min-w-0">
+                      <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 min-w-0 truncate">
+                        <Clock className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+                        <span className="truncate">{user.lastActive ? new Date(user.lastActive).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }) : '-'}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        {user.latestCase && (
+                          <Link 
+                            href={`/tracking/${user.latestCase.id}`}
+                            target="_blank"
+                            className="inline-flex items-center gap-1 text-orange-600 font-bold hover:underline"
+                          >
+                            <span>ดูเคส</span> <ExternalLink className="w-3 h-3" />
+                          </Link>
+                        )}
+                        <button
+                          onClick={() => handleResetUserTest(user.id)}
+                          className="inline-flex items-center gap-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 font-medium"
+                        >
+                          <RotateCcw className="w-3 h-3" /> <span>รีเซ็ต</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* 2. Desktop Table View (For Tablet & Desktop Screens >= md) */}
+              <div className="hidden md:block overflow-x-auto w-full custom-scrollbar">
+                <table className="w-full text-left border-collapse text-xs sm:text-sm">
                   <thead>
                     <tr className="border-b border-gray-200 dark:border-gray-800 bg-slate-50 dark:bg-slate-800/50 text-gray-700 dark:text-gray-300 font-bold">
                       <th className="p-3">ผู้ใช้งาน LINE</th>
