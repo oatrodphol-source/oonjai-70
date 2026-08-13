@@ -157,9 +157,9 @@ export default function Home() {
       <footer className="relative z-10 border-t border-white/10 bg-[#070d1a] py-8 px-4 text-center">
         <div className="max-w-4xl mx-auto space-y-4">
           
-          {/* Major & Faculty Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-extrabold">
-            <GraduationCap className="w-4 h-4 text-blue-400" />
+          {/* Major & Faculty Badge - Responsive Pill with Zero Text Truncation */}
+          <div className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-2xl bg-blue-500/10 border border-blue-500/25 text-blue-400 text-xs sm:text-sm font-extrabold max-w-full leading-relaxed shadow-sm">
+            <GraduationCap className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
             <span>คณะวิศวกรรมศาสตร์ สาขาวิศวกรรมคอมพิวเตอร์และระบบไอโอที</span>
           </div>
 
@@ -182,8 +182,8 @@ export default function Home() {
           </div>
 
           {/* System Name & Copyright Notice */}
-          <p className="text-[11px] text-gray-500 pt-2 border-t border-white/5 font-medium">
-            ระบบอุ่นใจ (OonJai Disaster Relief & Rescue Management System) • สงวนลิขสิทธิ์ © 2026
+          <p className="text-[11px] sm:text-xs text-gray-400 pt-3 border-t border-white/10 font-medium leading-relaxed max-w-2xl mx-auto">
+            OonJai Systems (Development of a Web Application for Emergency Reporting and Disaster Relief Assistance) • สงวนลิขสิทธิ์ © 2026
           </p>
 
         </div>
