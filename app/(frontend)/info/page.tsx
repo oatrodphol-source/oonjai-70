@@ -340,52 +340,54 @@ export default function InfoPage() {
             </div>
           </div>
 
-          {/* Quick Destination Filter Chips */}
-          <div className="flex gap-1.5 overflow-x-auto custom-scrollbar pb-1">
+          {/* Quick Destination Filter Chips - Grid 2-columns on mobile, 4-columns on desktop (No Side Scroll) */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
             <button
               onClick={() => setDestinationFilter('all')}
-              className={`px-3 py-1.5 rounded-full text-xs font-black whitespace-nowrap transition-all border cursor-pointer ${
+              className={`w-full py-2 px-2.5 rounded-xl text-xs font-extrabold transition-all border cursor-pointer flex items-center justify-center gap-1.5 ${
                 destinationFilter === 'all'
                   ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                  : 'bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'
+                  : 'bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
             >
-              ทั้งหมด ({filteredSafePeople.length})
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>ทั้งหมด ({filteredSafePeople.length})</span>
             </button>
 
             <button
               onClick={() => setDestinationFilter('hospital')}
-              className={`px-3 py-1.5 rounded-full text-xs font-black whitespace-nowrap transition-all border cursor-pointer flex items-center gap-1 ${
+              className={`w-full py-2 px-2.5 rounded-xl text-xs font-extrabold transition-all border cursor-pointer flex items-center justify-center gap-1.5 ${
                 destinationFilter === 'hospital'
                   ? 'bg-red-600 text-white border-red-600 shadow-sm'
-                  : 'bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'
+                  : 'bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
             >
-              <ShieldPlus className="w-3.5 h-3.5 text-red-500" />
-              โรงพยาบาล
+              <ShieldPlus className={`w-3.5 h-3.5 ${destinationFilter === 'hospital' ? 'text-white' : 'text-red-500'}`} />
+              <span>โรงพยาบาล</span>
             </button>
 
             <button
               onClick={() => setDestinationFilter('shelter')}
-              className={`px-3 py-1.5 rounded-full text-xs font-black whitespace-nowrap transition-all border cursor-pointer flex items-center gap-1 ${
+              className={`w-full py-2 px-2.5 rounded-xl text-xs font-extrabold transition-all border cursor-pointer flex items-center justify-center gap-1.5 ${
                 destinationFilter === 'shelter'
                   ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                  : 'bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'
+                  : 'bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
             >
-              <Building2 className="w-3.5 h-3.5 text-blue-500" />
-              ศูนย์พักพิง
+              <Building2 className={`w-3.5 h-3.5 ${destinationFilter === 'shelter' ? 'text-white' : 'text-blue-500'}`} />
+              <span>ศูนย์พักพิง</span>
             </button>
 
             <button
               onClick={() => setDestinationFilter('supplies')}
-              className={`px-3 py-1.5 rounded-full text-xs font-black whitespace-nowrap transition-all border cursor-pointer flex items-center gap-1 ${
+              className={`w-full py-2 px-2.5 rounded-xl text-xs font-extrabold transition-all border cursor-pointer flex items-center justify-center gap-1.5 ${
                 destinationFilter === 'supplies'
                   ? 'bg-orange-600 text-white border-orange-600 shadow-sm'
-                  : 'bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'
+                  : 'bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
             >
-              รับถุงยังชีพ
+              <CheckCircle2 className={`w-3.5 h-3.5 ${destinationFilter === 'supplies' ? 'text-white' : 'text-orange-500'}`} />
+              <span>รับถุงยังชีพ</span>
             </button>
           </div>
         </div>
