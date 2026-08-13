@@ -6,6 +6,7 @@ import { StatsCard } from '@/components/backend/StatsCard';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { supabase } from '@/lib/supabase';
 import { isPendingCase, isInProgressCase, isCompletedCase, isCancelledCase, isShelterDestination, isHospitalDestination, isSuppliesDestination } from '@/lib/caseUtils';
+import { getSeverityText } from '@/lib/utils';
 import { 
   FileSpreadsheet, 
   FileText, 
@@ -25,23 +26,28 @@ import {
   FileBox,
   AlertCircle,
   CheckCircle2,
-  ShieldCheck
+  ShieldCheck,
+  Filter,
+  Download
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
-
 const COMPLETED_STATUSES = [
   "completed",
-  "resolved"
-];
-
-const CANCELLED_STATUSES = [
-  "cancelled",
-  "ยกเลิก"
+  "resolved",
+  "ปลอดภัยแล้ว",
+  "ส่งเข้าศูนย์พักพิงสำเร็จ",
+  "มอบถุงยังชีพเสร็จสิ้น",
+  "นำส่งโรงพยาบาลแล้ว",
+  "เสร็จสิ้น",
+  "ยุติการช่วยเหลือ"
 ];
 
 export default function ReportDashboardPage() {
   const [cases, setCases] = useState<any[]>([]);
+  const [volunteersList, setVolunteersList] = useState<any[]>([]);
+  const [safeReportsList, setSafeReportsList] = useState<any[]>([]);
+  const [activityLogsList, setActivityLogsList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [exportType, setExportType] = useState('cases');
   const [isExportingExcel, setIsExportingExcel] = useState(false);
@@ -58,96 +64,74 @@ export default function ReportDashboardPage() {
   // Email Modal State
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [emailData, setEmailData] = useState({ to: '', cc: '', subject: 'รายงานสรุปเคสภัยพิบัติประจำวัน - ระบบอุ่นใจ (OonJai)', message: '', attachment: 'pdf' });
-  const [isSendingEmail, setIsSendingEmail] = useState(false);
+
+  const fetchStats = async () => {
+    try {
+      let loggedUser: any = null;
+      const stored = localStorage.getItem('oonjai_user');
+      if (stored) {
+        loggedUser = JSON.parse(stored);
+        setCurrentUser(loggedUser);
+        const userRole = loggedUser.role || 'volunteer';
+        setRole(userRole);
+        if (userRole !== 'admin') {
+          setExportType('my_cases');
+        }
+      }
+
+      const [{ data: casesData }, { data: volData }, { data: safeData }, { data: logData }] = await Promise.all([
+        supabase.from('cases').select('*').order('created_at', { ascending: false }),
+        supabase.from('volunteers').select('*').order('created_at', { ascending: false }),
+        supabase.from('safe_reports').select('*').order('timestamp', { ascending: false }),
+        supabase.from('activity_logs').select('*').order('timestamp', { ascending: false })
+      ]);
+
+      const fetchedCases = (casesData || []).map(d => {
+        const uId = loggedUser?.uid || loggedUser?.id || '';
+        const uName = loggedUser?.name || loggedUser?.username || loggedUser?.fullname || '';
+
+        const cVolId = String(d.assigned_volunteer_id || d.volunteer_id || d.rescuer_id || '');
+        const cVolName = String(d.assigned_volunteer_name || d.rescuer_name || d.volunteer_name || '');
+        
+        const isMyAssignedCase = (uId && cVolId === String(uId)) || (uName && cVolName.toLowerCase().includes(uName.toLowerCase()));
+
+        return {
+          ...d, 
+          id: String(d.id),
+          caseCode: d.case_number ? `CAS-${String(d.case_number).padStart(3, '0')}` : `CAS-${String(d.id).substring(0, 5)}`,
+          formattedDate: d.created_at ? new Date(d.created_at).toLocaleString('th-TH') : '-',
+          reporterName: d.name || d.reporter_name || 'ผู้แจ้งเหตุ',
+          reporterPhone: d.phone || d.contact_phone || d.tel || '-',
+          isBedridden: Number(d.bedridden) === 1 || d.bedridden === true || String(d.details || '').includes('ติดเตียง'),
+          isElderly: Number(d.elderly) === 1 || d.elderly === true || String(d.details || '').includes('สูงอายุ') || String(d.details || '').includes('เด็ก'),
+          isMyAssignedCase: Boolean(isMyAssignedCase),
+          assignedVolunteerName: d.assigned_volunteer_name || d.rescuer_name || '-'
+        };
+      });
+
+      setCases(fetchedCases);
+      if (volData) setVolunteersList(volData);
+      if (safeData) setSafeReportsList(safeData);
+      if (logData) setActivityLogsList(logData);
+      setLoading(false);
+    } catch (err) {
+      console.error("Error fetching stats:", err);
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        let loggedUser: any = null;
-        const stored = localStorage.getItem('oonjai_user');
-        if (stored) {
-          loggedUser = JSON.parse(stored);
-          setCurrentUser(loggedUser);
-          const userRole = loggedUser.role || 'volunteer';
-          setRole(userRole);
-          if (userRole !== 'admin') {
-            setExportType('my_cases');
-          }
-        }
-
-        const { data: snapshot, error } = await supabase.from('cases').select('*');
-        if (error) throw error;
-
-        const fetchedCases = (snapshot || []).map(d => {
-          const uId = loggedUser?.uid || loggedUser?.id || '';
-          const uName = loggedUser?.name || loggedUser?.username || loggedUser?.fullname || '';
-
-          const cVolId = String(d.assigned_volunteer_id || d.volunteer_id || d.rescuer_id || '');
-          const cVolName = String(d.assigned_volunteer_name || d.rescuer_name || d.volunteer_name || '');
-          
-          const isMyAssignedCase = (uId && cVolId === String(uId)) || (uName && cVolName.toLowerCase().includes(uName.toLowerCase()));
-
-          return {
-            ...d, 
-            id: String(d.id),
-            caseCode: d.case_number ? `CAS-${String(d.case_number).padStart(3, '0')}` : `CAS-${String(d.id).substring(0, 5)}`,
-            formattedDate: d.created_at ? new Date(d.created_at).toLocaleString('th-TH') : '-',
-            reporterName: d.name || d.reporter_name || 'ผู้แจ้งเหตุ',
-            reporterPhone: d.phone || d.contact_phone || d.tel || '-',
-            isBedridden: Number(d.bedridden) === 1 || d.bedridden === true || d.details?.includes('ติดเตียง'),
-            isElderly: Number(d.elderly) === 1 || d.elderly === true || d.details?.includes('สูงอายุ') || d.details?.includes('เด็ก'),
-            isMyAssignedCase: Boolean(isMyAssignedCase),
-            assignedVolunteerName: d.assigned_volunteer_name || d.rescuer_name || '-'
-          };
-        });
-        setCases(fetchedCases);
-        setLoading(false);
-      } catch (err) {
-        console.error("Error fetching stats:", err);
-        setLoading(false);
-      }
-    };
-
     fetchStats();
 
     const channel = supabase
       .channel(`custom-report-cases-channel-${Date.now()}-${Math.random()}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'cases' },
-        () => {
-          fetchStats();
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cases' }, () => fetchStats())
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
   }, []);
-
-  const COMPLETED_STATUSES = [
-    "ปลอดภัยแล้ว", 
-    "ส่งเข้าศูนย์พักพิงสำเร็จ", 
-    "มอบถุงยังชีพเสร็จสิ้น", 
-    "นำส่งโรงพยาบาลแล้ว", 
-    "เสร็จสิ้น", 
-    "ยุติการช่วยเหลือ",
-    "completed",
-    "resolved"
-  ];
-  
-  
-
-  const getSeverityText = (level: number) => {
-    switch (level) {
-      case 5: return 'พื้นที่เสี่ยงวิกฤต (ระดับ 5)';
-      case 4: return 'พื้นที่เสี่ยงรุนแรง (ระดับ 4)';
-      case 3: return 'พื้นที่เสี่ยงปานกลาง (ระดับ 3)';
-      case 2: return 'พื้นที่เฝ้าระวัง (ระดับ 2)';
-      case 1: default: return 'พื้นที่ปลอดภัย/ทั่วไป (ระดับ 1)';
-    }
-  };
 
   // Quick Date Range Preset Selector
   const setPresetRange = (preset: 'today' | '7d' | '30d' | 'all') => {
@@ -172,17 +156,14 @@ export default function ReportDashboardPage() {
   // Filter cases by Role (Volunteer vs Admin) and Date Range
   const roleAndDateFilteredCases = useMemo(() => {
     return cases.filter(c => {
-      // Volunteer Scope Filter
       if (role !== 'admin' && volunteerScope === 'my_cases') {
         if (!c.isMyAssignedCase) return false;
       }
 
-      // Date Range Filter
       if (!startDate && !endDate) return true;
       const dateField = c.created_at || c.timestamp || '';
       if (!dateField) return false;
       
-      // Parse dates properly
       const parsedDateString = dateField.replace(' ', 'T');
       const itemDate = new Date(parsedDateString).getTime();
       
@@ -193,27 +174,11 @@ export default function ReportDashboardPage() {
     });
   }, [cases, role, volunteerScope, startDate, endDate]);
 
-  // Table Searched Cases
-  const tableCases = useMemo(() => {
-    if (!tableSearch.trim()) return roleAndDateFilteredCases;
-    const query = tableSearch.toLowerCase();
-    return roleAndDateFilteredCases.filter(c => 
-      c.caseCode.toLowerCase().includes(query) ||
-      c.reporterName.toLowerCase().includes(query) ||
-      c.reporterPhone.includes(query) ||
-      (c.details && c.details.toLowerCase().includes(query))
-    );
-  }, [roleAndDateFilteredCases, tableSearch]);
-
   const reportStats = useMemo(() => {
     let total = 0, completed = 0, inProgress = 0, pending = 0, l5 = 0, l4 = 0, l3 = 0, l2 = 0, l1 = 0, vulnerableCount = 0;
     roleAndDateFilteredCases.forEach(d => {
       const status = (d.status || '').toLowerCase();
-      
-      // Skip cancelled cases
-      if (isCancelledCase(status)) {
-        return; 
-      }
+      if (isCancelledCase(status)) return;
 
       total++;
       if (isCompletedCase(status)) completed++;
@@ -235,12 +200,160 @@ export default function ReportDashboardPage() {
     return { total, completed, inProgress, pending, successRate, l5, l4, l3, l2, l1, vulnerableCount, criticalPercent };
   }, [roleAndDateFilteredCases]);
 
-  // Today Stats for active scope
-  const todayStr = new Date().toISOString().split('T')[0];
-  const todayCases = roleAndDateFilteredCases.filter(c => c.created_at && c.created_at.startsWith(todayStr));
-  const todayTotal = todayCases.length;
-  const todayCompleted = todayCases.filter(c => COMPLETED_STATUSES.includes(c.status?.toLowerCase())).length;
-  const todayActive = todayTotal - todayCompleted;
+  // Accurate Today Statistics Calculation
+  const todayStart = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }, []);
+
+  const todayEnd = useMemo(() => {
+    const d = new Date();
+    d.setHours(23, 59, 59, 999);
+    return d.getTime();
+  }, []);
+
+  const todayStats = useMemo(() => {
+    let todayTotal = 0;
+    let todayActive = 0;
+    let todayCompleted = 0;
+
+    cases.forEach(c => {
+      if (role !== 'admin' && volunteerScope === 'my_cases' && !c.isMyAssignedCase) {
+        return;
+      }
+      const dateField = c.created_at || c.timestamp || '';
+      if (!dateField) return;
+
+      const t = new Date(dateField.replace(' ', 'T')).getTime();
+      if (t >= todayStart && t <= todayEnd) {
+        const status = (c.status || '').toLowerCase();
+        if (isCancelledCase(status)) return;
+
+        todayTotal++;
+        if (isCompletedCase(status)) {
+          todayCompleted++;
+        } else {
+          todayActive++;
+        }
+      }
+    });
+
+    return { todayTotal, todayActive, todayCompleted };
+  }, [cases, role, volunteerScope, todayStart, todayEnd]);
+
+  // Dynamic Dataset Preview Table based on selected exportType
+  const dynamicDatasetPreview = useMemo(() => {
+    const q = tableSearch.toLowerCase().trim();
+
+    // 1. Volunteer Dataset
+    if (exportType === 'users') {
+      let list = volunteersList;
+      if (q) {
+        list = list.filter(v => 
+          (v.name || '').toLowerCase().includes(q) || 
+          (v.phone || '').includes(q) || 
+          (v.agency || '').toLowerCase().includes(q)
+        );
+      }
+      return {
+        title: `ข้อมูลอาสาสมัครทั้งหมด (${list.length} รายการ)`,
+        headers: ['ชื่อ-นามสกุล', 'เบอร์โทรศัพท์', 'สังกัด/หน่วยงาน', 'จังหวัด', 'สถานะปฏิบัติงาน'],
+        rows: list.slice(0, 15).map(v => [
+          v.name || 'อาสาสมัคร',
+          v.phone || '-',
+          v.agency || '-',
+          v.province || '-',
+          v.is_online ? 'พร้อมปฏิบัติงาน' : (v.status || 'ออฟไลน์')
+        ])
+      };
+    }
+
+    // 2. Safe Reports Dataset
+    if (exportType === 'safe') {
+      let list = safeReportsList;
+      if (q) {
+        list = list.filter(s => 
+          (s.name || '').toLowerCase().includes(q) || 
+          (s.phone || '').includes(q) || 
+          (s.agency || '').toLowerCase().includes(q) ||
+          (s.destination || '').toLowerCase().includes(q)
+        );
+      }
+      return {
+        title: `รายชื่อผู้ปลอดภัยทั้งหมด (${list.length} รายการ)`,
+        headers: ['ชื่อ-นามสกุล', 'เบอร์โทรศัพท์', 'หน่วยงานที่นำส่ง', 'จุดหมายปลายทาง', 'เวลาที่บันทึก'],
+        rows: list.slice(0, 15).map(s => [
+          s.name || 'ไม่ระบุชื่อ',
+          s.phone || '-',
+          s.agency || '-',
+          s.destination || '-',
+          s.timestamp ? new Date(s.timestamp).toLocaleString('th-TH') : '-'
+        ])
+      };
+    }
+
+    // 3. Activity Logs Dataset (System Audit Logs / My Personal Rescue Logs)
+    if (exportType === 'logs' || exportType === 'my_logs') {
+      const uId = currentUser?.id || currentUser?.uid || '';
+      const uName = currentUser?.name || currentUser?.username || currentUser?.fullname || '';
+      
+      let list = activityLogsList;
+      if (exportType === 'my_logs') {
+        list = list.filter(l => {
+          const logUser = String(l.user || l.user_name || l.volunteer_name || l.user_id || l.action_by || '');
+          return (uId && String(l.user_id) === String(uId)) || (uName && logUser.toLowerCase().includes(uName.toLowerCase()));
+        });
+      }
+
+      if (q) {
+        list = list.filter(l => 
+          (l.action || l.details || '').toLowerCase().includes(q) || 
+          (l.user || l.user_name || '').toLowerCase().includes(q)
+        );
+      }
+      return {
+        title: exportType === 'my_logs' ? `ประวัติการทำงานเฉพาะของฉัน (${list.length} รายการ)` : `ประวัติการทำงานระบบ (${list.length} รายการ)`,
+        headers: ['เวลาที่บันทึก', 'ผู้ใช้งาน', 'การกระทำ/กิจกรรม', 'รหัสเคสอ้างอิง', 'รายละเอียดเพิ่มเติม'],
+        rows: list.slice(0, 15).map(l => [
+          l.timestamp ? new Date(l.timestamp).toLocaleString('th-TH') : '-',
+          l.user || l.user_name || uName,
+          l.action || 'การใช้งานระบบ',
+          l.case_id ? `CAS-${l.case_id}` : '-',
+          l.details || l.ip_address || '-'
+        ])
+      };
+    }
+
+    // 4. Emergency Cases Datasets (default)
+    let filtered = roleAndDateFilteredCases;
+    if (exportType === 'shelter_cases') filtered = filtered.filter(c => isShelterDestination(c.destination));
+    else if (exportType === 'hospital_cases') filtered = filtered.filter(c => isHospitalDestination(c.destination));
+    else if (exportType === 'supplies_cases') filtered = filtered.filter(c => isSuppliesDestination(c.destination));
+    else if (exportType === 'critical_cases') filtered = filtered.filter(c => Number(c.severity) === 5);
+    else if (exportType === 'vulnerable_cases') filtered = filtered.filter(c => c.isBedridden || c.isElderly);
+
+    if (q) {
+      filtered = filtered.filter(c => 
+        c.caseCode.toLowerCase().includes(q) || 
+        c.reporterName.toLowerCase().includes(q) || 
+        c.reporterPhone.includes(q) || 
+        (c.details && c.details.toLowerCase().includes(q))
+      );
+    }
+
+    return {
+      title: `รายการข้อมูลเคสฉุกเฉิน (${filtered.length} รายการ)`,
+      headers: ['รหัสเคส', 'วันที่แจ้งเหตุ', 'ผู้แจ้งเหตุ', 'ระดับความรุนแรง', 'สถานะการช่วยเหลือ'],
+      rows: filtered.slice(0, 15).map(c => [
+        c.caseCode,
+        c.formattedDate,
+        `${c.reporterName} (${c.reporterPhone})`,
+        getSeverityText(Number(c.severity) || 1),
+        COMPLETED_STATUSES.includes((c.status || '').toLowerCase()) ? 'ช่วยเหลือสำเร็จ' : c.status === 'in_progress' ? 'กำลังช่วยเหลือ' : 'รอดำเนินการ'
+      ])
+    };
+  }, [exportType, volunteersList, safeReportsList, activityLogsList, roleAndDateFilteredCases, tableSearch, currentUser]);
 
   // Real Native Excel (.xlsx) File Export
   const handleExportExcel = async () => {
@@ -250,7 +363,6 @@ export default function ReportDashboardPage() {
       const uId = currentUser?.id || currentUser?.uid || '';
       const uName = currentUser?.name || currentUser?.username || currentUser?.fullname || '';
 
-      // --- CASE 1: Volunteer My Logs (Combine Cases + Activity Logs) ---
       if (exportType === 'my_logs') {
         let casesReq = supabase.from('cases').select('*');
         let logsReq = supabase.from('activity_logs').select('*');
@@ -294,8 +406,6 @@ export default function ReportDashboardPage() {
           return;
         }
         excelData = combinedLogs;
-
-      // --- CASE 2: Other Datasets (cases, my_cases, users, logs, safe) ---
       } else {
         const targetCollection = 
           exportType === 'users' ? 'volunteers' : 
@@ -329,8 +439,6 @@ export default function ReportDashboardPage() {
             exportableCases = rawData.filter(c => isHospitalDestination(c.destination));
           } else if (exportType === 'supplies_cases') {
             exportableCases = rawData.filter(c => isSuppliesDestination(c.destination));
-          } else if (exportType === 'line_cases') {
-            exportableCases = rawData.filter(c => c.line_uid || c.reporter_line_uid || String(c.reporter_name || c.name || '').includes('LINE') || String(c.details || '').includes('LINE'));
           } else if (exportType === 'vulnerable_cases') {
             exportableCases = rawData.filter(c => Number(c.bedridden) === 1 || Number(c.elderly) === 1 || String(c.details || '').includes('ติดเตียง') || String(c.details || '').includes('สูงอายุ') || String(c.details || '').includes('เด็ก'));
           } else if (exportType === 'critical_cases') {
@@ -362,8 +470,6 @@ export default function ReportDashboardPage() {
             'กลุ่มเปราะบาง': (c.bedridden ? 'ผู้ป่วยติดเตียง ' : '') + (c.elderly ? 'ผู้สูงอายุ/เด็ก' : (!c.bedridden ? 'ไม่มี' : '')),
             'ระดับน้ำ': c.water_level || c.waterLevel || '-',
             'รายละเอียดเหตุการณ์': c.details || '',
-            'ละติจูด': c.latitude || '',
-            'ลองจิจูด': c.longitude || '',
             'ผู้เข้าช่วยเหลือ': c.assigned_volunteer_name || c.rescuer_name || '-'
           }));
         } else {
@@ -385,11 +491,8 @@ export default function ReportDashboardPage() {
     }
   };
 
-  // PDF Export Fallback to Native Browser Print
   const handleExportPDF = () => {
     setIsExportingPDF(true);
-    // html2canvas ไม่รองรับสี oklch/lab ของ Tailwind v4 
-    // จึงใช้ Native Browser Print (Save as PDF) แทน ซึ่งคมชัดกว่าและไม่เพี้ยน
     setTimeout(() => {
       window.print();
       setIsExportingPDF(false);
@@ -402,7 +505,6 @@ export default function ReportDashboardPage() {
       return;
     }
     
-    // Use mailto scheme for zero-cost client-side email
     const subject = encodeURIComponent(emailData.subject || 'รายงานสรุปเคสภัยพิบัติประจำวัน - ระบบอุ่นใจ (OonJai)');
     const bodyText = 
       `เรียนท่านที่เกี่ยวข้อง,\n\n` +
@@ -420,7 +522,6 @@ export default function ReportDashboardPage() {
     const body = encodeURIComponent(bodyText);
     const cc = emailData.cc ? `&cc=${encodeURIComponent(emailData.cc)}` : '';
     
-    // Open user's default email client
     window.location.href = `mailto:${emailData.to}?subject=${subject}${cc}&body=${body}`;
     
     setIsEmailModalOpen(false);
@@ -462,7 +563,7 @@ export default function ReportDashboardPage() {
             </div>
           </div>
 
-          {/* Volunteer Banner */}
+          {/* Volunteer Personal Banner */}
           {role !== 'admin' && (
             <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-4 rounded-xl flex flex-col gap-4 print:hidden w-full min-w-0">
               <div className="flex items-start gap-3 w-full min-w-0">
@@ -478,11 +579,10 @@ export default function ReportDashboardPage() {
                   </p>
                 </div>
               </div>
-
-              </div>
+            </div>
           )}
 
-          {/* AI Exec Summary */}
+          {/* 1. AI Executive Summary Banner */}
           <div className="bg-slate-900 dark:bg-slate-950 rounded-2xl p-5 shadow-sm border border-slate-800 text-white print:border-slate-300 print:bg-white print:text-slate-900 print:shadow-none w-full min-w-0">
             <div className="space-y-3 w-full min-w-0">
               <div className="flex items-center gap-2 text-orange-400 font-bold text-xs uppercase tracking-wider">
@@ -510,82 +610,83 @@ export default function ReportDashboardPage() {
             </div>
           </div>
 
-          {/* Filter */}
-          <div className="bg-white dark:bg-[#151b2c] p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col gap-4 print:hidden w-full min-w-0">
-            <div className="flex items-center gap-2 text-slate-800 dark:text-white font-bold text-sm shrink-0 min-w-0">
-              <Calendar className="w-5 h-5 text-orange-500 shrink-0" />
-              <span className="truncate break-words">ช่วงเวลาข้อมูล</span>
-            </div>
-
-            <div className="flex flex-col gap-3 w-full min-w-0">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-xl w-full min-w-0">
-                <button onClick={() => setPresetRange('today')} className={`px-2 py-2 rounded-lg text-xs font-bold transition-all text-center min-w-0 break-words ${startDate && startDate === todayStr ? 'bg-white dark:bg-slate-700 shadow-sm' : 'text-slate-500'}`}>วันนี้</button>
-                <button onClick={() => setPresetRange('7d')} className="px-2 py-2 rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-center min-w-0 break-words">7 วัน</button>
-                <button onClick={() => setPresetRange('30d')} className="px-2 py-2 rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-center min-w-0 break-words">30 วัน</button>
-                <button onClick={() => setPresetRange('all')} className={`px-2 py-2 rounded-lg text-xs font-bold transition-all text-center min-w-0 break-words ${!startDate && !endDate ? 'bg-white dark:bg-slate-700 shadow-sm' : 'text-slate-500'}`}>ทั้งหมด</button>
-              </div>
-
-              <div className="flex flex-col sm:flex-row items-center gap-2 w-full min-w-0">
-                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full sm:flex-1 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 bg-slate-50 dark:bg-slate-800 text-xs font-bold outline-none min-w-0" />
-                <span className="hidden sm:block text-slate-400 shrink-0">-</span>
-                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full sm:flex-1 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 bg-slate-50 dark:bg-slate-800 text-xs font-bold outline-none min-w-0" />
-                {(startDate || endDate) && (
-                  <button onClick={() => { setStartDate(''); setEndDate(''); }} className="w-full sm:w-auto p-2 bg-red-50 text-red-500 hover:bg-red-100 rounded-xl shrink-0 flex justify-center items-center">
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-            </div>
-          </div>
-
-          {/* Export Hub (Placed Right Below Date Range Filter) */}
-          <div className="bg-slate-900 dark:bg-[#111c35] p-5 rounded-2xl shadow-lg border border-slate-800 w-full print:hidden min-w-0">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4 border-b border-slate-700 pb-3 w-full min-w-0">
+          {/* 2. Unified Export Hub & Date Range Filter (Moved Up Front!) */}
+          <div className="bg-slate-900 dark:bg-[#111c35] p-5 rounded-2xl shadow-lg border border-slate-800 w-full print:hidden min-w-0 space-y-5">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-700/80 pb-4 w-full min-w-0">
               <div>
                 <h3 className="text-base font-bold text-white flex items-center gap-2 break-words">
-                  <Printer className="w-4 h-4 text-orange-400 shrink-0" />
+                  <Download className="w-5 h-5 text-orange-400 shrink-0" />
                   <span>ส่งออกรายงาน (Export Hub)</span>
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  ช่วงเวลาส่งออก: <span className="text-orange-300 font-bold">{startDate && endDate ? `${startDate} ถึง ${endDate}` : 'สะสมทั้งหมด (All Time)'}</span>
+                <p className="text-xs text-slate-400 mt-1">
+                  ช่วงเวลาที่เลือก: <span className="text-orange-400 font-bold">{startDate && endDate ? `${startDate} ถึง ${endDate}` : 'สะสมทั้งหมด (All Time)'}</span>
                 </p>
               </div>
 
               {/* Role badge */}
-              <div className="text-xs px-3 py-1 rounded-full font-bold bg-slate-800 border border-slate-700 text-slate-300 flex items-center gap-1.5 shrink-0">
+              <div className="text-xs px-3 py-1.5 rounded-full font-bold bg-slate-800 border border-slate-700 text-slate-300 flex items-center gap-1.5 shrink-0">
                 {role === 'admin' ? (
                   <>
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
                     <span>สิทธิ์แอดมิน (ข้อมูลทั้งระบบ)</span>
                   </>
                 ) : (
                   <>
-                    <UserCheck className="w-3.5 h-3.5 text-orange-400" />
+                    <UserCheck className="w-4 h-4 text-orange-400" />
                     <span>สิทธิ์อาสาสมัคร ({currentUser?.name || 'เคสของฉัน'})</span>
                   </>
                 )}
               </div>
             </div>
 
+            {/* Date Range Selector inside Export Hub */}
+            <div className="bg-slate-800/80 p-4 rounded-xl border border-slate-700/60 space-y-3">
+              <div className="flex items-center gap-2 text-white font-bold text-xs">
+                <Calendar className="w-4 h-4 text-orange-400 shrink-0" />
+                <span>เลือกช่วงเวลาข้อมูล</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-900/60 p-1.5 rounded-lg w-full min-w-0">
+                <button onClick={() => setPresetRange('today')} className={`px-2 py-1.5 rounded-md text-xs font-bold transition-all text-center min-w-0 ${startDate && startDate === (new Date().toISOString().split('T')[0]) ? 'bg-orange-500 text-white shadow-sm' : 'text-slate-300 hover:text-white'}`}>วันนี้</button>
+                <button onClick={() => setPresetRange('7d')} className="px-2 py-1.5 rounded-md text-xs font-bold text-slate-300 hover:text-white transition-all text-center min-w-0">7 วัน</button>
+                <button onClick={() => setPresetRange('30d')} className="px-2 py-1.5 rounded-md text-xs font-bold text-slate-300 hover:text-white transition-all text-center min-w-0">30 วัน</button>
+                <button onClick={() => setPresetRange('all')} className={`px-2 py-1.5 rounded-md text-xs font-bold transition-all text-center min-w-0 ${!startDate && !endDate ? 'bg-orange-500 text-white shadow-sm' : 'text-slate-300 hover:text-white'}`}>ทั้งหมด</button>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center gap-2 w-full min-w-0 pt-1">
+                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full sm:flex-1 border border-slate-700 rounded-lg px-3 py-2 bg-slate-900 text-white text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" />
+                <span className="hidden sm:block text-slate-400 shrink-0">-</span>
+                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full sm:flex-1 border border-slate-700 rounded-lg px-3 py-2 bg-slate-900 text-white text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" />
+                {(startDate || endDate) && (
+                  <button onClick={() => { setStartDate(''); setEndDate(''); }} className="w-full sm:w-auto p-2 bg-rose-900/40 text-rose-300 border border-rose-700/50 hover:bg-rose-900/60 rounded-lg shrink-0 flex justify-center items-center">
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Dataset Selector & Download Buttons */}
             <div className="space-y-4 w-full min-w-0">
               <div className="space-y-1.5 w-full min-w-0">
-                <label className="block text-xs font-bold text-slate-400">ชุดข้อมูลที่จะส่งออก (Dataset)</label>
+                <label className="block text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                  <Filter className="w-3.5 h-3.5 text-orange-400" />
+                  <span>ชุดข้อมูลที่จะส่งออกและพรีวิว (Dataset)</span>
+                </label>
                 <select 
                   value={exportType}
                   onChange={(e) => setExportType(e.target.value)}
-                  className="w-full border border-slate-700 rounded-xl px-4 py-2.5 bg-slate-800 text-white outline-none focus:ring-2 focus:ring-orange-500 text-xs font-bold min-w-0"
+                  className="w-full border border-slate-700 rounded-xl px-4 py-2.5 bg-slate-800 text-white outline-none focus:ring-2 focus:ring-orange-500 text-xs sm:text-sm font-bold min-w-0"
                 >
                   {role === 'admin' ? (
                     <>
                       <option value="cases">เคสฉุกเฉินทั้งหมด (All Cases)</option>
                       <option value="shelter_cases">รายงานเคสนำส่งศูนย์พักพิง (Shelter Cases)</option>
-                      <option value="hospital_cases">รายงานเคสนำส่งโรงพยาบาล/หน่วยแพทย์ (Hospital & Medical Cases)</option>
+                      <option value="hospital_cases">รายงานเคสนำส่งโรงพยาบาล/หน่วยแพทย์ (Hospital Cases)</option>
                       <option value="supplies_cases">รายงานเคสแจกถุงยังชีพ/เสบียง (Supplies Rations)</option>
-                      <option value="line_cases">รายงานผู้แจ้งเหตุผ่าน LINE (LINE SOS Cases)</option>
-                      <option value="vulnerable_cases">รายงานเคสกลุ่มเปราะบาง/ติดเตียง (Vulnerable & Bedridden)</option>
-                      <option value="critical_cases">รายงานเคสวิกฤตด่วนสูงสุด ระดับ 5 (Critical Level 5 Cases)</option>
+                      <option value="vulnerable_cases">รายงานเคสกลุ่มเปราะบาง/ติดเตียง (Vulnerable Cases)</option>
+                      <option value="critical_cases">รายงานเคสวิกฤตด่วนสูงสุด ระดับ 5 (Critical Cases)</option>
                       <option value="safe">รายชื่อผู้ปลอดภัยทั้งหมด (Safe Reports)</option>
                       <option value="users">ข้อมูลอาสาสมัครทั้งหมด (Volunteers)</option>
-                      <option value="logs">ประวัติการทำงานระบบ (System Audit Logs)</option>
+                      <option value="logs">ประวัติการทำงานระบบ (Audit Logs)</option>
                     </>
                   ) : (
                     <>
@@ -596,11 +697,11 @@ export default function ReportDashboardPage() {
                 </select>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full min-w-0">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full min-w-0 pt-1">
                 <button
                   onClick={handleExportExcel}
                   disabled={isExportingExcel}
-                  className="flex items-center justify-center gap-2 p-3 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 rounded-xl transition-colors disabled:opacity-50 min-w-0 w-full font-bold text-xs"
+                  className="flex items-center justify-center gap-2 p-3 bg-emerald-600/30 hover:bg-emerald-600/40 border border-emerald-500/50 text-emerald-300 rounded-xl transition-all disabled:opacity-50 min-w-0 w-full font-extrabold text-xs active:scale-95 cursor-pointer shadow-md"
                 >
                   {isExportingExcel ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <FileSpreadsheet className="w-4 h-4 text-emerald-400 shrink-0" />}
                   <span>ส่งออก Excel (.xlsx)</span>
@@ -609,7 +710,7 @@ export default function ReportDashboardPage() {
                 <button
                   onClick={handleExportPDF}
                   disabled={isExportingPDF}
-                  className="flex items-center justify-center gap-2 p-3 bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 text-rose-300 rounded-xl transition-colors disabled:opacity-50 min-w-0 w-full font-bold text-xs"
+                  className="flex items-center justify-center gap-2 p-3 bg-rose-600/30 hover:bg-rose-600/40 border border-rose-500/50 text-rose-300 rounded-xl transition-all disabled:opacity-50 min-w-0 w-full font-extrabold text-xs active:scale-95 cursor-pointer shadow-md"
                 >
                   {isExportingPDF ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <FileText className="w-4 h-4 text-rose-400 shrink-0" />}
                   <span>บันทึกเป็น PDF</span>
@@ -617,7 +718,7 @@ export default function ReportDashboardPage() {
 
                 <button
                   onClick={() => setIsEmailModalOpen(true)}
-                  className="flex items-center justify-center gap-2 p-3 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 rounded-xl transition-colors min-w-0 w-full font-bold text-xs"
+                  className="flex items-center justify-center gap-2 p-3 bg-blue-600/30 hover:bg-blue-600/40 border border-blue-500/50 text-blue-300 rounded-xl transition-all min-w-0 w-full font-extrabold text-xs active:scale-95 cursor-pointer shadow-md"
                 >
                   <Mail className="w-4 h-4 text-blue-400 shrink-0" />
                   <span>ส่งรายงานทางอีเมล</span>
@@ -626,34 +727,34 @@ export default function ReportDashboardPage() {
             </div>
           </div>
 
-          {/* Daily Stats */}
-          <div className="bg-orange-50/50 dark:bg-orange-950/20 p-5 rounded-2xl border border-orange-100 dark:border-orange-900/40 print:border-slate-300 w-full min-w-0">
+          {/* 3. Daily Statistics */}
+          <div className="bg-orange-50/60 dark:bg-orange-950/20 p-5 rounded-2xl border border-orange-100 dark:border-orange-900/40 print:border-slate-300 w-full min-w-0">
             <h3 className="text-sm font-bold text-orange-900 dark:text-orange-100 mb-4 flex items-center gap-2 break-words">
               <Clock className="w-4 h-4 text-orange-500 shrink-0" />
-              <span>สถิติรายวัน ({new Date().toLocaleDateString('th-TH')})</span>
+              <span>สถิติประจำวันนี้ ({new Date().toLocaleDateString('th-TH')})</span>
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 min-w-0 w-full">
-              <div className="bg-white dark:bg-[#151b2c] p-4 rounded-xl border border-orange-100/50 dark:border-orange-800/30 text-center shadow-sm min-w-0 w-full">
-                <p className="text-xs font-bold text-slate-500 mb-1 break-words">รับแจ้ง (เคส)</p>
-                <p className="text-2xl font-black text-orange-600 break-words">{todayTotal}</p>
+              <div className="bg-white dark:bg-[#151b2c] p-4 rounded-xl border border-orange-100/60 dark:border-orange-800/40 text-center shadow-sm min-w-0 w-full">
+                <p className="text-xs font-bold text-slate-500 mb-1 break-words">รับแจ้งเคสใหม่วันนี้</p>
+                <p className="text-2xl font-black text-orange-600 break-words">{todayStats.todayTotal}</p>
               </div>
-              <div className="bg-white dark:bg-[#151b2c] p-4 rounded-xl border border-orange-100/50 dark:border-orange-800/30 text-center shadow-sm min-w-0 w-full">
-                <p className="text-xs font-bold text-slate-500 mb-1 break-words">รอดำเนินการ</p>
-                <p className="text-2xl font-black text-slate-700 dark:text-slate-300 break-words">{todayActive}</p>
+              <div className="bg-white dark:bg-[#151b2c] p-4 rounded-xl border border-orange-100/60 dark:border-orange-800/40 text-center shadow-sm min-w-0 w-full">
+                <p className="text-xs font-bold text-slate-500 mb-1 break-words">รอดำเนินการ/กำลังช่วยเหลือวันนี้</p>
+                <p className="text-2xl font-black text-slate-700 dark:text-slate-300 break-words">{todayStats.todayActive}</p>
               </div>
-              <div className="bg-white dark:bg-[#151b2c] p-4 rounded-xl border border-orange-100/50 dark:border-orange-800/30 text-center shadow-sm min-w-0 w-full">
-                <p className="text-xs font-bold text-slate-500 mb-1 break-words">สำเร็จแล้ว</p>
-                <p className="text-2xl font-black text-emerald-600 break-words">{todayCompleted}</p>
+              <div className="bg-white dark:bg-[#151b2c] p-4 rounded-xl border border-orange-100/60 dark:border-orange-800/40 text-center shadow-sm min-w-0 w-full">
+                <p className="text-xs font-bold text-slate-500 mb-1 break-words">ช่วยเหลือสำเร็จแล้ววันนี้</p>
+                <p className="text-2xl font-black text-emerald-600 break-words">{todayStats.todayCompleted}</p>
               </div>
             </div>
           </div>
 
-          {/* KPI */}
+          {/* 4. Overall KPI Summary */}
           <div className="space-y-4 w-full min-w-0">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 break-words">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-slate-500 shrink-0" />
-                <span>{volunteerScope === 'my_cases' ? 'สถิติเคสของฉัน' : 'สถิติรวมทั้งหมด'} {startDate && endDate ? `(${startDate} ถึง ${endDate})` : ''}</span>
+                <span>{volunteerScope === 'my_cases' ? 'สถิติเคสของฉัน' : 'สถิติภาพรวม'} {startDate && endDate ? `(${startDate} ถึง ${endDate})` : ''}</span>
               </h3>
               
               {role !== 'admin' && (
@@ -706,19 +807,19 @@ export default function ReportDashboardPage() {
             </div>
           </div>
 
-          {/* Triage Bar Chart */}
+          {/* 5. Triage Risk Bar Chart */}
           <Card className="p-5 bg-white dark:bg-[#151b2c] border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm w-full min-w-0">
             <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-5 flex items-center gap-2 break-words">
               <AlertTriangle className="w-4 h-4 text-slate-500 shrink-0" />
-              <span>ระดับความเสี่ยงฉุกเฉิน (Triage)</span>
+              <span>ระดับความเสี่ยงฉุกเฉิน (Triage Breakdown)</span>
             </h3>
             <div className="space-y-4 w-full min-w-0">
               {[
-                { level: 5, label: 'ระดับ 5 (วิกฤตหนัก)', color: 'bg-red-600', count: reportStats.l5 },
+                { level: 5, label: 'ระดับ 5 (วิกฤตหนัก)', color: 'bg-red-500', count: reportStats.l5 },
                 { level: 4, label: 'ระดับ 4 (เสี่ยงรุนแรง)', color: 'bg-orange-500', count: reportStats.l4 },
                 { level: 3, label: 'ระดับ 3 (เสี่ยงปานกลาง)', color: 'bg-yellow-500', count: reportStats.l3 },
                 { level: 2, label: 'ระดับ 2 (เฝ้าระวัง)', color: 'bg-blue-500', count: reportStats.l2 },
-                { level: 1, label: 'ระดับ 1 (ปลอดภัย)', color: 'bg-emerald-500', count: reportStats.l1 },
+                { level: 1, label: 'ระดับ 1 (ทั่วไป)', color: 'bg-emerald-500', count: reportStats.l1 },
               ].map((opt, i) => {
                 const percentage = reportStats.total > 0 ? (opt.count / reportStats.total) * 100 : 0;
                 return (
@@ -738,21 +839,21 @@ export default function ReportDashboardPage() {
             </div>
           </Card>
 
-          {/* Table */}
+          {/* 6. Dynamic Dataset Preview Table (Matches Selected Dataset) */}
           <Card className="p-4 sm:p-5 bg-white dark:bg-[#151b2c] border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden print:border-slate-300 w-full min-w-0">
-            <div className="flex flex-col gap-4 mb-4 border-b border-slate-100 dark:border-slate-800 pb-4 min-w-0 w-full">
-              <div className="min-w-0 w-full">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 border-b border-slate-100 dark:border-slate-800 pb-4 min-w-0 w-full">
+              <div className="min-w-0 w-full sm:w-auto">
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 break-words">
-                  <FileBox className="w-4 h-4 text-slate-500 shrink-0" />
-                  <span>รายการข้อมูล ({tableCases.length} รายการ)</span>
+                  <FileBox className="w-4 h-4 text-orange-500 shrink-0" />
+                  <span>พรีวิว: {dynamicDatasetPreview.title}</span>
                 </h3>
               </div>
 
-              <div className="relative w-full print:hidden min-w-0">
+              <div className="relative w-full sm:w-72 print:hidden min-w-0">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="ค้นหา..."
+                  placeholder="ค้นหาในตาราง..."
                   value={tableSearch}
                   onChange={(e) => setTableSearch(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold outline-none min-w-0"
@@ -761,38 +862,35 @@ export default function ReportDashboardPage() {
             </div>
 
             <div className="overflow-x-auto w-full custom-scrollbar">
-              <table className="w-full text-left text-xs border-collapse min-w-[500px]">
+              <table className="w-full text-left text-xs border-collapse min-w-[600px]">
                 <thead>
                   <tr className="bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-700">
-                    <th className="p-3">รหัส</th>
-                    <th className="p-3">วันที่</th>
-                    <th className="p-3">ผู้แจ้ง</th>
-                    <th className="p-3">ระดับ</th>
-                    <th className="p-3">สถานะ</th>
+                    {dynamicDatasetPreview.headers.map((h, idx) => (
+                      <th key={idx} className="p-3">{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
-                  {tableCases.length === 0 ? (
+                  {dynamicDatasetPreview.rows.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="p-8 text-center text-slate-400 font-medium">ไม่พบข้อมูล</td>
+                      <td colSpan={dynamicDatasetPreview.headers.length} className="p-8 text-center text-slate-400 font-medium">
+                        ไม่พบข้อมูลในชุดข้อมูลนี้
+                      </td>
                     </tr>
                   ) : (
-                    tableCases.slice(0, 10).map((c, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                        <td className="p-3 font-bold text-orange-600 break-words">{c.caseCode}</td>
-                        <td className="p-3 break-words">{c.formattedDate}</td>
-                        <td className="p-3 font-bold break-words">
-                          {c.reporterName}
-                          <div className="text-slate-500 font-normal mt-0.5">{c.reporterPhone}</div>
-                        </td>
-                        <td className="p-3">
-                          <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${Number(c.severity) === 5 ? 'bg-red-100 text-red-700' : Number(c.severity) === 4 ? 'bg-orange-100 text-orange-700' : 'bg-slate-100 text-slate-700'}`}>
-                            ระดับ {c.severity || 1}
-                          </span>
-                        </td>
-                        <td className="p-3">
-                          <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${COMPLETED_STATUSES.includes((c.status || '').toLowerCase()) ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                            {COMPLETED_STATUSES.includes((c.status || '').toLowerCase()) ? 'เสร็จสิ้น' : 'รอดำเนินการ'}
+                    dynamicDatasetPreview.rows.map((row, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                        <td className="p-3 font-bold text-orange-600 break-words">{row[0]}</td>
+                        <td className="p-3 break-words">{row[1]}</td>
+                        <td className="p-3 font-medium break-words">{row[2]}</td>
+                        <td className="p-3 break-words">{row[3]}</td>
+                        <td className="p-3 font-bold">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] ${
+                            row[4]?.includes('สำเร็จ') || row[4]?.includes('พร้อม') 
+                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400' 
+                              : 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400'
+                          }`}>
+                            {row[4]}
                           </span>
                         </td>
                       </tr>
@@ -801,13 +899,14 @@ export default function ReportDashboardPage() {
                 </tbody>
               </table>
             </div>
-            {tableCases.length > 10 && (
-              <div className="p-3 text-center text-xs text-slate-400 border-t border-slate-100 dark:border-slate-800">* แสดง 10 รายการแรก ส่งออกเพื่อดูทั้งหมด</div>
+            {dynamicDatasetPreview.rows.length > 0 && (
+              <div className="p-3 text-center text-xs text-slate-400 border-t border-slate-100 dark:border-slate-800 font-medium">
+                * แสดงตัวอย่างสูงสุด 15 รายการแรก กดปุ่ม "ส่งออก Excel" ด้านบนเพื่อรับข้อมูลฉบับเต็มทั้งหมด
+              </div>
             )}
           </Card>
         </div>
 
-        </div>
       </div>
 
       {isEmailModalOpen && (
