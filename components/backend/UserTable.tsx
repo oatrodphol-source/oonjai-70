@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import toast from 'react-hot-toast';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
-import { Edit2, Trash2, Eye, EyeOff, Plus } from 'lucide-react';
+import { Edit2, Trash2, Eye, EyeOff, Plus, Shield, UserCheck, Phone } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 interface User {
   id: number;
@@ -276,7 +276,7 @@ export const UserTable: React.FC<UserTableProps> = ({
           <div className="w-full">
             <Input
               type="text"
-              placeholder="🔍 ค้นหาชื่อผู้ใช้, ชื่อ-นามสกุล, สังกัด หรือเบอร์โทร..."
+              placeholder="ค้นหาชื่อผู้ใช้, ชื่อ-นามสกุล, สังกัด หรือเบอร์โทร..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -311,9 +311,9 @@ export const UserTable: React.FC<UserTableProps> = ({
                 className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-800 dark:text-white text-gray-900 bg-white font-medium outline-none focus:ring-2 focus:ring-orange-500"
               >
                 <option value="">-- ทุกสถานะบัญชี --</option>
-                <option value="active">🟢 เปิดใช้งาน (Active)</option>
-                <option value="inactive">🔴 ปิดใช้งาน (Inactive)</option>
-                <option value="deleted">🗑️ ถูกลบ (Deleted)</option>
+                <option value="active">เปิดใช้งาน (Active)</option>
+                <option value="inactive">ปิดใช้งาน (Inactive)</option>
+                <option value="deleted">ถูกลบ (Deleted)</option>
               </select>
             </div>
             <div className="col-span-2 lg:col-span-1 flex items-center justify-end gap-1.5 text-xs text-gray-500 dark:text-gray-400">
@@ -359,7 +359,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                         ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' 
                         : 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
                     }`}>
-                      {user.role === 'admin' ? '🛡️' : '🚑'}
+                      {user.role === 'admin' ? <Shield size={18} /> : <UserCheck size={18} />}
                     </div>
                     <div className="min-w-0">
                       <h3 className="font-bold text-gray-900 dark:text-white text-base truncate leading-tight">
@@ -381,8 +381,8 @@ export const UserTable: React.FC<UserTableProps> = ({
                   <div className="flex justify-between items-center">
                     <span className="text-gray-500 dark:text-gray-400">เบอร์โทรศัพท์:</span>
                     {user.phone ? (
-                      <a href={`tel:${user.phone}`} className="font-bold text-blue-600 dark:text-blue-400 hover:underline">
-                        📞 {user.phone}
+                      <a href={`tel:${user.phone}`} className="font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
+                        <Phone size={12} /> {user.phone}
                       </a>
                     ) : (
                       <span className="text-gray-400 font-medium">-</span>

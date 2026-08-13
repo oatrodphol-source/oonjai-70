@@ -95,7 +95,7 @@ export default function UsersPage() {
               <X size={18} />
             </button>
             <h3 className="text-base sm:text-lg font-extrabold mb-4 text-slate-900 dark:text-white flex items-center gap-2">
-              ➕ สร้างผู้ใช้งานใหม่
+              สร้างผู้ใช้งานใหม่
             </h3>
             <UnifiedUserForm 
               isEditing={false}
@@ -121,7 +121,7 @@ export default function UsersPage() {
               <X size={18} />
             </button>
             <h3 className="text-base sm:text-lg font-extrabold mb-4 text-slate-900 dark:text-white flex items-center gap-2">
-              ✏️ แก้ไขข้อมูลผู้ใช้งาน
+              แก้ไขข้อมูลผู้ใช้งาน
             </h3>
             <UnifiedUserForm 
               initialData={editingUser}
