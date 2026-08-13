@@ -270,46 +270,48 @@ export const TopNavbar: React.FC = () => {
 
   return (
     <nav className="fixed top-0 z-50 w-full bg-[#0b1325]/90 backdrop-blur-md border-b-2 border-[#ff6600] rounded-b-2xl shadow-lg pointer-events-auto transition-all duration-200">
-      <div className="flex items-center justify-between px-4 h-16 sm:h-20 max-w-md mx-auto sm:max-w-none">
+      <div className="flex items-center justify-between px-2.5 sm:px-6 h-16 sm:h-20 w-full max-w-7xl mx-auto">
 
         {/* Left: Logo */}
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-[#ff6600] flex items-center justify-center bg-[#0b1325] overflow-hidden">
+        <Link href="/" className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-full border border-[#ff6600] flex items-center justify-center bg-[#0b1325] overflow-hidden shrink-0">
             <img src="/icon01.ico" alt="Mascot" className="w-full h-full object-cover" />
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-wide">
+          <h1 className="text-lg sm:text-2xl font-bold tracking-wide">
             <span className="text-[#ff6600]">Oon</span>
             <span className="text-white">Jai</span>
           </h1>
         </Link>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5">
-          {/* History Button with Text Label (Placed BEFORE Theme Toggle) */}
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          {/* History Button with Responsive Text Label */}
           <Link
             href="/history"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-orange-500/10 hover:bg-orange-500/20 text-[#ff6600] border border-[#ff6600]/40 rounded-full transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-sm"
+            className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 bg-orange-500/10 hover:bg-orange-500/20 text-[#ff6600] border border-[#ff6600]/40 rounded-full transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-sm"
             title="ประวัติขอความช่วยเหลือ (History)"
           >
-            <History size={17} strokeWidth={2.2} className="shrink-0 text-[#ff6600]" />
-            <span className="text-xs font-extrabold text-white tracking-wide whitespace-nowrap">ประวัติช่วยเหลือ</span>
+            <History size={15} strokeWidth={2.2} className="shrink-0 text-[#ff6600]" />
+            <span className="text-[11px] sm:text-xs font-extrabold text-white tracking-tight whitespace-nowrap">
+              ประวัติ<span className="hidden sm:inline">ช่วยเหลือ</span>
+            </span>
           </Link>
 
           {/* Theme Toggle */}
-          <button onClick={toggleTheme} className="text-white hover:text-[#ff6600] transition-colors p-2 rounded-full min-w-[38px] min-h-[38px] flex items-center justify-center cursor-pointer" title="เปลี่ยนธีม (Theme)">
-            {isDark ? <Sun size={20} /> : <Moon size={20} />}
+          <button onClick={toggleTheme} className="text-white hover:text-[#ff6600] transition-colors p-1.5 sm:p-2 rounded-full min-w-[34px] min-h-[34px] sm:min-w-[40px] sm:min-h-[40px] flex items-center justify-center cursor-pointer" title="เปลี่ยนธีม (Theme)">
+            {isDark ? <Sun size={18} /> : <Moon size={18} />}
           </button>
 
           {/* Bell Notifications */}
           <div className="relative" ref={notifRef}>
             <button
               onClick={() => { setShowNotifications(!showNotifications); setShowProfile(false); }}
-              className="text-[#ff6600] hover:scale-110 transition-transform relative p-2 min-w-[38px] min-h-[38px] flex items-center justify-center cursor-pointer"
+              className="text-[#ff6600] hover:scale-110 transition-transform relative p-1.5 sm:p-2 min-w-[34px] min-h-[34px] sm:min-w-[40px] sm:min-h-[40px] flex items-center justify-center cursor-pointer"
               title="การแจ้งเตือน (Notifications)"
             >
-              <Bell size={20} strokeWidth={2} />
+              <Bell size={18} strokeWidth={2} />
               {(visibleNotifications.some(c => ['pending', 'in_progress', 'wait', 'accepted'].includes(typeof c.status === 'string' ? c.status.toLowerCase() : String(c.status))) || (broadcasts.length > 0 && broadcasts[0].id !== 0)) && (
-                <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border border-[#0b1325]"></span>
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-[#0b1325]"></span>
               )}
             </button>
 
