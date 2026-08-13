@@ -142,12 +142,11 @@ export async function POST(req: Request) {
         const mimeType = imageFile.type || 'image/jpeg';
         const arrayBuffer = await imageFile.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
-        const base64Data = buffer.toString('base64');
         const ext = mimeType.split('/')[1] || 'jpeg';
         const fileName = `cases/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
         
-        // 1. Upload to Supabase in parallel
-        const uploadPromise = (async () => {
+        // Fast upload to Supabase Storage with 3-second timeout safeguard
+        const uploadWithTimeout = async () => {
           try {
             const supabaseAdmin = createClient(
               process.env.NEXT_PUBLIC_SUPABASE_URL || '',
@@ -155,57 +154,25 @@ export async function POST(req: Request) {
               { auth: { autoRefreshToken: false, persistSession: false } }
             );
 
-            const { data: uploadData, error: uploadError } = await supabaseAdmin
-              .storage
+            const uploadTask = supabaseAdmin.storage
               .from('images')
               .upload(fileName, buffer, { contentType: mimeType, upsert: true });
-              
-            if (!uploadError && uploadData) {
+
+            const timeoutTask = new Promise((_, reject) => setTimeout(() => reject(new Error('Storage upload timeout')), 3000));
+
+            const res: any = await Promise.race([uploadTask, timeoutTask]);
+            if (res?.data) {
               return supabaseAdmin.storage.from('images').getPublicUrl(fileName).data.publicUrl;
-            } else {
-              console.error("Storage upload error:", uploadError);
-              return null;
             }
           } catch (err) {
-            console.error("Error in upload promise:", err);
-            return null;
+            console.warn("Storage upload warning (continuing safely):", err);
           }
-        })();
+          return null;
+        };
 
-        // 2. Send Base64 to Gemini in parallel
-        const aiPromise = (async () => {
-          try {
-            const aiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
-            if (!aiKey) return null;
-            
-            const { GoogleGenAI } = await import('@google/genai');
-            const ai = new GoogleGenAI({ apiKey: aiKey });
-            const prompt = `Analyze this disaster image and provide strictly JSON output with exactly these keys: "situation_summary" (string), "recommended_action" (string), and "risk_level" (number 1-5). Return only JSON.`;
-            
-            const result = await ai.models.generateContent({
-              model: 'gemini-flash-latest',
-              contents: [
-                prompt,
-                { inlineData: { data: base64Data, mimeType } }
-              ]
-            });
-            
-            let responseText = result.text || '{}';
-            responseText = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
-            return JSON.parse(responseText);
-          } catch (aiErr) {
-            console.error("🔥 GEMINI AI ERROR (Ignored for Fail-Safe):", aiErr);
-            return null;
-          }
-        })();
-
-        // Wait for both to complete
-        const [uploadedUrl, aiResult] = await Promise.all([uploadPromise, aiPromise]);
-        uploadedImageUrl = uploadedUrl;
-        aiData = aiResult;
+        uploadedImageUrl = await uploadWithTimeout();
       } catch (err) {
         console.error("Error processing image file:", err);
-        // Fail-safe: continue without image/AI
       }
     }
 
