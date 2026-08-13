@@ -215,7 +215,7 @@ export const VolunteerTaskBoard = ({
       return toast.error('บัญชีของคุณถูกระงับชั่วคราว กรุณาติดต่อผู้ดูแลระบบ');
     }
     if (!currentUserOnline) {
-      return toast.error('คุณต้องเปิดสถานะพร้อมรับงานก่อนจึงจะสามารถรับเคสได้');
+      return toast.error('คุณต้องเปิดสถานะพร้อมรับงานก่อนจึงจะสามารถรับเคสได้', { duration: 3000, id: 'offline-warning' });
     }
     
     setUpdatingCaseId(String(caseId));
@@ -230,7 +230,7 @@ export const VolunteerTaskBoard = ({
         updated_at: new Date().toISOString()
       }).eq('id', Number(caseId));
 
-      toast.success("รับเคสสำเร็จ");
+      toast.success("รับเคสสำเร็จ", { duration: 3000, id: 'case-success' });
     } catch (e) {
       console.error("Error accepting case:", e);
       toast.error('เกิดข้อผิดพลาดในการรับเคส');
@@ -245,7 +245,7 @@ export const VolunteerTaskBoard = ({
       return toast.error('บัญชีของคุณถูกระงับชั่วคราว กรุณาติดต่อผู้ดูแลระบบ');
     }
     if (!currentUserOnline) {
-      return toast.error('คุณต้องเปิดสถานะพร้อมรับงานก่อนจึงจะสามารถรับเคสได้');
+      return toast.error('คุณต้องเปิดสถานะพร้อมรับงานก่อนจึงจะสามารถรับเคสได้', { duration: 3000, id: 'offline-warning' });
     }
     
     const bulkId = 'bulk-' + caseIds.join(',');

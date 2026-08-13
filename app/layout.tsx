@@ -44,13 +44,19 @@ export default function RootLayout({
         <LineUserInitializer />
         {children}
         <Toaster 
-          position="top-right"
+          position="top-center"
+          containerStyle={{
+            top: 16,
+            zIndex: 99999,
+          }}
           toastOptions={{
-            duration: 4000,
-            className: 'text-base font-medium shadow-lg',
+            duration: 3000,
+            className: 'text-xs sm:text-sm font-bold shadow-2xl rounded-2xl cursor-pointer active:scale-95 transition-transform',
             style: {
-              padding: '16px 24px',
-              maxWidth: '500px'
+              padding: '12px 18px',
+              maxWidth: '92vw',
+              wordBreak: 'break-word',
+              borderRadius: '16px',
             },
             success: {
               style: {
@@ -64,6 +70,7 @@ export default function RootLayout({
               },
             },
             error: {
+              duration: 3000,
               style: {
                 background: '#fef2f2',
                 color: '#991b1b',
