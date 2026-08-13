@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Toaster } from "react-hot-toast";
 import { LineUserInitializer } from "@/components/frontend/LineUserInitializer";
+import { ToastProvider } from "@/components/shared/ToastProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,7 +27,6 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
 };
-// app/layout.tsx
 
 export default function RootLayout({
   children,
@@ -43,47 +42,8 @@ export default function RootLayout({
       >
         <LineUserInitializer />
         {children}
-        <Toaster 
-          position="top-center"
-          containerStyle={{
-            top: 16,
-            zIndex: 99999,
-          }}
-          toastOptions={{
-            duration: 3000,
-            className: 'text-xs sm:text-sm font-bold shadow-2xl rounded-2xl cursor-pointer active:scale-95 transition-transform',
-            style: {
-              padding: '12px 18px',
-              maxWidth: '92vw',
-              wordBreak: 'break-word',
-              borderRadius: '16px',
-            },
-            success: {
-              style: {
-                background: '#ecfdf5',
-                color: '#065f46',
-                border: '1px solid #10b981',
-              },
-              iconTheme: {
-                primary: '#10b981',
-                secondary: '#ffffff',
-              },
-            },
-            error: {
-              duration: 3000,
-              style: {
-                background: '#fef2f2',
-                color: '#991b1b',
-                border: '1px solid #ef4444',
-              },
-              iconTheme: {
-                primary: '#ef4444',
-                secondary: '#ffffff',
-              },
-            },
-          }}
-        />
+        <ToastProvider />
       </body>
     </html>
-  )
+  );
 }
