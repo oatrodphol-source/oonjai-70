@@ -14,6 +14,11 @@ interface User {
   username: string;
   name?: string;
   phone: string;
+  agency?: string;
+  address?: string;
+  province?: string;
+  skills_equipment?: string;
+  id_card_number?: string;
   role: string;
   status: string;
   is_online?: boolean;
@@ -59,6 +64,10 @@ export const UserTable: React.FC<UserTableProps> = ({
           (u) =>
             u.username?.toLowerCase().includes(s) ||
             u.name?.toLowerCase().includes(s) ||
+            u.agency?.toLowerCase().includes(s) ||
+            u.province?.toLowerCase().includes(s) ||
+            u.address?.toLowerCase().includes(s) ||
+            u.skills_equipment?.toLowerCase().includes(s) ||
             u.phone?.includes(search)
         );
       }
@@ -78,6 +87,11 @@ export const UserTable: React.FC<UserTableProps> = ({
         username: u.username || '',
         name: u.name || '',
         phone: u.phone || '-',
+        agency: u.agency || '',
+        address: u.address || '',
+        province: u.province || '',
+        skills_equipment: u.skills_equipment || '',
+        id_card_number: u.id_card_number || '',
         role: u.role,
         status: u.status || 'active',
         is_online: Boolean(u.is_online),

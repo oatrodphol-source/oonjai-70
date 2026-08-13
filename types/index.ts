@@ -5,12 +5,37 @@ export type CaseStatus = 'pending' | 'in_progress' | 'resolved' | 'cancelled';
 
 export interface User {
   id: number;
+  username?: string;
   name: string;
-  email: string;
+  email?: string;
   phone?: string;
-  role: Role;
-  status: 'active' | 'inactive' | 'suspended';
+  agency?: string;
+  address?: string;
+  province?: string;
+  skills_equipment?: string;
+  id_card_number?: string;
+  role: Role | string;
+  status: 'active' | 'inactive' | 'suspended' | string;
+  is_online?: boolean;
   created_at: string;
+  updated_at?: string;
+}
+
+export interface Volunteer {
+  id: number;
+  username: string;
+  name: string;
+  phone: string;
+  agency?: string;
+  address?: string;
+  province?: string;
+  skills_equipment?: string;
+  id_card_number?: string;
+  role: string;
+  status: string;
+  is_online?: boolean;
+  created_at: string;
+  updated_at?: string;
 }
 
 export interface Case {

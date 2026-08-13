@@ -116,13 +116,7 @@ export default function UsersPage() {
             </button>
             <h3 className="text-lg font-bold mb-4 dark:text-white">แก้ไขข้อมูลผู้ใช้งาน</h3>
             <UnifiedUserForm 
-              initialData={{
-                id: editingUser.id,
-                name: editingUser.name || editingUser.username,
-                phone: editingUser.phone,
-                role: editingUser.role,
-                username: editingUser.username,
-              }}
+              initialData={editingUser}
               isEditing={true}
               isAdminAccess={true}
               onSuccess={() => {

@@ -197,3 +197,9 @@ CREATE TABLE IF NOT EXISTS usermanagement (
     FOREIGN KEY (admin_id) REFERENCES user(id) ON DELETE CASCADE,
     FOREIGN KEY (target_user_id) REFERENCES user(id) ON DELETE CASCADE
 );
+
+-- Migration: Add extra fields to volunteers table for admin & report convenience
+ALTER TABLE volunteers ADD COLUMN IF NOT EXISTS address TEXT;
+ALTER TABLE volunteers ADD COLUMN IF NOT EXISTS province TEXT;
+ALTER TABLE volunteers ADD COLUMN IF NOT EXISTS skills_equipment TEXT;
+ALTER TABLE volunteers ADD COLUMN IF NOT EXISTS id_card_number TEXT;

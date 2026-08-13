@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { User, Phone, Briefcase, Lock, UserCog, Save, Loader2, AtSign } from 'lucide-react';
+import { User, Phone, Briefcase, Lock, UserCog, Save, Loader2, AtSign, MapPin, Globe, Shield, CreditCard } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 
@@ -25,6 +25,10 @@ export default function UnifiedUserForm({
     name: initialData?.name || '',
     phone: initialData?.phone || '',
     agency: initialData?.agency || '',
+    address: initialData?.address || '',
+    province: initialData?.province || '',
+    skills_equipment: initialData?.skills_equipment || '',
+    id_card_number: initialData?.id_card_number || '',
     username: initialData?.username || '',
     password: '',
     role: initialData?.role || 'volunteer',
@@ -32,7 +36,7 @@ export default function UnifiedUserForm({
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -143,6 +147,66 @@ export default function UnifiedUserForm({
             onChange={handleChange}
             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all dark:bg-gray-700 dark:text-white"
             placeholder="ระบุชื่อสังกัด (ถ้ามี)"
+          />
+        </div>
+
+        {/* Province */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+            <Globe size={16} /> จังหวัดปฏิบัติการ
+          </label>
+          <input
+            type="text"
+            name="province"
+            value={formData.province}
+            onChange={handleChange}
+            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all dark:bg-gray-700 dark:text-white"
+            placeholder="เช่น ปทุมธานี, นนทบุรี, กรุงเทพฯ"
+          />
+        </div>
+
+        {/* ID Card Number / Volunteer ID */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+            <CreditCard size={16} /> เลขบัตรประชาชน / รหัสอาสา
+          </label>
+          <input
+            type="text"
+            name="id_card_number"
+            value={formData.id_card_number}
+            onChange={handleChange}
+            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all dark:bg-gray-700 dark:text-white"
+            placeholder="เช่น 1100XXXXXXXXXXXXXXXX"
+          />
+        </div>
+
+        {/* Address */}
+        <div className="space-y-2 md:col-span-2">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+            <MapPin size={16} /> ที่อยู่ / พื้นที่ประจำการหลัก
+          </label>
+          <textarea
+            name="address"
+            rows={2}
+            value={formData.address}
+            onChange={handleChange}
+            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all dark:bg-gray-700 dark:text-white resize-none"
+            placeholder="ระบุที่อยู่ / ศูนย์ประสานงาน / พื้นที่ประจำการ"
+          />
+        </div>
+
+        {/* Skills & Equipment */}
+        <div className="space-y-2 md:col-span-2">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+            <Shield size={16} /> ความเชี่ยวชาญ / อุปกรณ์ประจำทีม
+          </label>
+          <input
+            type="text"
+            name="skills_equipment"
+            value={formData.skills_equipment}
+            onChange={handleChange}
+            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all dark:bg-gray-700 dark:text-white"
+            placeholder="เช่น เรือยางท้องแบน, ทีมดำน้ำฉุกเฉิน, รถพยาบาล ALS, ปฐมพยาบาลเบื้องต้น"
           />
         </div>
 

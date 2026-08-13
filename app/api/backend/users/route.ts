@@ -8,7 +8,7 @@ import bcrypt from 'bcryptjs';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { username, password, name, phone, agency, role } = body;
+        const { username, password, name, phone, agency, role, address, province, skills_equipment, id_card_number } = body;
 
         // 1. ตรวจสอบข้อมูลเบื้องต้น
         if (!username || !password || !name || !role) {
@@ -32,12 +32,16 @@ export async function POST(request: Request) {
         const collectionName = role === 'admin' ? 'admins' : 'volunteers';
 
         // 5. เตรียมข้อมูล
-        const insertData = {
+        const insertData: any = {
             username,
             password_hash: hashedPassword, 
             name,
             phone,
             agency: agency || null,
+            address: address || null,
+            province: province || null,
+            skills_equipment: skills_equipment || null,
+            id_card_number: id_card_number || null,
             role,
             created_at: new Date().toISOString()
         };
@@ -62,7 +66,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
     try {
         const body = await request.json();
-        const { id, password, name, phone, agency, role, username, status } = body;
+        const { id, password, name, phone, agency, role, username, status, address, province, skills_equipment, id_card_number } = body;
 
         if (!id || !role) {
             return NextResponse.json({ error: 'กรุณาระบุไอดีและสิทธิ์ (Role)' }, { status: 400 });
@@ -77,6 +81,10 @@ export async function PUT(request: Request) {
         if (name !== undefined) updateData.name = name;
         if (phone !== undefined) updateData.phone = phone;
         if (agency !== undefined) updateData.agency = agency || null;
+        if (address !== undefined) updateData.address = address || null;
+        if (province !== undefined) updateData.province = province || null;
+        if (skills_equipment !== undefined) updateData.skills_equipment = skills_equipment || null;
+        if (id_card_number !== undefined) updateData.id_card_number = id_card_number || null;
         if (username !== undefined) updateData.username = username;
         if (status !== undefined) updateData.status = status;
 
