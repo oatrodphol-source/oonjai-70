@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { User, Building, Phone, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { THAI_PROVINCES } from '@/lib/constants';
+import VolunteerLocationPicker from '@/components/backend/VolunteerLocationPicker';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -178,14 +179,19 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="block text-white text-sm font-medium mb-1.5">ที่อยู่ / พื้นที่ประจำการหลัก (ถ้ามี)</label>
-            <input
-              type="text"
-              name="address"
-              value={(formData as any).address || ''}
-              onChange={(e) => setFormData((prev) => ({ ...prev, address: e.target.value }))}
-              placeholder="ระบุที่อยู่ / ศูนย์กู้ภัย / พื้นที่ประจำการ"
-              className="w-full px-4 py-3 rounded-xl border-none focus:ring-2 focus:ring-white bg-[#f4b685] text-gray-900 placeholder-gray-600 shadow-inner transition-all text-sm"
+            <VolunteerLocationPicker
+              address={(formData as any).address || ''}
+              latitude={(formData as any).latitude}
+              longitude={(formData as any).longitude}
+              onChangeLocation={({ address, latitude, longitude, province }) => {
+                setFormData((prev: any) => ({
+                  ...prev,
+                  address,
+                  ...(latitude ? { latitude } : {}),
+                  ...(longitude ? { longitude } : {}),
+                  ...(province ? { province } : {}),
+                }));
+              }}
             />
           </div>
 

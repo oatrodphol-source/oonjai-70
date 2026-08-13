@@ -22,15 +22,21 @@ export default function VolunteerLocationPicker({
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isLocating, setIsLocating] = useState(false);
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
+  // Auto-search using multi-provider autocomplete API
+  const handleSearch = async (queryText?: string) => {
+    const text = queryText !== undefined ? queryText : searchQuery;
+    if (!text.trim() || text.trim().length < 2) return;
+    
     setIsSearching(true);
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery + ' Thailand')}&limit=5`);
+      const res = await fetch(`/api/places/autocomplete?input=${encodeURIComponent(text.trim())}`);
+      if (!res.ok) throw new Error('Search failed');
       const data = await res.json();
-      setSearchResults(data || []);
-      if (data && data.length === 0) {
-        toast.error('ไม่พบสถานที่ที่ค้นหา ลองพิมพ์ชื่ออำเภอ/จังหวัดเพิ่มเติม');
+      const predictions = data.predictions || [];
+      setSearchResults(predictions);
+      
+      if (predictions.length === 0) {
+        toast.error('ไม่พบสถานที่ที่ค้นหา ลองพิมพ์ชื่ออำเภอหรือจังหวัดเพิ่มเติม');
       }
     } catch (e) {
       console.error(e);
@@ -40,26 +46,59 @@ export default function VolunteerLocationPicker({
     }
   };
 
-  const handleSelectResult = (item: any) => {
-    const lat = parseFloat(item.lat);
-    const lon = parseFloat(item.lon);
-    const displayName = item.display_name;
+  const handleSelectResult = async (item: any) => {
+    setIsSearching(true);
+    let lat = item.lat;
+    let lng = item.lng;
+    let fullAddr = item.description || `${item.main_text} ${item.secondary_text}`.trim();
 
-    // Detect Thai province from display_name
+    // If Google place without lat/lng, fetch place details
+    if ((!lat || !lng) && item.place_id) {
+      try {
+        const detailsRes = await fetch(`/api/places/details?place_id=${item.place_id}`);
+        if (detailsRes.ok) {
+          const detailsData = await detailsRes.json();
+          if (detailsData.lat && detailsData.lng) {
+            lat = detailsData.lat;
+            lng = detailsData.lng;
+            if (detailsData.name) fullAddr = detailsData.name;
+          }
+        }
+      } catch (e) {
+        console.error('Fetch place details error:', e);
+      }
+    }
+
+    // Detect Thai province from fullAddr
     let detectedProv = '';
-    if (displayName.includes('ปทุมธานี')) detectedProv = 'ปทุมธานี';
-    else if (displayName.includes('กรุงเทพ')) detectedProv = 'กรุงเทพมหานคร';
-    else if (displayName.includes('นนทบุรี')) detectedProv = 'นนทบุรี';
-    else if (displayName.includes('สมุทรปราการ')) detectedProv = 'สมุทรปราการ';
-    else if (displayName.includes('เชียงใหม่')) detectedProv = 'เชียงใหม่';
+    const THAI_PROVINCES_LIST = [
+      'กรุงเทพมหานคร', 'กระบี่', 'กาญจนบุรี', 'กาฬสินธุ์', 'กำแพงเพชร', 'ขอนแก่น', 'จันทบุรี', 'ฉะเชิงเทรา',
+      'ชลบุรี', 'ชัยนาท', 'ชัยภูมิ', 'ชุมพร', 'เชียงราย', 'เชียงใหม่', 'ตรัง', 'ตราด', 'ตาก', 'นครนายก',
+      'นครปฐม', 'นครพนม', 'นครราชสีมา', 'นครศรีธรรมราช', 'นครสวรรค์', 'นนทบุรี', 'นราธิวาส', 'น่าน',
+      'บึงกาฬ', 'บุรีรัมย์', 'ปทุมธานี', 'ประจวบคีรีขันธ์', 'ปราจีนบุรี', 'ปัตตานี', 'พระนครศรีอยุธยา',
+      'พะเยา', 'พังงา', 'พัทลุง', 'พิจิตร', 'พิษณุโลก', 'เพชรบุรี', 'เพชรบูรณ์', 'แพร่', 'ภูเก็ต',
+      'มหาสารคาม', 'มุกดาหาร', 'แม่ฮ่องสอน', 'ยโสธร', 'ยะลา', 'ร้อยเอ็ด', 'ระนอง', 'ระยอง', 'ราชบุรี',
+      'ลพบุรี', 'ลำปาง', 'ลำพูน', 'เลย', 'ศรีสะเกษ', 'สกลนคร', 'สงขลา', 'สตูล', 'สมุทรปราการ',
+      'สมุทรสงคราม', 'สมุทรสาคร', 'สระแก้ว', 'สระบุรี', 'สิงห์บุรี', 'สุโขทัย', 'สุพรรณบุรี', 'สุราษฎร์ธานี',
+      'สุรินทร์', 'หนองคาย', 'หนองบัวลำภู', 'อ่างทอง', 'อำนาจเจริญ', 'อุดรธานี', 'อุตรดิตถ์', 'อุทัยธานี', 'อุบลราชธานี'
+    ];
+
+    for (const prov of THAI_PROVINCES_LIST) {
+      if (fullAddr.includes(prov) || fullAddr.includes(prov.replace('มหานคร', ''))) {
+        detectedProv = prov;
+        break;
+      }
+    }
 
     onChangeLocation({
-      address: displayName,
-      latitude: lat,
-      longitude: lon,
+      address: fullAddr,
+      latitude: lat ? parseFloat(lat) : undefined,
+      longitude: lng ? parseFloat(lng) : undefined,
       province: detectedProv || undefined,
     });
+
     setSearchResults([]);
+    setIsSearching(false);
     toast.success('ปักหมุดสถานที่สำเร็จ!');
   };
 
@@ -101,7 +140,7 @@ export default function VolunteerLocationPicker({
       },
       (err) => {
         setIsLocating(false);
-        toast.error('ไม่สามารถดึงพิกัด GPS ได้ กรุณาค้นหาชื่อสถานที่แทน');
+        toast.error('ไม่สามารถดึงพิกัด GPS ได้ กรุณาพิมพ์ค้นหาชื่อสถานที่แทน');
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -124,46 +163,58 @@ export default function VolunteerLocationPicker({
         </button>
       </div>
 
-      {/* Location Search Bar */}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(); } }}
-            placeholder="ค้นหาชื่อสถานที่ / ศูนย์กู้ภัย / จุดสแตนด์บาย..."
-            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-          />
-          <Search size={15} className="absolute left-3 top-2.5 text-gray-400" />
+      {/* Location Search Bar with Autocomplete */}
+      <div className="relative">
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                if (e.target.value.trim().length >= 2) {
+                  handleSearch(e.target.value);
+                } else {
+                  setSearchResults([]);
+                }
+              }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(); } }}
+              placeholder="พิมพ์ชื่อโรงเรียน/วัด/ศูนย์กู้ภัย/สถานที่..."
+              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+            />
+            <Search size={15} className="absolute left-3 top-2.5 text-gray-400" />
+          </div>
+          <button
+            type="button"
+            onClick={() => handleSearch()}
+            disabled={isSearching}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-1.5 shrink-0"
+          >
+            {isSearching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
+            ค้นหา
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={handleSearch}
-          disabled={isSearching}
-          className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-1.5 shrink-0"
-        >
-          {isSearching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
-          ค้นหา
-        </button>
-      </div>
 
-      {/* Search Results Dropdown */}
-      {searchResults.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-h-48 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700 z-50">
-          {searchResults.map((item, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => handleSelectResult(item)}
-              className="w-full text-left p-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors flex items-start gap-2"
-            >
-              <MapPin size={14} className="text-red-500 shrink-0 mt-0.5" />
-              <span>{item.display_name}</span>
-            </button>
-          ))}
-        </div>
-      )}
+        {/* Search Results Dropdown List */}
+        {searchResults.length > 0 && (
+          <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl max-h-56 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700 z-50">
+            {searchResults.map((item, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => handleSelectResult(item)}
+                className="w-full text-left p-3 text-xs text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-950/60 transition-colors flex items-start gap-2.5"
+              >
+                <MapPin size={15} className="text-red-500 shrink-0 mt-0.5" />
+                <div className="min-w-0 flex-1">
+                  <div className="font-bold text-gray-900 dark:text-white text-sm truncate">{item.main_text}</div>
+                  <div className="text-gray-500 dark:text-gray-400 text-xs truncate mt-0.5">{item.secondary_text || item.description}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Address Text Area */}
       <textarea
