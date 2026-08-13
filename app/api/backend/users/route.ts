@@ -49,7 +49,14 @@ export async function POST(request: Request) {
         };
 
         // 6. บันทึกลง Supabase
-        const { error } = await supabase.from(collectionName).insert([insertData]);
+        let { error } = await supabase.from(collectionName).insert([insertData]);
+
+        if (error && (error.message?.includes('latitude') || error.message?.includes('longitude'))) {
+            delete insertData.latitude;
+            delete insertData.longitude;
+            const retry = await supabase.from(collectionName).insert([insertData]);
+            error = retry.error;
+        }
 
         if (error) {
              console.error("Supabase Insert Error:", error);
@@ -60,7 +67,7 @@ export async function POST(request: Request) {
 
     } catch (error: any) {
         console.error('Create User API Error:', error);
-        return NextResponse.json({ error: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง' }, { status: 500 });
+        return NextResponse.json({ error: error.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง' }, { status: 500 });
     }
 }
 
@@ -97,7 +104,14 @@ export async function PUT(request: Request) {
             updateData.password_hash = await bcrypt.hash(password, salt);
         }
 
-        const { error } = await supabase.from(collectionName).update(updateData).eq('id', id);
+        let { error } = await supabase.from(collectionName).update(updateData).eq('id', id);
+
+        if (error && (error.message?.includes('latitude') || error.message?.includes('longitude'))) {
+            delete updateData.latitude;
+            delete updateData.longitude;
+            const retry = await supabase.from(collectionName).update(updateData).eq('id', id);
+            error = retry.error;
+        }
 
         if (error) {
             console.error("Supabase Update Error:", error);
