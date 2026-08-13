@@ -576,7 +576,11 @@ export const VolunteerTaskBoard = ({
                   )}
                 </div>
                 
-                {c.details && <div className="text-xs sm:text-sm mt-1.5 p-2.5 bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-300 rounded-xl border border-gray-100 dark:border-gray-700">{c.details}</div>}
+                {c.details && c.details.replace(/\[อัปเดตเพิ่มเติม:\s*\]/g, '').replace(/\[\s*\]/g, '').trim() && (
+                  <div className="text-xs sm:text-sm mt-1.5 p-2.5 bg-slate-50 dark:bg-slate-800/60 text-slate-800 dark:text-slate-200 font-medium rounded-xl border border-slate-200/60 dark:border-slate-700/80 leading-relaxed whitespace-pre-wrap">
+                    {c.details.replace(/\[อัปเดตเพิ่มเติม:\s*\]/g, '').replace(/\[\s*\]/g, '').trim()}
+                  </div>
+                )}
               </div>
 
               {/* Location details fallback */}
@@ -590,7 +594,8 @@ export const VolunteerTaskBoard = ({
               {/* Compact Call Button */}
               {c.phone ? (
                 <a href={`tel:${c.phone}`} className="flex items-center justify-center w-full py-2 sm:py-2.5 mt-2 text-xs sm:text-sm font-extrabold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm rounded-xl gap-2 transition-colors border border-emerald-500 cursor-pointer">
-                  <Phone className="w-4 h-4" /> โทรหาผู้ประสบภัย
+                  <Phone className="w-4 h-4 shrink-0" />
+                  <span>โทรหาผู้ประสบภัย ({c.phone})</span>
                 </a>
               ) : (
                 <div className="flex items-center justify-center w-full py-2 mt-2 text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 rounded-xl gap-2 border border-gray-200 dark:border-gray-700">
