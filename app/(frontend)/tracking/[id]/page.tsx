@@ -332,7 +332,7 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
   const EtaIcon = eta.IconComponent;
 
   return (
-    <div className="p-4 sm:p-6 w-full max-w-lg mx-auto pb-24 relative min-h-screen">
+    <div className="p-3 sm:p-6 w-full max-w-lg mx-auto pb-44 sm:pb-48 relative min-h-screen">
       {/* Header Bar */}
       <div className="flex items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
@@ -674,27 +674,34 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
         </Card>
       )}
 
-      {/* Floating Bottom Actions (Share, Cancel, Map) */}
-      <div className="fixed bottom-14 left-0 right-0 z-40 px-4 sm:px-6 w-full max-w-lg mx-auto bg-gradient-to-t from-white via-white to-transparent pt-6 pb-4 dark:from-[#020817] dark:via-[#020817]">
-        <div className="flex flex-row gap-2 shadow-xl rounded-2xl bg-white dark:bg-[#0b1325] p-2 border border-gray-100 dark:border-gray-800">
+      {/* Floating Bottom Actions (Share, Cancel, Map) - Safe Elevation Above Bottom Navbar */}
+      <div className="fixed bottom-[74px] sm:bottom-[82px] left-0 right-0 z-30 px-3 sm:px-6 w-full max-w-lg mx-auto pointer-events-auto">
+        <div className="flex flex-row gap-1.5 sm:gap-2 shadow-2xl rounded-2xl bg-white/95 dark:bg-[#0b1325]/95 backdrop-blur-md p-2 border border-gray-200 dark:border-gray-800">
           <button
             onClick={handleShare}
-            className="flex-1 min-w-fit px-2 py-3 text-xs sm:text-sm font-semibold rounded-xl text-center leading-tight flex items-center justify-center gap-1.5 bg-[#00B900] hover:bg-[#009900] text-white transition-colors shadow-sm"
+            className="flex-1 min-w-0 px-2 py-2.5 sm:py-3 text-xs sm:text-sm font-extrabold rounded-xl text-center leading-tight flex items-center justify-center gap-1.5 bg-[#00B900] hover:bg-[#009900] active:scale-95 text-white transition-all shadow-sm cursor-pointer"
           >
-            <Share2 className="w-4 h-4" /> แชร์สถานะ
+            <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="truncate">แชร์สถานะ</span>
           </button>
 
           {caseData.status === 'pending' && (
             <button
               onClick={handleCancel}
-              className="flex-1 min-w-fit px-2 py-3 text-xs sm:text-sm font-semibold rounded-xl text-center leading-tight flex items-center justify-center gap-1.5 border-2 border-red-500 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              className="flex-1 min-w-0 px-2 py-2.5 sm:py-3 text-xs sm:text-sm font-extrabold rounded-xl text-center leading-tight flex items-center justify-center gap-1.5 border-2 border-red-500 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 active:scale-95 transition-all cursor-pointer"
             >
-              <XCircle className="w-4 h-4" /> ยกเลิก
+              <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+              <span className="truncate">ยกเลิก</span>
             </button>
           )}
 
-          <Button variant="outline" className="flex-1 min-w-fit px-2 py-3 text-xs sm:text-sm font-semibold rounded-xl text-center leading-tight flex items-center justify-center gap-1.5" onClick={() => router.push('/map')}>
-            <MapPin className="w-4 h-4" /> แผนที่หลัก
+          <Button 
+            variant="outline" 
+            className="flex-1 min-w-0 px-2 py-2.5 sm:py-3 text-xs sm:text-sm font-extrabold rounded-xl text-center leading-tight flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer" 
+            onClick={() => router.push('/map')}
+          >
+            <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-[#ff6600]" />
+            <span className="truncate">แผนที่หลัก</span>
           </Button>
         </div>
       </div>
