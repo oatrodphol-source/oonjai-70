@@ -105,7 +105,8 @@ export const VolunteerTaskBoard = ({
         fetchUserStatus();
 
         // Subscribe to changes specifically for this user
-        statusChannel = supabase.channel(`realtime-user-status-${uid}`)
+        const statusChannelName = `realtime-user-status-${uid}-${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
+        statusChannel = supabase.channel(statusChannelName)
           .on('postgres_changes', { 
             event: 'UPDATE', 
             schema: 'public', 
@@ -156,7 +157,8 @@ export const VolunteerTaskBoard = ({
 
     fetchCases();
 
-    const channel = supabase.channel('realtime-volunteer-cases')
+    const casesChannelName = `realtime-vol-cases-${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
+    const channel = supabase.channel(casesChannelName)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'cases' }, async (payload) => {
         console.log('🔄 ข้อมูลงานอาสาสมัครมีการเปลี่ยนแปลง:', payload.eventType);
         

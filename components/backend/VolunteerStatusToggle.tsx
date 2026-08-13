@@ -52,8 +52,9 @@ export function VolunteerStatusToggle() {
 
     fetchInitialStatus();
 
+    const channelName = `vol-status-toggle-${currentUserId}-${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
     const channel = supabase
-      .channel(`volunteer-status-${currentUserId}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'volunteers', filter: `id=eq.${currentUserId}` },
