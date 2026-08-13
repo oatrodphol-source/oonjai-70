@@ -23,10 +23,13 @@ export default function RegisterPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    // Phone strictly numbers
+    // Phone strictly 10 numbers
     if (name === 'phone') {
       const val = value.replace(/\D/g, '').slice(0, 10);
       setFormData((prev) => ({ ...prev, phone: val }));
+    } else if (name === 'username') {
+      const val = value.replace(/[^a-zA-Z0-9_.\-@]/g, '');
+      setFormData((prev) => ({ ...prev, username: val }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }

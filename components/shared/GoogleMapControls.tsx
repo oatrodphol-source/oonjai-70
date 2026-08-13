@@ -144,8 +144,9 @@ export default function GoogleMapControls({
     let name = item.main_text || item.description;
 
     skipNextSearchRef.current = true;
-    setQuery(name);
+    setResults([]);
     setShowResults(false);
+    setQuery(name);
 
     // If coordinates are not provided directly (e.g. Google Places ID), fetch details
     if (!lat || !lng) {

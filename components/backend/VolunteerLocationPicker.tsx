@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { MapPin, Search, Navigation, Loader2, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -22,9 +22,17 @@ export default function VolunteerLocationPicker({
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isOpenDropdown, setIsOpenDropdown] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
+  const isSelectingRef = useRef(false);
 
   // Auto-search using multi-provider autocomplete API
   const handleSearch = async (queryText?: string) => {
+    if (isSelectingRef.current) {
+      isSelectingRef.current = false;
+      setSearchResults([]);
+      setIsOpenDropdown(false);
+      return;
+    }
+
     const text = queryText !== undefined ? queryText : searchQuery;
     if (!text.trim() || text.trim().length < 2) {
       setSearchResults([]);
@@ -37,6 +45,11 @@ export default function VolunteerLocationPicker({
       const res = await fetch(`/api/places/autocomplete?input=${encodeURIComponent(text.trim())}`);
       if (!res.ok) throw new Error('Search failed');
       const data = await res.json();
+      if (isSelectingRef.current) {
+        setSearchResults([]);
+        setIsOpenDropdown(false);
+        return;
+      }
       const predictions = data.predictions || [];
       setSearchResults(predictions);
       setIsOpenDropdown(predictions.length > 0);
@@ -53,6 +66,7 @@ export default function VolunteerLocationPicker({
   };
 
   const handleSelectResult = async (item: any) => {
+    isSelectingRef.current = true;
     setSearchResults([]);
     setIsOpenDropdown(false);
     setIsSearching(true);
