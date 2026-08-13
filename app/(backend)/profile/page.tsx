@@ -199,6 +199,23 @@ export default function ProfilePage() {
           </h1>
       </div>
 
+      {/* 📝 PROFILE INCOMPLETE REMINDER BANNER FOR VOLUNTEERS */}
+      {role === 'volunteer' && profileUserData && (!profileUserData.address || !profileUserData.skills_equipment) && (
+        <div className="bg-amber-500/15 border-2 border-amber-500/40 text-amber-900 dark:text-amber-200 rounded-2xl p-4 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+          <div className="w-10 h-10 bg-amber-500 text-white rounded-xl flex items-center justify-center shrink-0 shadow-sm font-bold text-lg">
+            📝
+          </div>
+          <div>
+            <p className="font-extrabold text-sm text-amber-800 dark:text-amber-300">
+              กรุณากรอกข้อมูลโปรไฟล์เพิ่มเติมให้ครบถ้วน
+            </p>
+            <p className="text-xs opacity-90 leading-relaxed">
+              โปรดระบุ <strong>"ที่อยู่/พื้นที่ประจำการ"</strong> และ <strong>"ความเชี่ยวชาญ/อุปกรณ์ประจำทีม"</strong> ในแบบฟอร์มด้านล่าง เพื่อช่วยให้แอดมินส่งเคสช่วยเหลือได้อย่างแม่นยำครับ
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ส่วนหัว: สรุปสถิติ (Hero Section) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 text-white shadow-lg shadow-orange-500/20 flex flex-col justify-between relative overflow-hidden">

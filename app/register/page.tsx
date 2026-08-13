@@ -154,7 +154,7 @@ export default function RegisterPage() {
                   placeholder="08XXXXXXXX"
                   required
                   maxLength={10}
-                  className="w-full pl-11 pr-4 py-3 rounded-xl border-none focus:ring-2 focus:ring-white bg-[#f4b685] text-gray-900 placeholder-gray-600 shadow-inner transition-all font-mono"
+                  className="w-full pl-11 pr-4 py-3 rounded-xl border-none focus:ring-2 focus:ring-white bg-[#f4b685] text-gray-900 placeholder-gray-600 shadow-inner transition-all font-mono text-sm"
                 />
               </div>
             </div>
@@ -165,7 +165,7 @@ export default function RegisterPage() {
                   name="province"
                   value={(formData as any).province || 'ปทุมธานี'}
                   onChange={(e) => setFormData((prev) => ({ ...prev, province: e.target.value }))}
-                  className="w-full px-4 py-3 rounded-xl border-none focus:ring-2 focus:ring-white bg-[#f4b685] text-gray-900 shadow-inner transition-all"
+                  className="w-full px-4 py-3 rounded-xl border-none focus:ring-2 focus:ring-white bg-[#f4b685] text-gray-900 shadow-inner transition-all text-sm"
                 >
                   {THAI_PROVINCES.map((p) => (
                     <option key={p} value={p}>
@@ -175,6 +175,30 @@ export default function RegisterPage() {
                 </select>
               </div>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-white text-sm font-medium mb-1.5">ที่อยู่ / พื้นที่ประจำการหลัก (ถ้ามี)</label>
+            <input
+              type="text"
+              name="address"
+              value={(formData as any).address || ''}
+              onChange={(e) => setFormData((prev) => ({ ...prev, address: e.target.value }))}
+              placeholder="ระบุที่อยู่ / ศูนย์กู้ภัย / พื้นที่ประจำการ"
+              className="w-full px-4 py-3 rounded-xl border-none focus:ring-2 focus:ring-white bg-[#f4b685] text-gray-900 placeholder-gray-600 shadow-inner transition-all text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-white text-sm font-medium mb-1.5">ความเชี่ยวชาญ / อุปกรณ์ประจำทีม (ถ้ามี)</label>
+            <input
+              type="text"
+              name="skills_equipment"
+              value={(formData as any).skills_equipment || ''}
+              onChange={(e) => setFormData((prev) => ({ ...prev, skills_equipment: e.target.value }))}
+              placeholder="เช่น เรือยางท้องแบน, ทีมดำน้ำฉุกเฉิน, รถพยาบาล ALS"
+              className="w-full px-4 py-3 rounded-xl border-none focus:ring-2 focus:ring-white bg-[#f4b685] text-gray-900 placeholder-gray-600 shadow-inner transition-all text-sm"
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
