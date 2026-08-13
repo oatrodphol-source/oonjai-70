@@ -74,6 +74,18 @@ export default function CasesPage() {
     };
   }, [currentUser]);
 
+  const [volunteersList, setVolunteersList] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchVolunteers = async () => {
+      try {
+        const { data } = await supabase.from('volunteers').select('id, name, agency, province').order('name');
+        if (data) setVolunteersList(data);
+      } catch (e) {}
+    };
+    fetchVolunteers();
+  }, []);
+
   if (!isClient) {
     return null; // Avoid hydration mismatch
   }
@@ -102,7 +114,7 @@ export default function CasesPage() {
             </div>
           </div>
           
-          <div className="flex overflow-x-auto hide-scrollbar gap-2 mb-6 border-b border-slate-200 dark:border-slate-800 pb-0 mt-4">
+          <div className="flex overflow-x-auto hide-scrollbar gap-2 mb-2 border-b border-slate-200 dark:border-slate-800 pb-0 mt-2">
             {[
               { id: 'all', label: 'รายการทั้งหมด' },
               { id: 'pending', label: '🔴 รอดำเนินการ' },
@@ -122,49 +134,61 @@ export default function CasesPage() {
               </button>
             ))}
           </div>
-          
-          {activeTab === 'completed' && (
-            <div className="flex flex-col gap-4 mt-2 animate-in fade-in slide-in-from-top-2 border-t border-slate-100 dark:border-slate-800 pt-4">
-              <div className={`grid grid-cols-1 sm:grid-cols-2 ${role === 'admin' ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4 w-full`}>
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">ค้นหารหัสเคส</label>
-                  <Input 
-                    placeholder="เช่น CAS-001..." 
-                    value={searchCaseId}
-                    onChange={(e) => setSearchCaseId(e.target.value)}
-                  />
-                </div>
-                {role === 'admin' && (
-                  <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">ค้นหาชื่ออาสาสมัคร</label>
-                    <Input 
-                      placeholder="พิมพ์ชื่อทีมหรืออาสา..." 
-                      value={searchVolunteerName}
-                      onChange={(e) => setSearchVolunteerName(e.target.value)}
-                    />
-                  </div>
-                )}
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">ระดับความรุนแรง</label>
-                  <select className="w-full border border-slate-300 dark:border-slate-700 p-2.5 rounded-lg dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-500" value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value)}>
-                    <option value="all">ทุกระดับ</option>
-                    <option value="5">ระดับ 5 (วิกฤต)</option>
-                    <option value="4">ระดับ 4 (รุนแรง)</option>
-                    <option value="3">ระดับ 3 (ปานกลาง)</option>
-                    <option value="2">ระดับ 2 (เฝ้าระวัง)</option>
-                    <option value="1">ระดับ 1 (ทั่วไป)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">จุดหมายที่นำส่ง (Destination)</label>
-                  <select className="w-full border border-slate-300 dark:border-slate-700 p-2.5 rounded-lg dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-500" value={destinationFilter} onChange={(e) => setDestinationFilter(e.target.value)}>
-                    <option value="all">ทุกจุดหมาย</option>
-                    <option value="ศูนย์พักพิง">ศูนย์พักพิง</option>
-                    <option value="มอบถุงยังชีพ">มอบถุงยังชีพ</option>
-                    <option value="นำส่งโรงพยาบาล">นำส่งโรงพยาบาล</option>
-                    <option value="พื้นที่ปลอดภัย">พื้นที่ปลอดภัย</option>
-                  </select>
-                </div>
+
+          {/* 🚑 Dynamic Volunteer & Priority Filter Bar for Admin */}
+          {role === 'admin' && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800 animate-in fade-in duration-200">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                  🚑 กรองตามทีมอาสาสมัคร (Supabase)
+                </label>
+                <select
+                  value={searchVolunteerName}
+                  onChange={(e) => setSearchVolunteerName(e.target.value)}
+                  className="w-full border border-slate-300 dark:border-slate-700 p-2 text-xs rounded-lg dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 font-medium"
+                >
+                  <option value="">-- อาสาสมัครทั้งหมด --</option>
+                  {volunteersList.map((vol) => (
+                    <option key={vol.id} value={vol.name}>
+                      {vol.name} {vol.agency ? `(${vol.agency})` : ''} {vol.province ? `[จ.${vol.province}]` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                  🎯 ระดับความรุนแรง
+                </label>
+                <select 
+                  className="w-full border border-slate-300 dark:border-slate-700 p-2 text-xs rounded-lg dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 font-medium" 
+                  value={severityFilter} 
+                  onChange={(e) => setSeverityFilter(e.target.value)}
+                >
+                  <option value="all">ทุกระดับความรุนแรง</option>
+                  <option value="5">ระดับ 5 (วิกฤต)</option>
+                  <option value="4">ระดับ 4 (รุนแรง)</option>
+                  <option value="3">ระดับ 3 (ปานกลาง)</option>
+                  <option value="2">ระดับ 2 (เฝ้าระวัง)</option>
+                  <option value="1">ระดับ 1 (ทั่วไป)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                  📍 จุดหมายที่นำส่ง
+                </label>
+                <select 
+                  className="w-full border border-slate-300 dark:border-slate-700 p-2 text-xs rounded-lg dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 font-medium" 
+                  value={destinationFilter} 
+                  onChange={(e) => setDestinationFilter(e.target.value)}
+                >
+                  <option value="all">ทุกจุดหมาย</option>
+                  <option value="ศูนย์พักพิง">ศูนย์พักพิง</option>
+                  <option value="มอบถุงยังชีพ">มอบถุงยังชีพ</option>
+                  <option value="นำส่งโรงพยาบาล">นำส่งโรงพยาบาล</option>
+                  <option value="พื้นที่ปลอดภัย">พื้นที่ปลอดภัย</option>
+                </select>
               </div>
             </div>
           )}

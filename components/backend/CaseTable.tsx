@@ -80,15 +80,76 @@ export const CaseTable = ({
     }
   };
 
+  const handleQuickAssign = async (caseId: any, volunteer: any) => {
+    try {
+      const { error } = await supabase.from('cases').update({
+        volunteer_id: volunteer.id,
+        volunteer_name: volunteer.name,
+        assigned_volunteer_phone: volunteer.phone || null,
+        assigned_volunteer_unit: volunteer.agency || null,
+        status: 'in_progress',
+        updated_at: new Date().toISOString(),
+      }).eq('id', caseId);
+
+      if (error) throw error;
+      alert(`✅ มอบหมายเคสให้ ${volunteer.name} สำเร็จ!`);
+      window.location.reload();
+    } catch (err: any) {
+      alert(`เกิดข้อผิดพลาดในการมอบหมายงาน: ${err.message}`);
+    }
+  };
+
+  const getAiRecForCase = (caseItem: any) => {
+    if (!allVolunteers.length) return null;
+    const caseLat = caseItem.latitude;
+    const caseLng = caseItem.longitude;
+    const caseDetails = ((caseItem.details || '') + (caseItem.type || '') + (caseItem.water_level || '')).toLowerCase();
+    const isWaterCase = caseDetails.includes('น้ำ') || caseDetails.includes('ท่วม') || caseDetails.includes('เรือ');
+    const isMedicalCase = caseDetails.includes('ป่วย') || caseDetails.includes('ติดเตียง') || caseDetails.includes('พยาบาล');
+
+    const scoredVols = allVolunteers.map((vol) => {
+      let score = 50;
+      let distanceKm: number | null = null;
+
+      if (caseLat && caseLng && vol.latitude && vol.longitude) {
+        distanceKm = getDistanceKm(caseLat, caseLng, vol.latitude, vol.longitude);
+        if (distanceKm !== Infinity) {
+          if (distanceKm < 5) score += 35;
+          else if (distanceKm < 15) score += 20;
+          else if (distanceKm < 30) score += 10;
+        }
+      }
+
+      const volSkills = (vol.skills_equipment || '').toLowerCase();
+      if (isWaterCase && (volSkills.includes('เรือ') || volSkills.includes('ดำน้ำ'))) {
+        score += 25;
+      }
+      if (isMedicalCase && (volSkills.includes('พยาบาล') || volSkills.includes('als') || volSkills.includes('ปฐมพยาบาล'))) {
+        score += 25;
+      }
+
+      return { ...vol, score: Math.min(score, 99), distanceKm: distanceKm === Infinity ? null : distanceKm };
+    });
+
+    scoredVols.sort((a, b) => b.score - a.score);
+    return scoredVols[0] || null;
+  };
+
+  const [allVolunteers, setAllVolunteers] = useState<any[]>([]);
+
   useEffect(() => {
     const fetchCases = async () => {
       try {
         const [casesRes, volRes] = await Promise.all([
           supabase.from('cases').select('*').order('created_at', { ascending: false }),
-          supabase.from('volunteers').select('id, name, phone, agency')
+          supabase.from('volunteers').select('id, name, phone, agency, province, skills_equipment, latitude, longitude')
         ]);
         
         if (casesRes.error) throw casesRes.error;
+
+        if (volRes.data) {
+          setAllVolunteers(volRes.data);
+        }
 
         const volMap = new Map();
         if (volRes.data) {
@@ -382,6 +443,44 @@ export const CaseTable = ({
                     </div>
                   </div>
                 )}
+
+                {/* 🤖 AI RECOMMENDED VOLUNTEER BANNER FOR PENDING CASES */}
+                {(row.status === 'pending' || row.status === 'รอดำเนินการ') && (() => {
+                  const aiRecVol = getAiRecForCase(row);
+                  if (!aiRecVol) return null;
+                  return (
+                    <div className="bg-slate-900 border border-blue-500/40 rounded-xl p-3 text-white space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-xs text-blue-300 flex items-center gap-1">
+                          🤖 AI แนะนำอาสาที่เหมาะสม:
+                        </span>
+                        <span className="bg-blue-600 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+                          ความเหมาะสม {aiRecVol.score}%
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between bg-black/40 p-2.5 rounded-lg border border-slate-700/60">
+                        <div className="min-w-0 pr-2">
+                          <p className="font-bold text-xs text-white truncate">{aiRecVol.name} ({aiRecVol.agency || 'กู้ภัย'})</p>
+                          <p className="text-[11px] text-blue-200 truncate">
+                            📍 ห่าง {aiRecVol.distanceKm !== null ? `${aiRecVol.distanceKm.toFixed(1)} กม.` : 'ไม่ระบุพิกัด'} • จ.{aiRecVol.province || 'ไม่ระบุ'}
+                          </p>
+                          {aiRecVol.skills_equipment && (
+                            <p className="text-[10px] text-amber-300 font-medium truncate">
+                              🛠️ {aiRecVol.skills_equipment}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleQuickAssign(row.originalId, aiRecVol)}
+                          className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-extrabold px-3 py-2 rounded-xl transition-all shadow-md shrink-0 cursor-pointer"
+                        >
+                          มอบหมายทันที
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {row.status === 'in_progress' && (
                   <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl border border-blue-100 dark:border-blue-800/50 text-sm space-y-1">
