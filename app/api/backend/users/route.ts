@@ -31,13 +31,14 @@ export async function POST(request: Request) {
         // 4. เลือกตาราง
         const collectionName = role === 'admin' ? 'admins' : 'volunteers';
 
-        // 5. เตรียมข้อมูลตรงตาม Schema ของแต่ละตาราง
+        // 5. เตรียมข้อมูลตรงตาม Schema ของแต่ละตาราง (กำหนดสิทธิ์เปิดใช้งานเริ่มต้น active 100%)
         const insertData: any = {
             username,
             password_hash: hashedPassword, 
             name,
             phone: phone || null,
             role,
+            status: 'active',
             created_at: new Date().toISOString()
         };
 

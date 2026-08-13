@@ -384,17 +384,17 @@ export const UserTable: React.FC<UserTableProps> = ({
                       <button
                         onClick={() => toggleAccountStatus(user)}
                         className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                          user.status === 'active' ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
+                          (user.status || 'active') === 'active' ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
                         }`}
                       >
                         <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-                          user.status === 'active' ? 'translate-x-5' : 'translate-x-1'
+                          (user.status || 'active') === 'active' ? 'translate-x-5' : 'translate-x-1'
                         }`} />
                       </button>
                     )}
                     {user.status !== 'deleted' && (
-                      <span className={`text-xs font-medium ${user.status === 'active' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
-                        {user.status === 'active' ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+                      <span className={`text-xs font-medium ${(user.status || 'active') === 'active' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                        {(user.status || 'active') === 'active' ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
                       </span>
                     )}
                   </div>
@@ -512,18 +512,18 @@ export const UserTable: React.FC<UserTableProps> = ({
                           <button
                             onClick={() => toggleAccountStatus(user)}
                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 dark:focus:ring-offset-slate-900 ${
-                              user.status === 'active' ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
+                              (user.status || 'active') === 'active' ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
                             }`}
-                            title={user.status === 'active' ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+                            title={(user.status || 'active') === 'active' ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
                           >
                             <span
                               className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                user.status === 'active' ? 'translate-x-6' : 'translate-x-1'
+                                (user.status || 'active') === 'active' ? 'translate-x-6' : 'translate-x-1'
                               }`}
                             />
                           </button>
-                          <span className={`text-sm font-medium ${user.status === 'active' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
-                            {user.status === 'active' ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+                          <span className={`text-sm font-medium ${(user.status || 'active') === 'active' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                            {(user.status || 'active') === 'active' ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
                           </span>
                         </div>
                       )}
