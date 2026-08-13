@@ -399,11 +399,17 @@ export const CaseTable = ({
                         </div>
                       )}
                     </div>
-                    <div className="font-bold text-lg text-gray-900 dark:text-white">{row.id}</div>
+                    <div className="font-bold text-lg text-gray-900 dark:text-white font-mono">{row.id}</div>
                   </div>
-                  <Button variant="ghost" size="sm" className="w-10 h-10 p-0 text-orange-500 hover:text-orange-600 hover:bg-orange-50 rounded-full" onClick={() => setSelectedCase(row)}>
-                    <FileSearch className="w-6 h-6" />
-                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCase(row)}
+                    className="px-3.5 py-2 bg-[#ff6600] hover:bg-[#e65c00] active:scale-95 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer shrink-0 border border-orange-400/30"
+                    title="ดูรายละเอียดเคสนี้"
+                  >
+                    <FileSearch className="w-4 h-4" />
+                    <span>ดูรายละเอียด</span>
+                  </button>
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
@@ -539,6 +545,15 @@ export const CaseTable = ({
                     </div>
                   )}
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCase(row)}
+                    className="w-full py-2.5 px-4 bg-slate-100 hover:bg-orange-50 dark:bg-slate-800/80 dark:hover:bg-orange-950/40 text-slate-700 hover:text-orange-600 dark:text-slate-200 dark:hover:text-orange-400 border border-slate-200 dark:border-slate-700/80 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all active:scale-[0.99] cursor-pointer mt-1"
+                  >
+                    <FileSearch className="w-4 h-4 text-orange-500" />
+                    <span>ดูรายละเอียดเคสนี้เพิ่มเติม</span>
+                  </button>
                 </Card>
               );
             })}
