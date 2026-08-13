@@ -501,35 +501,35 @@ export const UserTable: React.FC<UserTableProps> = ({
         </div>
 
         {/* Desktop View Table (>= lg breakpoint) */}
-        <div className="hidden lg:block w-full overflow-x-auto overflow-y-auto max-h-[60vh] custom-scrollbar rounded-xl border border-slate-200 dark:border-slate-700 relative">
-          <table className="w-full min-w-[800px] text-left text-sm whitespace-nowrap">
+        <div className="hidden lg:block w-full overflow-x-hidden overflow-y-auto max-h-[60vh] custom-scrollbar rounded-xl border border-slate-200 dark:border-slate-700 relative">
+          <table className="w-full text-left text-xs sm:text-sm">
             <thead className="bg-gray-50 dark:bg-slate-800/90 border-b border-gray-200 dark:border-slate-700 sticky top-0 z-10">
               <tr>
-                <th className="px-4 py-3 text-left font-bold text-gray-900 dark:text-white">
-                  ไอดี <span className="text-xs text-gray-400 font-normal">userId</span>
+                <th className="px-2.5 py-3 text-left font-bold text-gray-900 dark:text-white w-[6%]">
+                  ไอดี
                 </th>
-                <th className="px-4 py-3 text-left font-bold text-gray-900 dark:text-white">
-                  ชื่อผู้ใช้งาน <span className="text-xs text-gray-400 font-normal">username</span>
+                <th className="px-3 py-3 text-left font-bold text-gray-900 dark:text-white w-[14%]">
+                  ชื่อผู้ใช้
                 </th>
-                <th className="px-4 py-3 text-left font-bold text-gray-900 dark:text-white">
-                  ชื่อ-นามสกุล <span className="text-xs text-gray-400 font-normal">name</span>
+                <th className="px-3 py-3 text-left font-bold text-gray-900 dark:text-white w-[16%]">
+                  ชื่อ-นามสกุล
                 </th>
-                <th className="px-4 py-3 text-left font-bold text-gray-900 dark:text-white">
-                  เบอร์โทรศัพท์ <span className="text-xs text-gray-400 font-normal">phone</span>
+                <th className="px-3 py-3 text-left font-bold text-gray-900 dark:text-white w-[13%]">
+                  เบอร์โทร
                 </th>
-                <th className="px-4 py-3 text-left font-bold text-gray-900 dark:text-white">
-                  สิทธิ์การใช้งาน <span className="text-xs text-gray-400 font-normal">role</span>
+                <th className="px-3 py-3 text-left font-bold text-gray-900 dark:text-white w-[12%]">
+                  สิทธิ์
                 </th>
-                <th className="px-4 py-3 text-left font-bold text-gray-900 dark:text-white">
-                  สถานะบัญชี <span className="text-xs text-gray-400 font-normal">status</span>
+                <th className="px-3 py-3 text-left font-bold text-gray-900 dark:text-white w-[13%]">
+                  สถานะบัญชี
                 </th>
-                <th className="px-4 py-3 text-center font-bold text-gray-900 dark:text-white">
-                  สถานะ Live <span className="text-xs text-gray-400 font-normal">is_online</span>
+                <th className="px-2 py-3 text-center font-bold text-gray-900 dark:text-white w-[8%]">
+                  Live
                 </th>
-                <th className="px-4 py-3 text-left font-bold text-gray-900 dark:text-white">
-                  สร้างเมื่อ <span className="text-xs text-gray-400 font-normal">created_at</span>
+                <th className="px-2.5 py-3 text-left font-bold text-gray-900 dark:text-white w-[9%]">
+                  สร้างเมื่อ
                 </th>
-                <th className="px-4 py-3 text-center font-bold text-gray-900 dark:text-white">
+                <th className="px-2.5 py-3 text-center font-bold text-gray-900 dark:text-white w-[9%]">
                   การกระทำ
                 </th>
               </tr>
@@ -552,19 +552,19 @@ export const UserTable: React.FC<UserTableProps> = ({
                   .slice(currentPage * rowsPerPage, (currentPage + 1) * rowsPerPage)
                   .map((user) => (
                   <tr key={user.userId} className="hover:bg-gray-50/80 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="px-4 py-3 text-gray-900 dark:text-gray-100 font-mono font-semibold">
+                    <td className="px-2.5 py-2.5 text-gray-900 dark:text-gray-100 font-mono font-semibold text-xs">
                       #{user.userId}
                     </td>
-                    <td className="px-4 py-3 text-gray-900 dark:text-gray-100 font-mono font-bold">
+                    <td className="px-3 py-2.5 text-gray-900 dark:text-gray-100 font-mono font-bold text-xs truncate max-w-[130px]">
                       @{user.username}
                     </td>
-                    <td className="px-4 py-3 text-gray-900 dark:text-gray-100 font-medium">
+                    <td className="px-3 py-2.5 text-gray-900 dark:text-gray-100 font-medium truncate max-w-[150px]">
                       {user.name || '-'}
                     </td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 font-medium">
+                    <td className="px-3 py-2.5 text-gray-600 dark:text-gray-400 font-medium text-xs">
                       {user.phone || '-'}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2.5">
                       <Badge className={getRoleColor(user.role)}>
                         {user.role === 'admin'
                           ? 'ผู้ดูแลระบบ'
@@ -573,20 +573,20 @@ export const UserTable: React.FC<UserTableProps> = ({
                           : 'ผู้ใช้ทั่วไป'}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2.5">
                       {user.status === 'deleted' ? (
                         <Badge className="bg-red-100 text-red-800">ถูกลบ (Soft Delete)</Badge>
                       ) : (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => toggleAccountStatus(user)}
-                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+                            className={`relative inline-flex h-4.5 w-8 items-center rounded-full transition-colors focus:outline-none ${
                               (user.status || 'active') === 'active' ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
                             }`}
                             title={(user.status || 'active') === 'active' ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
                           >
                             <span
-                              className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                              className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
                                 (user.status || 'active') === 'active' ? 'translate-x-4' : 'translate-x-1'
                               }`}
                             />
@@ -597,51 +597,51 @@ export const UserTable: React.FC<UserTableProps> = ({
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-2 py-2.5 text-center">
                       {(user.role === 'volunteer' || user.role === 'rescue') ? (
                         <button
                           onClick={() => toggleOnlineStatus(user)}
-                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+                          className={`relative inline-flex h-4.5 w-8 items-center rounded-full transition-colors focus:outline-none ${
                             user.is_online ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
                           }`}
                           title={user.is_online ? 'พร้อมปฏิบัติงาน' : 'ออฟไลน์'}
                         >
                           <span
-                            className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                            className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
                               user.is_online ? 'translate-x-4' : 'translate-x-1'
                             }`}
                           />
                         </button>
                       ) : (
-                        <span className="text-gray-400 dark:text-gray-600 font-medium">-</span>
+                        <span className="text-gray-400 dark:text-gray-600 font-medium text-xs">-</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs font-mono">
+                    <td className="px-2.5 py-2.5 text-gray-600 dark:text-gray-400 text-xs font-mono">
                       {new Date(user.created_at).toLocaleDateString('th-TH')}
                     </td>
-                    <td className="px-4 py-3 flex items-center justify-center gap-1.5">
+                    <td className="px-2.5 py-2.5 flex items-center justify-center gap-1">
                       {user.status === 'deleted' ? (
                         <Button
                           onClick={() => restoreAccount(user)}
-                          className="px-3 py-1 text-xs font-bold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 rounded-xl transition-colors"
+                          className="px-2 py-1 text-[11px] font-bold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 rounded-lg transition-colors"
                         >
-                          กู้คืนบัญชี
+                          กู้คืน
                         </Button>
                       ) : (
                         <>
                           <button
                             onClick={() => onEdit(user)}
-                            className="p-1.5 text-orange-600 hover:bg-orange-100 dark:hover:bg-orange-950/60 rounded-xl transition-colors"
+                            className="p-1 text-orange-600 hover:bg-orange-100 dark:hover:bg-orange-950/60 rounded-lg transition-colors"
                             title="แก้ไข"
                           >
-                            <Edit2 size={16} />
+                            <Edit2 size={15} />
                           </button>
                           <button
                             onClick={() => onDelete(user)}
-                            className="p-1.5 text-red-600 hover:bg-red-100 dark:hover:bg-red-950/60 rounded-xl transition-colors"
+                            className="p-1 text-red-600 hover:bg-red-100 dark:hover:bg-red-950/60 rounded-xl transition-colors"
                             title="ลบ"
                           >
-                            <Trash2 size={16} />
+                            <Trash2 size={15} />
                           </button>
                         </>
                       )}
