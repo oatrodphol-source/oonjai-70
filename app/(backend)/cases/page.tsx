@@ -114,20 +114,20 @@ export default function CasesPage() {
             </div>
           </div>
           
-          <div className="flex overflow-x-auto hide-scrollbar gap-2 mb-2 border-b border-slate-200 dark:border-slate-800 pb-0 mt-2">
+          <div className="grid grid-cols-2 sm:flex p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl gap-1.5 mt-1">
             {[
               { id: 'all', label: 'รายการทั้งหมด' },
-              { id: 'pending', label: '🔴 รอดำเนินการ' },
-              { id: 'in_progress', label: '🟡 กำลังช่วยเหลือ' },
-              { id: 'completed', label: '🟢 เสร็จสิ้นแล้ว' }
+              { id: 'pending', label: 'รอดำเนินการ' },
+              { id: 'in_progress', label: 'กำลังช่วยเหลือ' },
+              { id: 'completed', label: 'เสร็จสิ้นแล้ว' }
             ].map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-5 py-3 rounded-t-xl font-bold whitespace-nowrap transition-all ${
+                className={`px-3 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm text-center transition-all flex-1 ${
                   activeTab === tab.id 
-                    ? 'bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-white border-b-4 border-orange-500' 
-                    : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 border-b-4 border-transparent'
+                    ? 'bg-white dark:bg-slate-900 text-orange-600 dark:text-orange-400 shadow-sm border border-slate-200/60 dark:border-slate-700/60' 
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 {tab.label}

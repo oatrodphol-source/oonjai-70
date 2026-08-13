@@ -317,33 +317,49 @@ export const CaseTable = ({
             });
 
             if (viewMode === 'list') {
+              const isPending = row.status === 'pending' || row.status === 'รอดำเนินการ';
+              const isInProgress = row.status === 'in_progress' || row.status === 'กำลังช่วยเหลือ';
+              const isCompleted = row.status === 'resolved' || row.status === 'completed' || row.status === 'เสร็จสิ้น';
+
               return (
-                <Card key={i} className="bg-white dark:bg-[#151b2c] rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-3 hover:shadow-md hover:border-blue-200 dark:hover:border-blue-900/50 transition-all flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 group">
+                <Card key={i} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-3.5 hover:shadow-md hover:border-orange-300 dark:hover:border-orange-500/40 transition-all flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 group">
                   <div className="flex-shrink-0 sm:w-28 flex flex-row sm:flex-col items-center sm:items-start justify-between sm:justify-start gap-2 sm:gap-1">
-                     <div className="font-bold text-gray-900 dark:text-white text-base group-hover:text-blue-600 transition-colors">{row.id}</div>
-                     <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full inline-block ${getSeverityColor(row.severity)}`}>{getSeverityText(row.severity || 1)}</span>
+                     <div className="font-extrabold text-slate-900 dark:text-white text-base group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors font-mono">{row.id}</div>
+                     <span className={`px-2 py-0.5 text-[10px] font-extrabold rounded-full inline-block ${getSeverityColor(row.severity)}`}>{getSeverityText(row.severity || 1)}</span>
                   </div>
                   <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-                     <div className="font-semibold text-gray-900 dark:text-white truncate text-sm">{row.type}</div>
-                     <div className="text-xs text-gray-500 flex flex-wrap items-center gap-3">
-                       <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-gray-400" /> {row.time}</span>
-                       <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5 text-gray-400" /> {row.people_count || 1} คน</span>
-                       {nearbyCases.length > 0 && <span className="text-amber-600 font-bold animate-pulse flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> ใกล้เคียง {nearbyCases.length} เคส</span>}
+                     <div className="font-bold text-slate-900 dark:text-white truncate text-sm sm:text-base">{row.type}</div>
+                     <div className="text-xs text-slate-600 dark:text-slate-300 flex flex-wrap items-center gap-3 font-medium">
+                       <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-slate-400" /> {row.time}</span>
+                       <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5 text-slate-400" /> {row.people_count || 1} คน</span>
+                       {nearbyCases.length > 0 && <span className="text-amber-600 dark:text-amber-400 font-extrabold animate-pulse flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> ใกล้เคียง {nearbyCases.length} เคส</span>}
                      </div>
                   </div>
-                  <div className="flex-shrink-0 flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-3 mt-2 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-0 border-gray-100 dark:border-gray-800">
-                    <span className={`text-xs px-2.5 py-1 rounded-lg ${row.status === 'pending' ? 'bg-yellow-50 text-yellow-700 font-bold' : row.status === 'in_progress' ? 'bg-blue-50 text-blue-700 font-bold' : 'bg-gray-50 text-gray-600 font-bold'}`}>
-                      {row.status === 'pending' ? 'รอช่วยเหลือ' : row.status === 'in_progress' ? 'กำลังช่วยเหลือ' : 'เสร็จสิ้น'}
+                  <div className="flex-shrink-0 flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 mt-1 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100 dark:border-slate-800">
+                    <span className={`text-xs px-2.5 py-1 rounded-full font-extrabold ${
+                      isPending 
+                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-700' 
+                        : isInProgress 
+                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300 border border-blue-300 dark:border-blue-700' 
+                        : isCompleted
+                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'
+                        : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                    }`}>
+                      {isPending ? 'รอดำเนินการ' : isInProgress ? 'กำลังช่วยเหลือ' : isCompleted ? 'เสร็จสิ้นแล้ว' : row.status}
                     </span>
                     <div className="flex items-center gap-2">
                       {row.phone && (
-                        <a href={`tel:${row.phone}`} title="โทรหาผู้แจ้ง" className="w-8 h-8 flex items-center justify-center rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-colors">
+                        <a href={`tel:${row.phone}`} title="โทรหาผู้แจ้ง" className="w-8 h-8 flex items-center justify-center rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm transition-all active:scale-95">
                           <Phone className="w-4 h-4" />
                         </a>
                       )}
-                      <Button variant="ghost" size="sm" className="h-8 px-3 text-orange-500 bg-orange-50 hover:bg-orange-100 rounded-lg text-xs font-bold" onClick={() => setSelectedCase(row)}>
+                      <button 
+                        type="button"
+                        className="h-8 px-3 text-white bg-[#e65c00] hover:bg-[#cc5200] rounded-xl text-xs font-extrabold shadow-sm transition-all active:scale-95 cursor-pointer" 
+                        onClick={() => setSelectedCase(row)}
+                      >
                         ดูรายละเอียด
-                      </Button>
+                      </button>
                     </div>
                   </div>
                 </Card>
