@@ -146,7 +146,26 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
           setError('ไม่พบข้อมูลแจ้งเหตุ หรือเคสนี้ถูกปิด/ลบออกจากระบบแล้ว');
           setIsLoading(false);
         } else {
-          setCaseData({ ...data, id: String(data.id) } as CaseData);
+          let volProv = data.volunteer_province || data.province || '';
+          if (!volProv) {
+            try {
+              let query = supabase.from('volunteers').select('province');
+              if (data.volunteer_id) {
+                query = query.eq('id', data.volunteer_id);
+              } else {
+                const vName = data.volunteer_name || data.assigned_volunteer_name || data.rescuer_name;
+                if (vName) {
+                  query = query.or(`name.eq."${vName}",username.eq."${vName}"`);
+                }
+              }
+              const { data: vRes } = await query.limit(1);
+              if (vRes && vRes.length > 0 && vRes[0].province) {
+                volProv = vRes[0].province;
+              }
+            } catch (e) {}
+          }
+
+          setCaseData({ ...data, id: String(data.id), volunteer_province: volProv } as CaseData);
           setPrevStatus(data.status);
           if (data.rating) {
             setRatingSubmitted(true);
@@ -172,7 +191,26 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
           if ((prevStatus === 'pending' || !caseData?.volunteer_name) && (data.status === 'in_progress' || data.volunteer_name || data.assigned_volunteer_name)) {
             setShowVolunteerModal(true);
           }
-          setCaseData({ ...data, id: String(data.id) } as CaseData);
+          let volProv = data.volunteer_province || data.province || '';
+          if (!volProv) {
+            try {
+              let query = supabase.from('volunteers').select('province');
+              if (data.volunteer_id) {
+                query = query.eq('id', data.volunteer_id);
+              } else {
+                const vName = data.volunteer_name || data.assigned_volunteer_name || data.rescuer_name;
+                if (vName) {
+                  query = query.or(`name.eq."${vName}",username.eq."${vName}"`);
+                }
+              }
+              const { data: vRes } = await query.limit(1);
+              if (vRes && vRes.length > 0 && vRes[0].province) {
+                volProv = vRes[0].province;
+              }
+            } catch (e) {}
+          }
+
+          setCaseData({ ...data, id: String(data.id), volunteer_province: volProv } as CaseData);
           setPrevStatus(data.status);
         }
       }).subscribe();

@@ -26,33 +26,67 @@ export default function ProfilePage() {
   const [currentPage, setCurrentPage] = useState(1);
   const feedbacksPerPage = 3; // กำหนดจำนวนรีวิวที่จะแสดงต่อ 1 หน้า
 
+  const [profileUserData, setProfileUserData] = useState<any>(null);
+
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('oonjai_user');
-      if (stored) {
-        const user = JSON.parse(stored);
-        const uid = user.uid || user.id;
-        setUserId(uid);
-        setRole(user.role || 'volunteer');
-        setFormData({
-          fullName: user.name || '',
-          phone: user.phone || '',
-          rescueUnit: user.rescueUnit || '',
-          username: user.username || ''
-        });
-        
-        if (uid) {
-          fetchUserStats(uid);
+    const fetchProfileData = async () => {
+      try {
+        const stored = localStorage.getItem('oonjai_user');
+        if (stored) {
+          const user = JSON.parse(stored);
+          const uid = user.uid || user.id;
+          const uRole = user.role || 'volunteer';
+          setUserId(uid);
+          setRole(uRole);
+
+          const collectionName = uRole === 'admin' ? 'admins' : 'volunteers';
+          const { data: dbUser } = await supabase
+            .from(collectionName)
+            .select('*')
+            .eq('id', uid)
+            .single();
+
+          if (dbUser) {
+            setProfileUserData({
+              id: dbUser.id,
+              role: uRole,
+              name: dbUser.name || user.name || '',
+              phone: dbUser.phone || user.phone || '',
+              agency: dbUser.agency || user.rescueUnit || '',
+              province: dbUser.province || 'ปทุมธานี',
+              address: dbUser.address || '',
+              skills_equipment: dbUser.skills_equipment || '',
+              username: dbUser.username || user.username || '',
+            });
+          } else {
+            setProfileUserData({
+              id: uid,
+              role: uRole,
+              name: user.name || '',
+              phone: user.phone || '',
+              agency: user.rescueUnit || '',
+              province: 'ปทุมธานี',
+              address: '',
+              skills_equipment: '',
+              username: user.username || '',
+            });
+          }
+
+          if (uid) {
+            fetchUserStats(uid);
+          } else {
+            setStatsLoading(false);
+          }
         } else {
           setStatsLoading(false);
         }
-      } else {
+      } catch (e) {
+        console.error('Error loading profile:', e);
         setStatsLoading(false);
       }
-    } catch (e) {
-      console.error('Error loading profile:', e);
-      setStatsLoading(false);
-    }
+    };
+
+    fetchProfileData();
   }, []);
 
   const fetchUserStats = async (uid: string) => {
@@ -270,16 +304,9 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {userId ? (
+        {userId && profileUserData ? (
           <UnifiedUserForm 
-            initialData={{ 
-              id: userId as any, 
-              role: role, 
-              name: formData.fullName, 
-              phone: formData.phone, 
-              agency: formData.rescueUnit, 
-              username: formData.username 
-            }}
+            initialData={profileUserData}
             isEditing={true}
             isAdminAccess={true}
             isProfile={true}
