@@ -284,28 +284,32 @@ export const TopNavbar: React.FC = () => {
         </Link>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          <button onClick={toggleTheme} className="text-white hover:text-[#ff6600] transition-colors p-2 rounded-full min-w-[44px] min-h-[44px] sm:min-w-[48px] sm:min-h-[48px] flex items-center justify-center cursor-pointer" title="เปลี่ยนธีม (Theme)">
-            {isDark ? <Sun size={22} /> : <Moon size={22} />}
-          </button>
-
+        <div className="flex items-center gap-1.5 sm:gap-2.5">
+          {/* History Button with Text Label (Placed BEFORE Theme Toggle) */}
           <Link
             href="/history"
-            className="text-white hover:text-[#ff6600] hover:scale-110 transition-all p-2 rounded-full min-w-[44px] min-h-[44px] sm:min-w-[48px] sm:min-h-[48px] flex items-center justify-center relative cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-orange-500/10 hover:bg-orange-500/20 text-[#ff6600] border border-[#ff6600]/40 rounded-full transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-sm"
             title="ประวัติขอความช่วยเหลือ (History)"
           >
-            <History size={22} strokeWidth={2} />
+            <History size={17} strokeWidth={2.2} className="shrink-0 text-[#ff6600]" />
+            <span className="text-xs font-extrabold text-white tracking-wide whitespace-nowrap">ประวัติช่วยเหลือ</span>
           </Link>
 
+          {/* Theme Toggle */}
+          <button onClick={toggleTheme} className="text-white hover:text-[#ff6600] transition-colors p-2 rounded-full min-w-[38px] min-h-[38px] flex items-center justify-center cursor-pointer" title="เปลี่ยนธีม (Theme)">
+            {isDark ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+
+          {/* Bell Notifications */}
           <div className="relative" ref={notifRef}>
             <button
               onClick={() => { setShowNotifications(!showNotifications); setShowProfile(false); }}
-              className="text-[#ff6600] hover:scale-110 transition-transform relative p-2 min-w-[44px] min-h-[44px] sm:min-w-[48px] sm:min-h-[48px] flex items-center justify-center cursor-pointer"
+              className="text-[#ff6600] hover:scale-110 transition-transform relative p-2 min-w-[38px] min-h-[38px] flex items-center justify-center cursor-pointer"
               title="การแจ้งเตือน (Notifications)"
             >
-              <Bell size={22} strokeWidth={2} />
+              <Bell size={20} strokeWidth={2} />
               {(visibleNotifications.some(c => ['pending', 'in_progress', 'wait', 'accepted'].includes(typeof c.status === 'string' ? c.status.toLowerCase() : String(c.status))) || (broadcasts.length > 0 && broadcasts[0].id !== 0)) && (
-                <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border border-[#0b1325]"></span>
+                <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border border-[#0b1325]"></span>
               )}
             </button>
 
