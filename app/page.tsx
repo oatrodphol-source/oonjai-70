@@ -8,15 +8,15 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#0b1325] text-white relative w-full max-w-full overflow-x-hidden flex flex-col justify-between">
-      {/* Ambient Glowing Background Effect */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] sm:w-[900px] h-[500px] bg-[#ff6600]/15 rounded-full blur-[140px] pointer-events-none"></div>
-      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+      {/* Optimized Ambient Background Effect (Hardware Accelerated for Mobile) */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[350px] sm:w-[800px] h-[350px] sm:h-[500px] bg-[#ff6600]/10 rounded-full blur-[60px] sm:blur-[120px] pointer-events-none transform-gpu"></div>
+      <div className="absolute bottom-0 right-0 w-[250px] sm:w-[400px] h-[250px] sm:h-[400px] bg-blue-600/10 rounded-full blur-[50px] sm:blur-[100px] pointer-events-none transform-gpu"></div>
 
       {/* Top Navigation */}
       <nav className="relative z-10 flex items-center justify-between w-full max-w-6xl mx-auto px-4 py-3 sm:py-4">
         <div className="flex items-center gap-2.5">
           <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl border border-[#ff6600]/40 flex items-center justify-center bg-[#0b1325] overflow-hidden shrink-0 shadow-sm">
-            <img src="/icon01.ico" alt="OonJai Logo" className="w-full h-full object-cover" />
+            <img src="/icon01.ico" alt="OonJai Logo" className="w-full h-full object-cover" loading="eager" decoding="async" />
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-black tracking-tight leading-none">

@@ -150,7 +150,7 @@ export const ActiveCaseBanner = () => {
     checkActiveCases();
 
     // Persistent Supabase Realtime Listener across all victim cases
-    const channelName = `victim-global-updates-${Date.now()}-${Math.floor(Math.random()*10000)}`;
+    const channelName = 'victim-global-updates-channel';
     realtimeChannel = supabase
       .channel(channelName)
       .on(
@@ -174,7 +174,8 @@ export const ActiveCaseBanner = () => {
       .subscribe();
 
     window.addEventListener('localCasesUpdated', checkActiveCases);
-    const interval = setInterval(checkActiveCases, 6000);
+    // Polling safeguard extended to 30 seconds to prevent mobile CPU & network lag
+    const interval = setInterval(checkActiveCases, 30000);
 
     return () => {
       window.removeEventListener('localCasesUpdated', checkActiveCases);

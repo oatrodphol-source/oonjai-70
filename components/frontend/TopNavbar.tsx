@@ -62,7 +62,8 @@ export const TopNavbar: React.FC = () => {
     };
 
     fetchNews();
-    const newsInterval = setInterval(fetchNews, 5000);
+    // Extended polling safeguard to 30 seconds to prevent mobile network/CPU lag
+    const newsInterval = setInterval(fetchNews, 30000);
 
     const newsChannel = supabase
       .channel('topnavbar-news-realtime')
@@ -161,7 +162,7 @@ export const TopNavbar: React.FC = () => {
           const data = await fetchCasesStatus(savedCases);
           updateCasesUI(data);
 
-          const casesChannelName = `public:cases-navbar-${Date.now()}`;
+          const casesChannelName = 'topnavbar-my-cases-channel';
           casesChannel = supabase
             .channel(casesChannelName)
             .on(
