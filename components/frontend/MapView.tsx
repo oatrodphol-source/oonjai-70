@@ -337,16 +337,7 @@ export default function MapView({ onMarkerClick }: MapViewProps = {}) {
               <span className="font-bold">{showHeatmap ? 'ดูแบบหมุด' : 'ดูพื้นที่เสี่ยง'}</span>
             </button>
           }
-          extraControls={
-            <button
-              type="button"
-              onClick={() => setShowSafeModal(true)}
-              className="bg-[#00B900] text-white shadow-lg shadow-green-500/30 flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-full font-bold transition-all duration-200 active:scale-95 border-2 border-green-500 text-xs"
-            >
-              <ShieldCheck className="w-4 h-4" />
-              <span className="font-bold">ฉันปลอดภัยดี</span>
-            </button>
-          }
+          extraControls={null}
         />
 
         {(() => {
@@ -457,57 +448,6 @@ export default function MapView({ onMarkerClick }: MapViewProps = {}) {
           </Marker>
         )}
       </MapContainer>
-
-      {/* Safe Modal */}
-      {showSafeModal && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white dark:bg-[#0b1325] rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-gray-100 dark:border-gray-800 scale-100 animate-in zoom-in-95 duration-300 relative">
-            <button
-              onClick={() => setShowSafeModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-            >
-              <X className="w-6 h-6" />
-            </button>
-            <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 text-[#00B900] rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
-              <ShieldCheck className="w-8 h-8" />
-            </div>
-            <h3 className="text-xl font-extrabold text-gray-900 dark:text-white mb-2 text-center">ฉันปลอดภัยดี</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 text-center">
-              รายงานตัวว่าปลอดภัย เพื่อลดความกังวลของเจ้าหน้าที่
-            </p>
-            <form onSubmit={handleSafeSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">เบอร์ติดต่อ (10 หลัก)</label>
-                <input
-                  type="tel"
-                  maxLength={10}
-                  value={safePhone}
-                  onChange={(e) => setSafePhone(e.target.value.replace(/\D/g, ''))}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 focus:border-[#00B900] focus:ring-1 focus:ring-[#00B900] outline-none transition-all"
-                  placeholder="0812345678"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">พื้นที่ปัจจุบัน</label>
-                <input
-                  type="text"
-                  value={safeArea}
-                  onChange={(e) => setSafeArea(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 focus:border-[#00B900] focus:ring-1 focus:ring-[#00B900] outline-none transition-all"
-                  placeholder="เช่น ศูนย์อพยพวัดพระธรรมกาย หรือ บ้านญาติ"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={isSubmittingSafe}
-                className={`w-full py-3.5 rounded-xl text-white font-bold text-lg shadow-lg shadow-green-500/30 transition-all ${isSubmittingSafe ? 'bg-gray-400 opacity-70 cursor-not-allowed' : 'bg-[#00B900] hover:bg-[#009900]'}`}
-              >
-                {isSubmittingSafe ? 'กำลังบันทึก...' : 'บันทึกสถานะ'}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
