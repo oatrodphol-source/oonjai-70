@@ -401,7 +401,7 @@ export const TopNavbar: React.FC = () => {
         </div>
       </div>
 
-      {/* Announcement Detail Modal - Fit to All Devices */}
+      {/* Announcement Detail Modal - Fit to All Devices with Instant 1-Tap Dismiss */}
       {selectedAnnouncement && (
         <div 
           className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 cursor-pointer select-none"
@@ -410,16 +410,10 @@ export const TopNavbar: React.FC = () => {
               setSelectedAnnouncement(null);
             }
           }}
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) {
-              setSelectedAnnouncement(null);
-            }
-          }}
         >
           <div 
             className="bg-white dark:bg-[#0b1325] rounded-3xl max-w-sm sm:max-w-lg w-full shadow-2xl overflow-hidden border border-red-200 dark:border-red-900/40 flex flex-col max-h-[75vh] sm:max-h-[80vh] my-auto relative scale-100 animate-in zoom-in-95 duration-200 cursor-default select-text"
             onClick={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
           >
             {/* Header Accent */}
             <div className="p-4 sm:p-5 flex justify-between items-start border-b border-red-100 dark:border-red-900/30 bg-red-50 dark:bg-red-950/40 shrink-0">
@@ -445,15 +439,17 @@ export const TopNavbar: React.FC = () => {
               </div>
 
               <button 
+                type="button"
                 onClick={() => setSelectedAnnouncement(null)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer shrink-0"
+                onPointerDown={() => setSelectedAnnouncement(null)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer shrink-0 touch-manipulation"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Scrollable Content Body */}
-            <div className="p-4 sm:p-5 overflow-y-auto custom-scrollbar flex-1 text-xs sm:text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
+            <div className="p-4 sm:p-5 overflow-y-auto custom-scrollbar flex-1 text-xs sm:text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed select-text">
               {selectedAnnouncement.content || 'ไม่มีรายละเอียดเนื้อหา'}
             </div>
 
@@ -463,8 +459,10 @@ export const TopNavbar: React.FC = () => {
                 ศูนย์กู้ภัยอุ่นใจ OonJai
               </span>
               <button
+                type="button"
                 onClick={() => setSelectedAnnouncement(null)}
-                className="px-5 py-2 sm:px-6 sm:py-2.5 bg-[#ff6600] hover:bg-[#e65c00] text-white rounded-2xl text-xs sm:text-sm font-extrabold transition-all shadow-md shadow-orange-500/20 active:scale-95 cursor-pointer"
+                onPointerDown={() => setSelectedAnnouncement(null)}
+                className="px-5 py-2.5 sm:px-6 sm:py-2.5 bg-[#ff6600] hover:bg-[#e65c00] active:scale-95 text-white rounded-2xl text-xs sm:text-sm font-extrabold transition-all shadow-md shadow-orange-500/20 cursor-pointer touch-manipulation"
               >
                 ปิดหน้าต่าง
               </button>
