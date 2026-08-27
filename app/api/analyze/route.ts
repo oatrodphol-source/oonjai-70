@@ -104,15 +104,16 @@ ${triageWeights.ai_system_prompt ? `### 📝 คำสั่งพิเศษ�
 
 ข้อความจากผู้ใช้เพิ่มเติม: ${prompt}`;
 
-    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
-    const groqApiKey = process.env.GROQ_API_KEY || '';
+    const apiKey = (triageWeights as any).ai_api_key || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
+    const groqApiKey = (triageWeights as any).ai_api_key || process.env.GROQ_API_KEY || '';
 
     let cleanJson = '';
 
     // Attempt with Google Gemini Models first
     if (apiKey) {
       const ai = new GoogleGenAI({ apiKey: apiKey });
-      const modelsToTry = ['gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-pro-preview'];
+      const customModel = (triageWeights as any).ai_vision_model_name;
+      const modelsToTry = [customModel, 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-pro-preview'].filter(Boolean);
 
       for (const modelName of modelsToTry) {
         try {

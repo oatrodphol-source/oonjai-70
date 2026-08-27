@@ -345,14 +345,69 @@ export const ReportStepForm = () => {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const compressImage = (file: File, maxWidth = 1024, maxHeight = 1024, quality = 0.85): Promise<{ dataUrl: string; compressedFile: File }> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxWidth || height > maxHeight) {
+            if (width > height) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            } else {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+                  type: 'image/jpeg',
+                  lastModified: Date.now(),
+                });
+                resolve({ dataUrl, compressedFile });
+              } else {
+                resolve({ dataUrl, compressedFile: file });
+              }
+            },
+            'image/jpeg',
+            quality
+          );
+        };
+        img.onerror = () => resolve({ dataUrl: e.target?.result as string, compressedFile: file });
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => resolve({ dataUrl: '', compressedFile: file });
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, image_url: reader.result as string, image_name: file.name, image_file: file });
-      };
-      reader.readAsDataURL(file);
+      try {
+        const { dataUrl, compressedFile } = await compressImage(file);
+        setFormData(prev => ({ ...prev, image_url: dataUrl, image_name: compressedFile.name, image_file: compressedFile }));
+      } catch (err) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setFormData(prev => ({ ...prev, image_url: reader.result as string, image_name: file.name, image_file: file }));
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
