@@ -104,37 +104,42 @@ ${triageWeights.ai_system_prompt ? `### 📝 คำสั่งพิเศษ�
 
 ข้อความจากผู้ใช้เพิ่มเติม: ${prompt}`;
 
-    const apiKey = (triageWeights as any).ai_api_key || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
+    const rawKeysString = (triageWeights as any).ai_api_key || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
+    const apiKeysList: string[] = Array.from(new Set(rawKeysString.split(/[\s,\n]+/).map((k: string) => k.trim()).filter(Boolean)));
     const groqApiKey = (triageWeights as any).ai_api_key || process.env.GROQ_API_KEY || '';
 
     let cleanJson = '';
 
-    // Attempt with Google Gemini Models first
-    if (apiKey) {
-      const ai = new GoogleGenAI({ apiKey: apiKey });
+    // Attempt with Google Gemini Models across all available API Keys
+    if (apiKeysList.length > 0) {
       const customModel = (triageWeights as any).ai_vision_model_name;
-      const modelsToTry = [customModel, 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-pro-preview'].filter(Boolean);
+      const modelsToTry: string[] = [customModel, 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-pro-preview'].filter((m): m is string => Boolean(m));
 
-      for (const modelName of modelsToTry) {
-        try {
-          console.log(`[Analyze API] Trying Gemini vision model: ${modelName}...`);
-          const response = await ai.models.generateContent({
-            model: modelName,
-            contents: [
-              systemInstruction,
-              'Analyze this disaster image and provide strictly JSON output.',
-              { inlineData: { data: base64Data, mimeType: mimeType } }
-            ]
-          });
+      for (const currentKey of apiKeysList) {
+        if (cleanJson) break;
+        const ai = new GoogleGenAI({ apiKey: currentKey });
 
-          const responseText = response.text || '';
-          if (responseText) {
-            cleanJson = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
-            console.log(`[Analyze API] ✅ Gemini Vision Success (${modelName})`);
-            break;
+        for (const modelName of modelsToTry) {
+          try {
+            console.log(`[Analyze API] Trying Gemini vision model (${modelName}) with Key ends with ...${currentKey.slice(-4)}`);
+            const response = await ai.models.generateContent({
+              model: modelName,
+              contents: [
+                systemInstruction,
+                'Analyze this disaster image and provide strictly JSON output.',
+                { inlineData: { data: base64Data, mimeType: mimeType } }
+              ]
+            });
+
+            const responseText = response.text || '';
+            if (responseText) {
+              cleanJson = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
+              console.log(`[Analyze API] ✅ Gemini Vision Success (${modelName})`);
+              break;
+            }
+          } catch (geminiError: any) {
+            console.warn(`[Analyze API] ⚠️ Gemini Vision model ${modelName} with Key ...${currentKey.slice(-4)} failed:`, geminiError.message || geminiError);
           }
-        } catch (geminiError: any) {
-          console.warn(`[Analyze API] ⚠️ Gemini Vision model ${modelName} failed:`, geminiError.message || geminiError);
         }
       }
     }
