@@ -705,7 +705,7 @@ export async function POST(req: Request) {
                   const systemPrompt = `You are a disaster relief AI assistant. Extract information from user text into JSON format with keys: "type" (string), "details" (string), "people_count" (integer), "bedridden" (integer 0 or 1), "elderly" (integer 0 or 1), "phone" (string), "water_level" (string), "severity" (integer 1-5). Return ONLY valid JSON.`;
 
                   let rawText = '';
-                  const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+                  const modelsToTry = ['gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.5-flash'];
                   for (const mName of modelsToTry) {
                     try {
                       const result = await ai.models.generateContent({
@@ -810,7 +810,7 @@ export async function POST(req: Request) {
                     const systemPrompt = `You are an expert Disaster Triage AI. Analyze this image and return strictly JSON with keys: "situation_summary" (string in Thai), "recommended_action" (string in Thai), "risk_level" (integer 1-5). Return ONLY valid JSON.`;
 
                     let rawText = '';
-                    const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+                    const modelsToTry = ['gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.5-flash'];
                     for (const mName of modelsToTry) {
                       try {
                         const result = await ai.models.generateContent({

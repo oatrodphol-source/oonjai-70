@@ -45,7 +45,7 @@ export async function extractDisasterDataFromImage(
 
 function getDefaultModel(provider: string, isVision: boolean): string {
   if (provider === 'OpenAI') return isVision ? 'gpt-4o' : 'gpt-4o-mini';
-  if (provider === 'Google Gemini') return 'gemini-2.5-flash';
+  if (provider === 'Google Gemini') return 'gemini-3.5-flash-lite';
   if (provider === 'Anthropic Claude') return 'claude-3-5-sonnet-20240620';
   // Default to Groq
   return isVision ? (process.env.GROQ_VISION_MODEL_NAME || 'llama-3.2-11b-vision-preview') 
@@ -166,8 +166,8 @@ async function callOpenAI(apiKey: string, modelName: string, systemPrompt: strin
 
 async function callGemini(apiKey: string, modelName: string, systemPrompt: string, text: string | null, base64Image: string | null): Promise<string> {
   const ai = new GoogleGenAI({ apiKey: apiKey });
-  const validModels = ['gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-2.0-flash'];
-  const baseModel = modelName || 'gemini-3.6-flash';
+  const validModels = ['gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.5-flash'];
+  const baseModel = modelName || 'gemini-3.5-flash-lite';
   const modelsToTry = Array.from(new Set([baseModel, ...validModels]));
 
   for (const mName of modelsToTry) {

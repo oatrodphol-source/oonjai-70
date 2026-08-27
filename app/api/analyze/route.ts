@@ -113,9 +113,9 @@ ${triageWeights.ai_system_prompt ? `### 📝 คำสั่งพิเศษ�
     // Attempt with Google Gemini Models across all available API Keys
     if (apiKeysList.length > 0) {
       const customModel = (triageWeights as any).ai_vision_model_name;
-      const validModels = ['gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-2.0-flash'];
+      const validModels = ['gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.5-flash'];
       const modelsToTry: string[] = Array.from(new Set([
-        customModel || 'gemini-3.6-flash',
+        customModel || 'gemini-3.5-flash-lite',
         ...validModels
       ])).filter(Boolean);
 
