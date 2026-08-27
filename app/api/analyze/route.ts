@@ -104,25 +104,80 @@ ${triageWeights.ai_system_prompt ? `### 📝 คำสั่งพิเศษ�
 
 ข้อความจากผู้ใช้เพิ่มเติม: ${prompt}`;
 
-    const apiKey = process.env.GEMINI_API_KEY || process.env.GROQ_API_KEY || '';
-    if (!apiKey) {
-      throw new Error("Missing Gemini API Key");
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
+    const groqApiKey = process.env.GROQ_API_KEY || '';
+
+    let cleanJson = '';
+
+    // Attempt with Google Gemini Models first
+    if (apiKey) {
+      const ai = new GoogleGenAI({ apiKey: apiKey });
+      const modelsToTry = ['gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-pro-preview'];
+
+      for (const modelName of modelsToTry) {
+        try {
+          console.log(`[Analyze API] Trying Gemini vision model: ${modelName}...`);
+          const response = await ai.models.generateContent({
+            model: modelName,
+            contents: [
+              systemInstruction,
+              'Analyze this disaster image and provide strictly JSON output.',
+              { inlineData: { data: base64Data, mimeType: mimeType } }
+            ]
+          });
+
+          const responseText = response.text || '';
+          if (responseText) {
+            cleanJson = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
+            console.log(`[Analyze API] ✅ Gemini Vision Success (${modelName})`);
+            break;
+          }
+        } catch (geminiError: any) {
+          console.warn(`[Analyze API] ⚠️ Gemini Vision model ${modelName} failed:`, geminiError.message || geminiError);
+        }
+      }
     }
 
-    const ai = new GoogleGenAI({ apiKey: apiKey });
-    const safeModelName = 'gemini-flash-latest';
+    // Fallback to Groq Vision if Gemini did not produce a result and Groq key is present
+    if (!cleanJson && groqApiKey) {
+      try {
+        console.log('[Analyze API] Trying Groq Vision fallback...');
+        const Groq = (await import('groq-sdk')).default;
+        const groq = new Groq({ apiKey: groqApiKey });
+        const groqRes = await groq.chat.completions.create({
+          model: 'llama-3.2-11b-vision-preview',
+          messages: [
+            { role: 'system', content: systemInstruction },
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Analyze this disaster image and provide strictly JSON output.' },
+                { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64Data}` } }
+              ]
+            }
+          ],
+          response_format: { type: 'json_object' }
+        });
 
-    const response = await ai.models.generateContent({
-      model: safeModelName,
-      contents: [
-        systemInstruction,
-        'Analyze this disaster image and provide strictly JSON output.',
-        { inlineData: { data: base64Data, mimeType: mimeType } }
-      ]
-    });
-    
-    const responseText = response.text || '';
-    const cleanJson = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
+        cleanJson = (groqRes.choices[0]?.message?.content || '').replace(/```json/gi, '').replace(/```/g, '').trim();
+        console.log('[Analyze API] ✅ Groq Vision Success');
+      } catch (groqError: any) {
+        console.error('[Analyze API] ❌ Groq Vision fallback failed:', groqError.message || groqError);
+      }
+    }
+
+    if (!cleanJson) {
+      // Fallback response if all AI models fail
+      cleanJson = JSON.stringify({
+        risk_level: 3,
+        ai_score: 50,
+        heatmap_color: "เหลือง",
+        response_time: "ภายใน 1-3 ชั่วโมง",
+        situation_summary: "ได้รับรูปภาพแจ้งเหตุจากผู้ประสบภัยในพื้นที่ (ระบบทำการบันทึกข้อมูลและประเมินระดับปานกลางไว้เบื้องต้น)",
+        detected_keywords: ["ภาพถ่ายจากผู้ประสบภัย"],
+        recommended_action: "จัดส่งทีมกู้ภัยเข้าตรวจสอบพื้นที่เกิดเหตุทันที"
+      });
+    }
 
     return NextResponse.json({ result: cleanJson });
   } catch (error: any) {

@@ -85,12 +85,20 @@ export async function POST() {
 
 Output EXACTLY ONE 1-2 sentence short tactical recommendation in Thai for volunteers. Mention the exact number of pending cases (${pendingCount}) or critical level 5 cases (${s5Count}) so volunteers get 100% accurate info. Do NOT use any emojis, robot characters, or hashtags. Be direct, professional, and helpful.`;
 
-        const result = await ai.models.generateContent({
-          model: 'gemini-flash-latest',
-          contents: [prompt]
-        });
-
-        let aiText = (result.text || '').trim().replace(/[\u1F600-\u1F64F\u1F300-\u1F5FF\u1F680-\u1F6FF\u1F1E0-\u1F1FF\u2600-\u26FF\u2700-\u27BF🤖🚑🎉🚨🔥]/g, '').trim();
+        let aiText = '';
+        const modelsToTry = ['gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-pro-preview'];
+        for (const mName of modelsToTry) {
+          try {
+            const result = await ai.models.generateContent({
+              model: mName,
+              contents: [prompt]
+            });
+            if (result.text) {
+              aiText = (result.text || '').trim().replace(/[\u1F600-\u1F64F\u1F300-\u1F5FF\u1F680-\u1F6FF\u1F1E0-\u1F1FF\u2600-\u26FF\u2700-\u27BF🤖🚑🎉🚨🔥]/g, '').trim();
+              break;
+            }
+          } catch (mErr) {}
+        }
         if (aiText) {
           accurateInsight = aiText;
         }

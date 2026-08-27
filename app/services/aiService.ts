@@ -45,10 +45,10 @@ export async function extractDisasterDataFromImage(
 
 function getDefaultModel(provider: string, isVision: boolean): string {
   if (provider === 'OpenAI') return isVision ? 'gpt-4o' : 'gpt-4o-mini';
-  if (provider === 'Google Gemini') return isVision ? 'gemini-flash-latest' : 'gemini-flash-latest';
+  if (provider === 'Google Gemini') return isVision ? 'gemini-3.6-flash' : 'gemini-3.6-flash';
   if (provider === 'Anthropic Claude') return 'claude-3-5-sonnet-20240620';
   // Default to Groq
-  return isVision ? (process.env.GROQ_VISION_MODEL_NAME || 'llama-3.2-90b-vision-preview') 
+  return isVision ? (process.env.GROQ_VISION_MODEL_NAME || 'llama-3.2-11b-vision-preview') 
                   : (process.env.GROQ_MODEL_NAME || 'llama-3.3-70b-versatile');
 }
 
@@ -166,29 +166,38 @@ async function callOpenAI(apiKey: string, modelName: string, systemPrompt: strin
 
 async function callGemini(apiKey: string, modelName: string, systemPrompt: string, text: string | null, base64Image: string | null): Promise<string> {
   const ai = new GoogleGenAI({ apiKey: apiKey });
-  const safeModelName = 'gemini-flash-latest';
-  
-  let result;
-  if (base64Image) {
-    result = await ai.models.generateContent({
-      model: safeModelName,
-      contents: [
-        systemPrompt,
-        'Analyze this disaster image and provide strictly JSON output.',
-        { inlineData: { data: base64Image, mimeType: "image/jpeg" } }
-      ]
-    });
-  } else {
-    result = await ai.models.generateContent({
-      model: safeModelName,
-      contents: [
-        systemPrompt,
-        text || ''
-      ]
-    });
+  const modelsToTry = [modelName, 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-pro-preview'].filter((v, idx, self) => self.indexOf(v) === idx);
+
+  for (const mName of modelsToTry) {
+    try {
+      let result;
+      if (base64Image) {
+        result = await ai.models.generateContent({
+          model: mName,
+          contents: [
+            systemPrompt,
+            'Analyze this disaster image and provide strictly JSON output.',
+            { inlineData: { data: base64Image, mimeType: "image/jpeg" } }
+          ]
+        });
+      } else {
+        result = await ai.models.generateContent({
+          model: mName,
+          contents: [
+            systemPrompt,
+            text || 'Extract disaster details into JSON format.'
+          ]
+        });
+      }
+      if (result.text) {
+        return result.text;
+      }
+    } catch (err: any) {
+      console.warn(`[aiService callGemini] Model ${mName} failed:`, err.message || err);
+    }
   }
 
-  return result.text || '{}';
+  throw new Error('All Gemini models failed');
 }
 
 async function callAnthropic(apiKey: string, modelName: string, systemPrompt: string, text: string | null, base64Image: string | null): Promise<string> {
