@@ -1,17 +1,24 @@
 import { GoogleGenAI } from '@google/genai';
 import * as dotenv from 'dotenv';
-dotenv.config({ path: '.env.local' });
+dotenv.config({ path: '.env' });
 
 async function main() {
   const apiKey = process.env.GEMINI_API_KEY;
+  console.log('Using API Key ending in:', apiKey ? apiKey.slice(-6) : 'NONE');
   const ai = new GoogleGenAI({ apiKey });
   const dummyBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 
-  const modelsToTest = ['gemini-flash-latest', 'gemini-3.5-flash', 'gemini-2.5-flash-image', 'gemini-3.1-flash-image'];
+  const modelsToTest = [
+    'gemini-3.6-flash',
+    'gemini-3.5-flash-lite',
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash'
+  ];
 
   for (const model of modelsToTest) {
     try {
-      console.log(`Testing model: ${model}...`);
+      console.log(`\nTesting Gemini model: "${model}"...`);
       const response = await ai.models.generateContent({
         model: model,
         contents: [
@@ -19,10 +26,9 @@ async function main() {
           { inlineData: { data: dummyBase64, mimeType: 'image/png' } }
         ]
       });
-      console.log(`✅ SUCCESS with ${model}:`, response.text);
-      break;
+      console.log(`✅ SUCCESS with model [${model}]:`, response.text?.trim().substring(0, 100));
     } catch (e: any) {
-      console.error(`❌ FAILED with ${model}:`, e.message || e);
+      console.error(`❌ FAILED with model [${model}]:`, e.message || e);
     }
   }
 }

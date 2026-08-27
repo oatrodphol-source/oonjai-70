@@ -202,9 +202,6 @@ export const ReportStepForm = () => {
       
       if (isIrrelevant) {
         feedback = '⚠️ ภาพอาจไม่เกี่ยวข้องกับภัยพิบัติ (ไม่นำภาพมาคำนวณความเสี่ยง)';
-      } else {
-        finalLevel += 1;
-        feedback = '✅ AI ประเมินภาพถ่ายเบื้องต้น (+1 ระดับความเสี่ยง) *รอศูนย์ฯ ยืนยัน*';
       }
     }
     
@@ -304,13 +301,22 @@ export const ReportStepForm = () => {
             parsed = null;
           }
 
-          if (parsed && (parsed.risk_level !== undefined || parsed.situation_summary)) {
-            const aiLevel = Number(parsed.risk_level) || severity;
-            const finalLevel = Math.max(severity, aiLevel);
+          if (parsed && (parsed.risk_level !== undefined || parsed.situation_summary || parsed.ai_score !== undefined)) {
+            const aiScore = Number(parsed.ai_score);
+            let aiLevelFromScore = Number(parsed.risk_level) || 1;
+            if (!isNaN(aiScore)) {
+              if (aiScore >= 81) aiLevelFromScore = 5;
+              else if (aiScore >= 61) aiLevelFromScore = 4;
+              else if (aiScore >= 41) aiLevelFromScore = 3;
+              else if (aiScore >= 21) aiLevelFromScore = 2;
+              else aiLevelFromScore = 1;
+            }
+
+            const finalLevel = Math.max(severity, aiLevelFromScore);
             setCalculatedSeverity(finalLevel);
             setAiAnalysisResult(parsed);
 
-            const feedbackText = `ผลประเมินภาพถ่าย (คะแนนความเสี่ยง: ${parsed.ai_score !== undefined ? parsed.ai_score : 0}/100): ${parsed.situation_summary || 'วิเคราะห์สำเร็จ'}`;
+            const feedbackText = `🤖 AI ประเมินภาพถ่ายและข้อความ (คะแนน AI: ${parsed.ai_score !== undefined ? parsed.ai_score : 0}/100 - ระดับ ${finalLevel}): ${parsed.situation_summary || 'วิเคราะห์สำเร็จ'}`;
             setVisionFeedback(feedbackText);
           }
         }
@@ -345,7 +351,7 @@ export const ReportStepForm = () => {
     }
   };
 
-  const compressImage = (file: File, maxWidth = 1024, maxHeight = 1024, quality = 0.85): Promise<{ dataUrl: string; compressedFile: File }> => {
+  const compressImage = (file: File, maxWidth = 1024, maxHeight = 1024, quality = 0.8): Promise<{ dataUrl: string; compressedFile: File }> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {

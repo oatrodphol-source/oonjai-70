@@ -113,7 +113,11 @@ ${triageWeights.ai_system_prompt ? `### 📝 คำสั่งพิเศษ�
     // Attempt with Google Gemini Models across all available API Keys
     if (apiKeysList.length > 0) {
       const customModel = (triageWeights as any).ai_vision_model_name;
-      const modelsToTry: string[] = [customModel, 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-pro-preview'].filter((m): m is string => Boolean(m));
+      const validModels = ['gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-2.0-flash'];
+      const modelsToTry: string[] = Array.from(new Set([
+        customModel || 'gemini-3.6-flash',
+        ...validModels
+      ])).filter(Boolean);
 
       for (const currentKey of apiKeysList) {
         if (cleanJson) break;
@@ -128,7 +132,12 @@ ${triageWeights.ai_system_prompt ? `### 📝 คำสั่งพิเศษ�
                 systemInstruction,
                 'Analyze this disaster image and provide strictly JSON output.',
                 { inlineData: { data: base64Data, mimeType: mimeType } }
-              ]
+              ],
+              config: {
+                responseMimeType: 'application/json',
+                temperature: 0.1,
+                maxOutputTokens: 300
+              }
             });
 
             const responseText = response.text || '';

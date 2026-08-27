@@ -45,7 +45,7 @@ export async function extractDisasterDataFromImage(
 
 function getDefaultModel(provider: string, isVision: boolean): string {
   if (provider === 'OpenAI') return isVision ? 'gpt-4o' : 'gpt-4o-mini';
-  if (provider === 'Google Gemini') return isVision ? 'gemini-3.6-flash' : 'gemini-3.6-flash';
+  if (provider === 'Google Gemini') return 'gemini-2.5-flash';
   if (provider === 'Anthropic Claude') return 'claude-3-5-sonnet-20240620';
   // Default to Groq
   return isVision ? (process.env.GROQ_VISION_MODEL_NAME || 'llama-3.2-11b-vision-preview') 
@@ -166,7 +166,9 @@ async function callOpenAI(apiKey: string, modelName: string, systemPrompt: strin
 
 async function callGemini(apiKey: string, modelName: string, systemPrompt: string, text: string | null, base64Image: string | null): Promise<string> {
   const ai = new GoogleGenAI({ apiKey: apiKey });
-  const modelsToTry = [modelName, 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-pro-preview'].filter((v, idx, self) => self.indexOf(v) === idx);
+  const validModels = ['gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-2.0-flash'];
+  const baseModel = modelName || 'gemini-3.6-flash';
+  const modelsToTry = Array.from(new Set([baseModel, ...validModels]));
 
   for (const mName of modelsToTry) {
     try {
@@ -178,15 +180,22 @@ async function callGemini(apiKey: string, modelName: string, systemPrompt: strin
             systemPrompt,
             'Analyze this disaster image and provide strictly JSON output.',
             { inlineData: { data: base64Image, mimeType: "image/jpeg" } }
-          ]
+          ],
+          config: {
+            responseMimeType: 'application/json',
+            temperature: 0.1,
+            maxOutputTokens: 300
+          }
         });
       } else {
         result = await ai.models.generateContent({
           model: mName,
-          contents: [
-            systemPrompt,
-            text || 'Extract disaster details into JSON format.'
-          ]
+          contents: [systemPrompt, text || ''],
+          config: {
+            responseMimeType: 'application/json',
+            temperature: 0.1,
+            maxOutputTokens: 300
+          }
         });
       }
       if (result.text) {
