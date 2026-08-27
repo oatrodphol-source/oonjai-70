@@ -1,0 +1,172 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+
+export function VolunteerStatusToggle({ 
+  compact = false, 
+  className = '' 
+}: { 
+  compact?: boolean; 
+  className?: string; 
+}) {
+  const [mounted, setMounted] = useState<boolean>(false);
+  const [isOnline, setIsOnline] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isUpdating, setIsUpdating] = useState<boolean>(false);
+  const [currentUserId, setCurrentUserId] = useState<string | number | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+    try {
+      const stored = localStorage.getItem('oonjai_user');
+      if (stored) {
+        const user = JSON.parse(stored);
+        if (user.id || user.uid) {
+          setCurrentUserId(user.id || user.uid);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to parse user from local storage", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!currentUserId) {
+      setIsLoading(false);
+      return;
+    }
+
+    const fetchInitialStatus = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('volunteers')
+          .select('is_online')
+          .eq('id', currentUserId)
+          .maybeSingle();
+
+        if (error) throw error;
+        
+        if (data) {
+          setIsOnline(data.is_online === true);
+        }
+      } catch (error) {
+        console.error('Error fetching volunteer status:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchInitialStatus();
+
+    const channelName = `vol-status-toggle-${currentUserId}-${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'volunteers', filter: `id=eq.${currentUserId}` },
+        (payload) => {
+          const updated = payload.new as any;
+          if (updated.is_online !== undefined) {
+            setIsOnline(updated.is_online);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUserId]);
+
+  const handleToggle = async () => {
+    if (!currentUserId) return;
+    
+    setIsUpdating(true);
+    const newStatus = !isOnline;
+    
+    try {
+      const { error } = await supabase
+        .from('volunteers')
+        .update({ is_online: newStatus })
+        .eq('id', currentUserId);
+
+      if (error) throw error;
+      
+      setIsOnline(newStatus);
+    } catch (error) {
+      console.error('Error updating status:', error);
+      alert('เกิดข้อผิดพลาดในการอัปเดตสถานะ');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  if (!mounted || !currentUserId) return null;
+
+  if (compact) {
+    return (
+      <button
+        onClick={handleToggle}
+        disabled={isUpdating || isLoading}
+        title={isOnline ? 'สถานะ: พร้อมรับงาน (คลิกเพื่อปิดรับงาน)' : 'สถานะ: ปิดรับงาน (คลิกเพื่อเปิดรับงาน)'}
+        className={`
+          relative flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full font-extrabold text-xs sm:text-sm transition-all duration-300 shadow-sm outline-none ring-1 active:scale-95 cursor-pointer shrink-0
+          disabled:opacity-70 disabled:cursor-not-allowed
+          ${isOnline 
+            ? 'bg-emerald-600 text-white hover:bg-emerald-500 ring-emerald-400/50 shadow-emerald-600/30' 
+            : 'bg-rose-600 text-white hover:bg-rose-500 ring-rose-400/50 shadow-rose-600/30 animate-pulse hover:animate-none'
+          }
+          ${className}
+        `}
+      >
+        {isLoading || isUpdating ? (
+          <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+        ) : (
+          <span className="relative flex h-2.5 w-2.5 shrink-0">
+            {isOnline && (
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+            )}
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
+          </span>
+        )}
+        
+        <span className="tracking-tight whitespace-nowrap">
+          {isOnline ? 'พร้อมรับงาน' : 'ปิดรับงาน'}
+        </span>
+      </button>
+    );
+  }
+
+  return (
+    <button
+      onClick={handleToggle}
+      disabled={isUpdating || isLoading}
+      className={`
+        relative flex items-center justify-center gap-2 px-4 py-3 w-full max-w-[220px] rounded-full font-bold text-base transition-all duration-300 shadow-lg outline-none ring-2 ring-offset-2 ring-offset-white dark:ring-offset-[#111827] cursor-pointer
+        disabled:opacity-70 disabled:cursor-not-allowed hover:-translate-y-0.5 active:scale-95
+        ${isOnline 
+          ? 'bg-green-500 text-white hover:bg-green-600 ring-green-500/50 shadow-green-500/40' 
+          : 'bg-red-500 text-white hover:bg-red-600 ring-red-500/50 shadow-red-500/40 animate-pulse hover:animate-none'
+        }
+        ${className}
+      `}
+    >
+      {isLoading || isUpdating ? (
+        <Loader2 className="w-5 h-5 animate-spin" />
+      ) : (
+        <span className="relative flex h-3 w-3">
+          {isOnline && (
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+          )}
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+        </span>
+      )}
+      
+      <span className="tracking-wide">
+        {isOnline ? 'พร้อมรับงาน' : 'ปิดรับงาน'}
+      </span>
+    </button>
+  );
+}

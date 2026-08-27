@@ -1,0 +1,22 @@
+{
+  "name": "อุ่นใจ",
+  "short_name": "OonJai",
+  "theme_color": "#ff6600",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/icon01.ico",
+      "sizes": "192x192",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/icon01.ico",
+      "sizes": "512x512",
+      "type": "image/x-icon"
+    }
+  ]
+}
