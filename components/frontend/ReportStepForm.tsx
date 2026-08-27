@@ -270,7 +270,7 @@ export const ReportStepForm = () => {
         analyzeData.append('prompt', `ช่วยวิเคราะห์ความรุนแรงของภัยพิบัติ ระดับน้ำ ผู้ประสบภัย และกลุ่มเปราะบาง จากรูปภาพนี้ร่วมกับข้อมูล: น้ำ=${formData.waterLevel}, มีผู้ป่วยติดเตียง=${formData.bedridden ? 'มี' : 'ไม่มี'}, เด็ก/ผู้สูงอายุ=${formData.elderly ? 'มี' : 'ไม่มี'}`);
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4500);
+        const timeoutId = setTimeout(() => controller.abort(), 12500);
 
         const aiRes = await fetch('/api/analyze', {
           method: 'POST',
@@ -288,13 +288,13 @@ export const ReportStepForm = () => {
             parsed = null;
           }
 
-          if (parsed && parsed.risk_level) {
+          if (parsed && (parsed.risk_level !== undefined || parsed.situation_summary)) {
             const aiLevel = Number(parsed.risk_level) || severity;
             const finalLevel = Math.max(severity, aiLevel);
             setCalculatedSeverity(finalLevel);
             setAiAnalysisResult(parsed);
 
-            const feedbackText = `ผลประเมินภาพถ่าย (คะแนนความเสี่ยง: ${parsed.ai_score || 0}/100): ${parsed.situation_summary || 'วิเคราะห์สำเร็จ'}`;
+            const feedbackText = `ผลประเมินภาพถ่าย (คะแนนความเสี่ยง: ${parsed.ai_score !== undefined ? parsed.ai_score : 0}/100): ${parsed.situation_summary || 'วิเคราะห์สำเร็จ'}`;
             setVisionFeedback(feedbackText);
           }
         }

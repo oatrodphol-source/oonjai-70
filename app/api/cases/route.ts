@@ -171,6 +171,39 @@ export async function POST(req: Request) {
         };
 
         uploadedImageUrl = await uploadWithTimeout();
+
+        // Server-side fallback for AI Vision analysis if not already attached to finalDetails
+        if (!finalDetails.includes('[AI Analysis Score:')) {
+          const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
+          if (geminiApiKey) {
+            try {
+              const { GoogleGenAI } = await import('@google/genai');
+              const ai = new GoogleGenAI({ apiKey: geminiApiKey });
+              const base64Data = buffer.toString('base64');
+              const prompt = `ช่วยวิเคราะห์ความรุนแรงของภัยพิบัติ ระดับน้ำ ผู้ประสบภัย และกลุ่มเปราะบาง จากรูปภาพนี้ ตอบเป็น JSON: {"risk_level": 1-5, "ai_score": 0-100, "situation_summary": "สรุปสถานการณ์สั้นๆ", "recommended_action": "คำแนะนำทีมกู้ภัย"}`;
+
+              const modelsToTry = ['gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-pro-preview'];
+              for (const mName of modelsToTry) {
+                try {
+                  const res = await ai.models.generateContent({
+                    model: mName,
+                    contents: [prompt, { inlineData: { data: base64Data, mimeType } }]
+                  });
+                  if (res.text) {
+                    const cleanText = res.text.replace(/```json/gi, '').replace(/```/g, '').trim();
+                    const parsed = JSON.parse(cleanText);
+                    if (parsed) {
+                      aiData = parsed;
+                      break;
+                    }
+                  }
+                } catch (mErr) {}
+              }
+            } catch (aiErr) {
+              console.warn("Server-side AI Vision warning:", aiErr);
+            }
+          }
+        }
       } catch (err) {
         console.error("Error processing image file:", err);
       }
@@ -178,10 +211,10 @@ export async function POST(req: Request) {
 
     // 3. Merge AI Data safely
     if (aiData) {
-      if (providedSeverity === undefined && severity === 1 && aiData.risk_level) {
-         finalSeverity = Math.max(finalSeverity, Number(aiData.risk_level) || 1);
+      if (providedSeverity === undefined && aiData.risk_level) {
+        finalSeverity = Math.max(finalSeverity, Number(aiData.risk_level) || 1);
       }
-      const aiSummary = `[AI Analysis: ${aiData.situation_summary || 'N/A'} | Action: ${aiData.recommended_action || 'N/A'}]`;
+      const aiSummary = `[AI Analysis Score: ${aiData.ai_score !== undefined ? aiData.ai_score : 0}/100 | ${aiData.situation_summary || ''} | Recommended Action: ${aiData.recommended_action || ''}]`;
       finalDetails = finalDetails ? `${finalDetails}\n${aiSummary}` : aiSummary;
     }
 
