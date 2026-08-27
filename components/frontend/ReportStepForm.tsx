@@ -263,10 +263,26 @@ export const ReportStepForm = () => {
     }, 500);
 
     // If an image was uploaded, perform real Gemini AI Vision analysis
-    if (formData.image_file) {
+    const imageToAnalyze = formData.image_file || (formData.image_url && formData.image_url.startsWith('data:image') ? (() => {
+      try {
+        const arr = formData.image_url.split(',');
+        const mimeMatch = arr[0].match(/:(.*?);/);
+        if (!mimeMatch) return null;
+        const mime = mimeMatch[1];
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        return new File([u8arr], formData.image_name || 'upload.jpg', { type: mime });
+      } catch (e) { return null; }
+    })() : null);
+
+    if (imageToAnalyze) {
       try {
         const analyzeData = new FormData();
-        analyzeData.append('image', formData.image_file);
+        analyzeData.append('image', imageToAnalyze);
         analyzeData.append('prompt', `ช่วยวิเคราะห์ความรุนแรงของภัยพิบัติ ระดับน้ำ ผู้ประสบภัย และกลุ่มเปราะบาง จากรูปภาพนี้ร่วมกับข้อมูล: น้ำ=${formData.waterLevel}, มีผู้ป่วยติดเตียง=${formData.bedridden ? 'มี' : 'ไม่มี'}, เด็ก/ผู้สูงอายุ=${formData.elderly ? 'มี' : 'ไม่มี'}`);
 
         const controller = new AbortController();
