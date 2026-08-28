@@ -40,14 +40,32 @@
   }
 }
 
-@layer utilities {
-  .glass {
-    @apply bg-white/70 dark:bg-[#151b2c]/70 backdrop-blur-md border border-white/20 dark:border-white/10 shadow-lg;
-  }
-  
-  .glass-card {
-    @apply bg-white/90 dark:bg-[#151b2c]/90 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-xl rounded-2xl;
-  }
+/* Glassmorphism Utilities (Standard CSS - No Linter Warnings) */
+.glass {
+  background-color: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+}
+
+.dark .glass {
+  background-color: rgba(21, 27, 44, 0.7);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.glass-card {
+  background-color: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 1rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+.dark .glass-card {
+  background-color: rgba(21, 27, 44, 0.9);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 /* Adjust Leaflet attribution on mobile so it clears bottom nav */
