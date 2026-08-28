@@ -1,16 +1,45 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ShieldAlert, Users, ArrowRight, LogIn, MapPin, MessageCircle, GraduationCap, Award, Code2 } from 'lucide-react';
+import { ShieldAlert, Users, ArrowRight, LogIn, MapPin, MessageCircle, GraduationCap, Award, Code2, Sparkles, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 export default function Home() {
   const lineOfficialUrl = 'https://line.me/R/ti/p/@946curyj';
 
+  const emergencyKeywords = [
+    'น้ำท่วมฉับพลัน',
+    'ผู้ป่วยติดเตียง',
+    'ขอเรืออพยพด่วน',
+    'พายุลมแรง/ต้นไม้ล้ม',
+    'เสาไฟล้ม/ไฟฟ้าดับ',
+    'สัตว์มีพิษ/บาดเจ็บ'
+  ];
+
+  const [currentWordIndex, setCurrentWordIndex] = useState(0);
+  const [fadeState, setFadeState] = useState<'in' | 'out'>('in');
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFadeState('out');
+      setTimeout(() => {
+        setCurrentWordIndex((prev) => (prev + 1) % emergencyKeywords.length);
+        setFadeState('in');
+      }, 300);
+    }, 2600);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <main className="min-h-screen bg-[#0b1325] text-white relative w-full max-w-full overflow-x-hidden flex flex-col justify-between">
-      {/* Optimized Ambient Background Effect (Hardware Accelerated for Mobile) */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[350px] sm:w-[800px] h-[350px] sm:h-[500px] bg-[#ff6600]/10 rounded-full blur-[60px] sm:blur-[120px] pointer-events-none transform-gpu"></div>
-      <div className="absolute bottom-0 right-0 w-[250px] sm:w-[400px] h-[250px] sm:h-[400px] bg-blue-600/10 rounded-full blur-[50px] sm:blur-[100px] pointer-events-none transform-gpu"></div>
+      {/* Cyber Rescue Grid Background Overlay */}
+      <div className="absolute inset-0 bg-rescue-grid opacity-60 pointer-events-none z-0"></div>
+
+      {/* Optimized Ambient Breathing Background Glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[350px] sm:w-[850px] h-[350px] sm:h-[550px] bg-[#ff6600]/15 rounded-full blur-[70px] sm:blur-[140px] pointer-events-none transform-gpu animate-breathing-pulse z-0"></div>
+      <div className="absolute bottom-0 right-0 w-[250px] sm:w-[450px] h-[250px] sm:h-[450px] bg-blue-600/10 rounded-full blur-[60px] sm:blur-[120px] pointer-events-none transform-gpu z-0"></div>
 
       {/* Top Navigation */}
       <nav className="relative z-10 flex items-center justify-between w-full max-w-6xl mx-auto px-4 py-3 sm:py-4">
@@ -43,17 +72,31 @@ export default function Home() {
       </nav>
 
       {/* Hero Section - Perfectly Proportioned 3 Buttons across Mobile, Tablet, Desktop */}
-      <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-4xl mx-auto px-4 sm:px-6 text-center pt-6 sm:pt-12 pb-10 sm:pb-16">
-        {/* Status Badge */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#ff6600]/15 border border-[#ff6600]/30 text-[#ff6600] text-xs font-extrabold mb-5 shadow-sm">
-          <span className="w-2 h-2 rounded-full bg-[#ff6600] animate-ping"></span>
+      <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-4xl mx-auto px-4 sm:px-6 text-center pt-6 sm:pt-10 pb-10 sm:pb-16">
+        {/* Status Badge with Live Pulse */}
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#ff6600]/15 border border-[#ff6600]/35 text-[#ff6600] text-xs font-extrabold mb-4 shadow-sm backdrop-blur-md">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#ff6600]"></span>
+          </span>
           ระบบแจ้งเหตุและประสานความช่วยเหลือ 24 ชั่วโมง
         </div>
+
+        {/* Dynamic Disaster Scenario Badge (Word Switcher) */}
+        <div className="flex items-center justify-center gap-2 mb-3">
+          <span className="text-xs sm:text-sm text-gray-400 font-bold">รับแจ้งเหตุทุกประเภท:</span>
+          <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-orange-500/10 border border-orange-500/30 text-amber-400 text-xs sm:text-sm font-extrabold shadow-sm transition-all duration-300 transform-gpu ${
+            fadeState === 'in' ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-1'
+          }`}>
+            <Activity className="w-3.5 h-3.5 text-[#ff6600]" />
+            {emergencyKeywords[currentWordIndex]}
+          </span>
+        </div>
         
-        {/* Main Title */}
+        {/* Main Title with Shimmering Golden Gradient Flow */}
         <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black mb-4 leading-tight tracking-tight">
           เมื่อเกิดเหตุฉุกเฉิน <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ff6600] via-amber-400 to-yellow-500">
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ff6600] via-amber-300 via-yellow-400 via-orange-400 to-[#ff6600] animate-shimmer-flow inline-block drop-shadow-sm">
             ให้อุ่นใจดูแลคุณ
           </span>
         </h1>
@@ -100,50 +143,53 @@ export default function Home() {
         <div className="w-full max-w-5xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-6">
             
-            {/* Feature 1 */}
-            <div className="bg-white/5 border border-white/10 p-4 sm:p-5 rounded-2xl flex items-start gap-3.5 hover:border-[#ff6600]/40 transition-colors">
-              <div className="w-10 h-10 rounded-xl bg-[#ff6600]/20 flex items-center justify-center shrink-0 text-[#ff6600]">
+            {/* Feature 1 - Orange/Amber Glow */}
+            <div className="relative group overflow-hidden bg-white/[0.04] backdrop-blur-xl border border-white/10 hover:border-[#ff6600]/60 p-4 sm:p-5 rounded-2xl flex items-start gap-3.5 hover:bg-gradient-to-br hover:from-[#ff6600]/15 hover:via-white/[0.05] hover:to-transparent hover:shadow-[0_0_25px_rgba(255,102,0,0.22)] hover:-translate-y-1 transition-all duration-300 transform-gpu">
+              <div className="absolute -top-10 -right-10 w-24 h-24 bg-[#ff6600]/20 rounded-full blur-2xl pointer-events-none group-hover:scale-150 transition-transform duration-500"></div>
+              <div className="w-10 h-10 rounded-xl bg-[#ff6600]/20 group-hover:bg-[#ff6600]/30 group-hover:scale-110 flex items-center justify-center shrink-0 text-[#ff6600] transition-all duration-300 shadow-sm">
                 <ShieldAlert className="w-5 h-5" />
               </div>
-              <div>
-                <h3 className="text-sm sm:text-base font-extrabold text-white mb-1">แจ้งเหตุรวดเร็ว</h3>
-                <p className="text-xs text-gray-400 leading-relaxed">
+              <div className="relative z-10">
+                <h3 className="text-sm sm:text-base font-extrabold text-white group-hover:text-amber-300 transition-colors mb-1">แจ้งเหตุรวดเร็ว</h3>
+                <p className="text-xs text-gray-400 group-hover:text-gray-300 leading-relaxed transition-colors">
                   ปุ่ม SOS ดึงพิกัด GPS อัตโนมัติ พร้อมส่งสัญญาณถึงหน่วยกู้ภัยใกล้เคียงทันที
                 </p>
               </div>
             </div>
             
-            {/* Feature 2 */}
-            <div className="bg-white/5 border border-white/10 p-4 sm:p-5 rounded-2xl flex items-start gap-3.5 hover:border-blue-500/40 transition-colors">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center shrink-0 text-blue-400">
+            {/* Feature 2 - Blue/Cyan Glow */}
+            <div className="relative group overflow-hidden bg-white/[0.04] backdrop-blur-xl border border-white/10 hover:border-blue-400/60 p-4 sm:p-5 rounded-2xl flex items-start gap-3.5 hover:bg-gradient-to-br hover:from-blue-500/15 hover:via-white/[0.05] hover:to-transparent hover:shadow-[0_0_25px_rgba(59,130,246,0.22)] hover:-translate-y-1 transition-all duration-300 transform-gpu">
+              <div className="absolute -top-10 -right-10 w-24 h-24 bg-blue-500/20 rounded-full blur-2xl pointer-events-none group-hover:scale-150 transition-transform duration-500"></div>
+              <div className="w-10 h-10 rounded-xl bg-blue-500/20 group-hover:bg-blue-500/30 group-hover:scale-110 flex items-center justify-center shrink-0 text-blue-400 transition-all duration-300 shadow-sm">
                 <Users className="w-5 h-5" />
               </div>
-              <div>
-                <h3 className="text-sm sm:text-base font-extrabold text-white mb-1">ประสานงานกู้ภัย</h3>
-                <p className="text-xs text-gray-400 leading-relaxed">
+              <div className="relative z-10">
+                <h3 className="text-sm sm:text-base font-extrabold text-white group-hover:text-cyan-300 transition-colors mb-1">ประสานงานกู้ภัย</h3>
+                <p className="text-xs text-gray-400 group-hover:text-gray-300 leading-relaxed transition-colors">
                   ระบบคัดกรองความเสี่ยงด้วย AI และอัปเดตสถานะแบบเรียลไทม์ให้ผู้ประสบภัย
                 </p>
               </div>
             </div>
             
-            {/* Feature 3 - Embedded LINE Integration */}
+            {/* Feature 3 - Emerald/Green LINE Glow */}
             <a 
               href={lineOfficialUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-white/5 border border-white/10 p-4 sm:p-5 rounded-2xl flex items-start gap-3.5 hover:border-green-500/40 transition-colors group cursor-pointer"
+              className="relative group overflow-hidden bg-white/[0.04] backdrop-blur-xl border border-white/10 hover:border-[#00B900]/60 p-4 sm:p-5 rounded-2xl flex items-start gap-3.5 hover:bg-gradient-to-br hover:from-[#00B900]/15 hover:via-white/[0.05] hover:to-transparent hover:shadow-[0_0_25px_rgba(0,185,0,0.22)] hover:-translate-y-1 transition-all duration-300 transform-gpu cursor-pointer"
             >
-              <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center shrink-0 text-green-400">
+              <div className="absolute -top-10 -right-10 w-24 h-24 bg-[#00B900]/20 rounded-full blur-2xl pointer-events-none group-hover:scale-150 transition-transform duration-500"></div>
+              <div className="w-10 h-10 rounded-xl bg-green-500/20 group-hover:bg-[#00B900]/30 group-hover:scale-110 flex items-center justify-center shrink-0 text-green-400 transition-all duration-300 shadow-sm">
                 <MessageCircle className="w-5 h-5" />
               </div>
-              <div>
+              <div className="relative z-10">
                 <div className="flex items-center gap-1.5 mb-1">
-                  <h3 className="text-sm sm:text-base font-extrabold text-white group-hover:text-green-400 transition-colors">
+                  <h3 className="text-sm sm:text-base font-extrabold text-white group-hover:text-emerald-300 transition-colors">
                     แจ้งเตือนผ่าน LINE
                   </h3>
-                  <ArrowRight className="w-3.5 h-3.5 text-green-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ArrowRight className="w-3.5 h-3.5 text-emerald-400 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
                 </div>
-                <p className="text-xs text-gray-400 leading-relaxed">
+                <p className="text-xs text-gray-400 group-hover:text-gray-300 leading-relaxed transition-colors">
                   เชื่อมต่อ LINE Official Account เพื่อส่งเรื่องและติดตามสถานะความช่วยเหลือ
                 </p>
               </div>

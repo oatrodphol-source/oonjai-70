@@ -182,7 +182,7 @@ export async function POST(req: Request) {
               const base64Data = buffer.toString('base64');
               const prompt = `ช่วยวิเคราะห์ความรุนแรงของภัยพิบัติ ระดับน้ำ ผู้ประสบภัย และกลุ่มเปราะบาง จากรูปภาพนี้ ตอบเป็น JSON: {"risk_level": 1-5, "ai_score": 0-100, "situation_summary": "สรุปสถานการณ์สั้นๆ", "recommended_action": "คำแนะนำทีมกู้ภัย"}`;
 
-              const modelsToTry = ['gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.5-flash'];
+              const modelsToTry = ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.6-flash', 'gemini-3.5-flash'];
               for (const mName of modelsToTry) {
                 try {
                   const res = await ai.models.generateContent({

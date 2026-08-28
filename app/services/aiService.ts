@@ -166,7 +166,7 @@ async function callOpenAI(apiKey: string, modelName: string, systemPrompt: strin
 
 async function callGemini(apiKey: string, modelName: string, systemPrompt: string, text: string | null, base64Image: string | null): Promise<string> {
   const ai = new GoogleGenAI({ apiKey: apiKey });
-  const validModels = ['gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.5-flash'];
+  const validModels = ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.6-flash', 'gemini-3.5-flash'];
   const baseModel = modelName || 'gemini-3.5-flash-lite';
   const modelsToTry = Array.from(new Set([baseModel, ...validModels]));
 

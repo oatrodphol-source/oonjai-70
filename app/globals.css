@@ -85,3 +85,45 @@
 .custom-popup .leaflet-popup-close-button:hover {
   color: #ffffff !important;
 }
+
+/* Cyber Rescue Grid Background */
+.bg-rescue-grid {
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Shimmering Golden Gradient Flow */
+@keyframes shimmer-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-shimmer-flow {
+  background-size: 200% auto;
+  animation: shimmer-flow 4s ease-in-out infinite;
+}
+
+/* Breathing Ambient Pulse */
+@keyframes breathing-pulse {
+  0%, 100% {
+    transform: translate(-50%, 0) scale(1);
+    opacity: 0.12;
+  }
+  50% {
+    transform: translate(-50%, 0) scale(1.15);
+    opacity: 0.22;
+  }
+}
+
+.animate-breathing-pulse {
+  animation: breathing-pulse 6s ease-in-out infinite;
+}
