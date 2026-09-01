@@ -7,9 +7,9 @@ import GoogleMapControls from '@/components/shared/GoogleMapControls';
 import { Layers, MapPin, Navigation } from 'lucide-react';
 import { RiskLegend } from '@/components/shared/RiskLegend';
 
-// Helper function to calculate distance between two coordinates in km
+// ฟังก์ชันคำนวณระยะทางระหว่าง 2 พิกัด (หน่วย: กิโลเมตร)
 const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-  const R = 6371; // Earth's radius in km
+  const R = 6371; // รัศมีโลกเฉลี่ย 6,371 km
   const dLat = (lat2 - lat1) * (Math.PI / 180);
   const dLon = (lon2 - lon1) * (Math.PI / 180);
   const a = 

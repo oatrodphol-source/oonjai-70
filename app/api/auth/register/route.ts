@@ -13,22 +13,22 @@ export async function POST(request: Request) {
     }
 
     // เช็คชื่อซ้ำ
-    const { data: existingVol } = await supabase.from('volunteers').select('id').eq('username', username).single();
+    const { data: existingVol } = await supabase.from('volunteers').select('id').eq('username', username).maybeSingle();
     if (existingVol) {
       return NextResponse.json({ error: 'ชื่อผู้ใช้นี้ มีในระบบแล้ว' }, { status: 400 });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // บันทึกลงฐานข้อมูล Supabase (รวมข้อมูล province, address, skills_equipment)
+    // บันทึกลงฐานข้อมูล Supabase
     const { data: newUser, error } = await supabase
       .from('volunteers')
       .insert([{
-        username: username,
+        username: username.trim(),
         password_hash: hashedPassword,
-        name: name,
+        name: name.trim(),
         phone: phone ? String(phone).replace(/\D/g, '').slice(0, 10) : null,
-        agency: agency || null,
+        agency: agency ? agency.trim() : null,
         province: province || 'ปทุมธานี',
         address: address || null,
         skills_equipment: skills_equipment || null,
@@ -38,6 +38,21 @@ export async function POST(request: Request) {
       .select().single();
 
     if (error) throw error;
+
+    // บันทึกกิจกรรมลง activity_logs
+    try {
+      const ip = request.headers.get('x-forwarded-for') || 'Unknown IP';
+      await supabase.from('activity_logs').insert({
+        user_id: newUser.id,
+        user: newUser.username || newUser.name,
+        action: 'ลงทะเบียนสมาชิกใหม่ (Register)',
+        ip_address: ip,
+        status: 'success',
+        timestamp: new Date().toISOString()
+      });
+    } catch (logErr) {
+      console.warn('Failed to log register activity:', logErr);
+    }
 
     return NextResponse.json({ message: 'ลงทะเบียนสำเร็จ', user: newUser }, { status: 201 });
   } catch (error: any) {
