@@ -224,7 +224,7 @@ export default function RegisterPage() {
                   onChange={handleChange}
                   placeholder="Username"
                   required
-                  className="w-full pl-11 pr-4 py-3 rounded-xl border-none focus:ring-2 focus:ring-white bg-[#e6efff] text-gray-900 placeholder-gray-500 shadow-inner transition-all"
+                  className="w-full pl-11 pr-4 py-3 rounded-xl border-none focus:ring-2 focus:ring-white bg-[#f4b685] text-gray-900 placeholder-gray-600 shadow-inner transition-all"
                 />
               </div>
             </div>
@@ -242,7 +242,7 @@ export default function RegisterPage() {
                   placeholder="••••••"
                   required
                   autoComplete="new-password"
-                  className="w-full pl-11 pr-12 py-3 rounded-xl border-none focus:ring-2 focus:ring-white bg-[#e6efff] text-gray-900 placeholder-gray-500 shadow-inner transition-all"
+                  className="w-full pl-11 pr-12 py-3 rounded-xl border-none focus:ring-2 focus:ring-white bg-[#f4b685] text-gray-900 placeholder-gray-600 shadow-inner transition-all"
                 />
                 <button
                   type="button"
